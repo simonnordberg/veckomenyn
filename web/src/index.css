@@ -1,0 +1,50 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Dark mode keys off a .dark class on <html>, set by lib/theme.ts. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100;
+}
+
+@media print {
+  /* Paper-friendly defaults for the printable week view. */
+  @page {
+    margin: 18mm;
+  }
+  html,
+  body,
+  #root {
+    background: white !important;
+    height: auto;
+  }
+  body {
+    font-size: 11pt;
+  }
+  /* Headings stay with their following content. */
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+  /* Don't split a dinner across pages unless it's very long. */
+  article {
+    break-inside: avoid;
+  }
+  /* Hide any element explicitly marked no-print. */
+  .print\:hidden {
+    display: none !important;
+  }
+}

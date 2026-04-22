@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Veckomenyn">
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="#1a1614" />
+  <text
+    x="64"
+    y="92"
+    text-anchor="middle"
+    font-family='"Source Serif 4", "Source Serif Pro", "Iowan Old Style", Palatino, Georgia, serif'
+    font-weight="600"
+    font-size="88"
+    letter-spacing="-0.02em"
+    fill="#f7f3ec">V</text>
+  <line x1="32" y1="104" x2="96" y2="104" stroke="#c2410c" stroke-width="3" stroke-linecap="round" />
+</svg>

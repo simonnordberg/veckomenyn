@@ -1,0 +1,14 @@
+/bin/
+/data/
+/backups/
+.env
+.env.local
+.claude/
+node_modules/
+web/.vite/
+web/*.tsbuildinfo
+web/dist/*
+!web/dist/.gitkeep
+*.db
+*.db-journal
+.DS_Store

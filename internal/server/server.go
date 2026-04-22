@@ -1,0 +1,177 @@
+package server
+
+import (
+	"context"
+	"encoding/json"
+	"io/fs"
+	"log/slog"
+	"net/http"
+	"regexp"
+	"strconv"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
+
+	"github.com/simonnordberg/veckomenyn/internal/agent"
+	"github.com/simonnordberg/veckomenyn/internal/providers"
+	"github.com/simonnordberg/veckomenyn/internal/store"
+	"github.com/simonnordberg/veckomenyn/web"
+)
+
+type Config struct {
+	Addr string
+}
+
+type Server struct {
+	cfg       Config
+	db        *store.DB
+	log       *slog.Logger
+	agent     *agent.Agent
+	providers *providers.Store
+	router    *chi.Mux
+	http      *http.Server
+}
+
+func New(cfg Config, db *store.DB, ag *agent.Agent, providers *providers.Store, log *slog.Logger) *Server {
+	s := &Server{cfg: cfg, db: db, agent: ag, providers: providers, log: log, router: chi.NewRouter()}
+	s.routes()
+	s.http = &http.Server{
+		Addr:              cfg.Addr,
+		Handler:           s.router,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	return s
+}
+
+func (s *Server) routes() {
+	s.router.Use(middleware.RequestID)
+	s.router.Use(middleware.RealIP)
+	s.router.Use(middleware.Recoverer)
+	// Compression must not be applied to SSE, it breaks the event stream.
+	// Chi's compress middleware auto-skips text/event-stream, but leaving it
+	// off the /api/chat route entirely is safer.
+	s.router.Use(middleware.Compress(5))
+	// Cap body size globally. 1 MiB is already an order of magnitude larger
+	// than anything the UI legitimately sends (long chat messages, notes MD).
+	s.router.Use(middleware.RequestSize(1 << 20))
+
+	// Rate limit the expensive endpoints per client IP. At family/LAN scale
+	// anything higher than this is almost certainly a bug or abuse; the
+	// Anthropic and Willys API costs are what we're protecting against.
+	chatLimiter := httprate.LimitByIP(20, time.Minute)
+
+	s.router.Route("/api", func(r chi.Router) {
+		r.Get("/health", s.handleHealth)
+		r.With(chatLimiter).Post("/chat", s.handleChat)
+		r.Get("/conversations", s.handleListConversations)
+		r.Get("/conversations/{id}", s.handleGetConversation)
+		r.Get("/weeks", s.handleListWeeks)
+		r.Get("/weeks/current", s.handleCurrentWeek)
+		r.Get("/weeks/{iso}", s.handleGetWeek)
+		r.Patch("/weeks/id/{id}", s.handlePatchWeek)
+		r.Get("/weeks/id/{id}/conversation", s.handleGetWeekConversation)
+		r.Delete("/weeks/id/{id}/conversations", s.handleDeleteWeekConversations)
+		r.Get("/settings", s.handleGetSettings)
+		r.Patch("/settings", s.handlePatchSettings)
+		r.Get("/providers", s.handleListProviders)
+		r.Patch("/providers/{kind}", s.handlePatchProvider)
+		r.Get("/preferences", s.handleListPreferences)
+		r.Put("/preferences/{category}", s.handlePutPreference)
+		r.Delete("/preferences/{category}", s.handleDeletePreference)
+	})
+
+	s.router.NotFound(s.handleStatic)
+}
+
+func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":  "ok",
+		"service": "veckomenyn",
+	})
+}
+
+// handleStatic serves the embedded SPA. If the frontend hasn't been built
+// (only .gitkeep is present), returns a placeholder page.
+func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
+	dist, err := fs.Sub(web.DistFS, "dist")
+	if err != nil {
+		http.Error(w, "embed error", http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := fs.Stat(dist, "index.html"); err != nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(placeholderHTML))
+		return
+	}
+
+	http.FileServer(http.FS(dist)).ServeHTTP(w, r)
+}
+
+func (s *Server) Start() error {
+	s.log.Info("listening", "addr", s.cfg.Addr)
+	return s.http.ListenAndServe()
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.http.Shutdown(ctx)
+}
+
+func writeJSON(w http.ResponseWriter, status int, body any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(body)
+}
+
+// internalError logs the underlying error and returns a generic 500 to the
+// client. Use for unexpected server-side failures. For predictable 4xx
+// conditions (bad JSON, missing fields, unknown kinds) prefer http.Error
+// with a descriptive message; those are safe to return verbatim.
+func (s *Server) internalError(w http.ResponseWriter, r *http.Request, what string, err error) {
+	s.log.Error(what, "err", err, "path", r.URL.Path, "method", r.Method)
+	http.Error(w, "internal server error", http.StatusInternalServerError)
+}
+
+// parsePositiveID reads a path param and parses it as a positive int64.
+// Writes a 400 and returns ok=false on anything non-numeric or <= 0.
+func parsePositiveID(w http.ResponseWriter, r *http.Request, name string) (int64, bool) {
+	raw := chi.URLParam(r, name)
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || id < 1 {
+		http.Error(w, "bad "+name, http.StatusBadRequest)
+		return 0, false
+	}
+	return id, true
+}
+
+// ISO-8601 week identifier, e.g. "2025-W03". We accept weeks 01-53.
+var isoWeekRE = regexp.MustCompile(`^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$`)
+
+const placeholderHTML = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Veckomenyn</title>
+<style>
+  :root { color-scheme: light dark; }
+  html, body { margin: 0; height: 100%; font: 16px/1.5 -apple-system, system-ui, sans-serif; }
+  body { display: grid; place-items: center; }
+  main { max-width: 40rem; padding: 2rem; }
+  code { background: rgba(128,128,128,0.2); padding: 0.1em 0.4em; border-radius: 4px; }
+  h1 { margin-top: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Veckomenyn</h1>
+  <p>Server is running. Frontend is not built yet.</p>
+  <p>To build the frontend:</p>
+  <pre>cd web &amp;&amp; pnpm install &amp;&amp; pnpm build</pre>
+  <p>Then rebuild the server binary.</p>
+  <p>API health: <a href="/api/health">/api/health</a></p>
+</main>
+</body>
+</html>
+`
