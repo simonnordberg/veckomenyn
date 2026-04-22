@@ -2,7 +2,7 @@
 
 ## Reporting
 
-Suspected vulnerabilities go to **simon@simonnordberg.com**, not to public issues. Include:
+Open a [private security advisory](https://github.com/simonnordberg/veckomenyn/security/advisories/new). Don't file a public issue. Include:
 
 - What the issue is and what it lets an attacker do.
 - Steps to reproduce.
