@@ -48,7 +48,7 @@ func (p *WillysProvider) ensureLoggedIn(ctx context.Context, force bool) error {
 
 	creds, ok := p.providers.WillysCredentials(ctx)
 	if !ok {
-		return errors.New("Willys provider is not configured (Settings → Integrations)")
+		return errors.New("willys provider is not configured (Settings → Integrations)")
 	}
 
 	credsChanged := creds != p.creds

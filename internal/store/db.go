@@ -42,7 +42,7 @@ func Migrate(ctx context.Context, dsn string) error {
 	if err != nil {
 		return fmt.Errorf("open sql for migrate: %w", err)
 	}
-	defer sqlDB.Close()
+	defer func() { _ = sqlDB.Close() }()
 
 	goose.SetBaseFS(migrations.FS)
 	goose.SetLogger(goose.NopLogger())
