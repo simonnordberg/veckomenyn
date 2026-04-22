@@ -49,11 +49,12 @@ type retrospectiveOut struct {
 }
 
 type cartItemOut struct {
-	ID          int64   `json:"id"`
-	ProductCode string  `json:"product_code"`
-	Qty         float64 `json:"qty"`
-	ReasonMD    string  `json:"reason_md"`
-	Committed   bool    `json:"committed"`
+	ID          int64           `json:"id"`
+	ProductCode string          `json:"product_code"`
+	Qty         float64         `json:"qty"`
+	ReasonMD    string          `json:"reason_md"`
+	Committed   bool            `json:"committed"`
+	Snapshot    json.RawMessage `json:"snapshot"`
 }
 
 type weekDetail struct {
@@ -259,7 +260,8 @@ func (s *Server) loadWeekDetail(r *http.Request, ws weekSummary) (*weekDetail, e
 
 func (s *Server) loadCartItems(r *http.Request, weekID int64) ([]cartItemOut, error) {
 	rows, err := s.db.Pool.Query(r.Context(), `
-		SELECT id, product_code, qty, reason_md, committed
+		SELECT id, product_code, qty, reason_md, committed,
+		       COALESCE(product_snapshot_json, '{}'::jsonb)::text
 		FROM cart_items WHERE week_id = $1
 		ORDER BY added_at, id`, weekID)
 	if err != nil {
@@ -269,9 +271,11 @@ func (s *Server) loadCartItems(r *http.Request, weekID int64) ([]cartItemOut, er
 	out := []cartItemOut{}
 	for rows.Next() {
 		var c cartItemOut
-		if err := rows.Scan(&c.ID, &c.ProductCode, &c.Qty, &c.ReasonMD, &c.Committed); err != nil {
+		var snap string
+		if err := rows.Scan(&c.ID, &c.ProductCode, &c.Qty, &c.ReasonMD, &c.Committed, &snap); err != nil {
 			return nil, err
 		}
+		c.Snapshot = json.RawMessage(snap)
 		out = append(out, c)
 	}
 	return out, nil

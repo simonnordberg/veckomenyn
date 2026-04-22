@@ -60,12 +60,19 @@ export type Retrospective = {
   created_at: string;
 };
 
+export type CartItemSnapshot = {
+  name?: string;
+  unit_price?: number;
+  line_total?: number;
+};
+
 export type CartItem = {
   id: number;
   product_code: string;
   qty: number;
   reason_md: string;
   committed: boolean;
+  snapshot: CartItemSnapshot;
 };
 
 export type WeekDetail = WeekSummary & {

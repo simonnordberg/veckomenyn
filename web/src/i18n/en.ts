@@ -144,7 +144,9 @@ export const en: Record<string, string> = {
   // Cart section
   "cart.title": "Shopping cart",
   "cart.code": "Code",
+  "cart.product": "Product",
   "cart.qty": "Qty",
+  "cart.price": "Price",
   "cart.reason": "Note",
 
   // Preferences modal

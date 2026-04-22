@@ -1050,10 +1050,11 @@ func shopCartAddTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 				return "", err
 			}
 			if weekID := WeekIDFrom(ctx); weekID > 0 {
+				snapshot := snapshotLine(cart, in.Code)
 				_, _ = db.Exec(ctx, `
-					INSERT INTO cart_items (week_id, product_code, qty, reason_md, committed)
-					VALUES ($1, $2, $3, $4, false)`,
-					weekID, in.Code, qty, in.Reason)
+					INSERT INTO cart_items (week_id, product_code, qty, reason_md, committed, product_snapshot_json)
+					VALUES ($1, $2, $3, $4, false, $5::jsonb)`,
+					weekID, in.Code, qty, in.Reason, snapshot)
 			}
 			return fmt.Sprintf("added; cart now:\n%s", formatCart(cart)), nil
 		},
@@ -1095,6 +1096,11 @@ func shopCartAddManyTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 			weekID := WeekIDFrom(ctx)
 			var success, failure int
 			var errLines []string
+			type recorded struct {
+				code, reason string
+				qty          int
+			}
+			toRecord := make([]recorded, 0, len(in.Items))
 			for _, it := range in.Items {
 				qty := it.Qty
 				if qty <= 0 {
@@ -1107,15 +1113,19 @@ func shopCartAddManyTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 				}
 				success++
 				if weekID > 0 {
-					_, _ = db.Exec(ctx, `
-						INSERT INTO cart_items (week_id, product_code, qty, reason_md, committed)
-						VALUES ($1, $2, $3, $4, false)`,
-						weekID, it.Code, qty, it.Reason)
+					toRecord = append(toRecord, recorded{code: it.Code, reason: it.Reason, qty: qty})
 				}
 			}
 			cart, err := shop.CartGet(ctx)
 			if err != nil {
 				return "", err
+			}
+			for _, r := range toRecord {
+				snapshot := snapshotLine(cart, r.code)
+				_, _ = db.Exec(ctx, `
+					INSERT INTO cart_items (week_id, product_code, qty, reason_md, committed, product_snapshot_json)
+					VALUES ($1, $2, $3, $4, false, $5::jsonb)`,
+					weekID, r.code, r.qty, r.reason, snapshot)
 			}
 			var buf strings.Builder
 			fmt.Fprintf(&buf, "added %d/%d items\n", success, success+failure)
@@ -1286,4 +1296,22 @@ func escapeILIKE(q string) string {
 	q = strings.ReplaceAll(q, `%`, `\%`)
 	q = strings.ReplaceAll(q, `_`, `\_`)
 	return q
+}
+
+// snapshotLine returns the JSON blob to store alongside a cart_items row so
+// the UI can render a name and a price without a live product lookup. Keys
+// are deliberately minimal; add fields here when a new one earns its place
+// rather than dumping the whole upstream shape.
+func snapshotLine(cart shopping.Cart, code string) string {
+	for _, l := range cart.Items {
+		if l.Code == code {
+			b, _ := json.Marshal(map[string]any{
+				"name":       l.Name,
+				"unit_price": l.UnitPrice,
+				"line_total": l.LineTotal,
+			})
+			return string(b)
+		}
+	}
+	return "{}"
 }

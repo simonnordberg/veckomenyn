@@ -146,7 +146,9 @@ export const sv: Record<string, string> = {
   // Cart section
   "cart.title": "Inköpslista",
   "cart.code": "Kod",
+  "cart.product": "Vara",
   "cart.qty": "Antal",
+  "cart.price": "Pris",
   "cart.reason": "Notering",
 
   // Preferences modal

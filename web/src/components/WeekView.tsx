@@ -221,6 +221,11 @@ function CartSection({ items }: { items: CartItem[] }) {
   // 74 rows behind a small caret isn't either.
   const [open, setOpen] = useState(items.length > 0);
   const total = items.length;
+  const showNote = items.some((i) => i.reason_md && i.reason_md.trim() !== "");
+  const runningTotal = items.reduce(
+    (acc, i) => acc + (i.snapshot?.line_total ?? 0),
+    0,
+  );
   return (
     <section className="rounded-md border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
       <button
@@ -234,38 +239,72 @@ function CartSection({ items }: { items: CartItem[] }) {
             ({total})
           </span>
         </h2>
-        <span className="text-stone-400 dark:text-stone-500">{open ? "▾" : "▸"}</span>
+        <span className="flex items-center gap-3 text-sm text-stone-500 tabular-nums dark:text-stone-400">
+          {runningTotal > 0 && <span>{formatKronor(runningTotal)}</span>}
+          <span className="text-stone-400 dark:text-stone-500">{open ? "▾" : "▸"}</span>
+        </span>
       </button>
       {open && (
         <div className="border-t border-stone-100 dark:border-stone-800">
           <table className="w-full text-sm">
             <thead className="bg-stone-50 text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-800/50 dark:text-stone-400">
               <tr>
-                <th className="px-4 py-2 text-left font-medium">{t("cart.code")}</th>
+                <th className="px-4 py-2 text-left font-medium">{t("cart.product")}</th>
                 <th className="px-4 py-2 text-right font-medium">{t("cart.qty")}</th>
-                <th className="px-4 py-2 text-left font-medium">{t("cart.reason")}</th>
+                <th className="px-4 py-2 text-right font-medium">{t("cart.price")}</th>
+                {showNote && (
+                  <th className="px-4 py-2 text-left font-medium">{t("cart.reason")}</th>
+                )}
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-t border-stone-100 dark:border-stone-800">
-                  <td className="px-4 py-1.5 font-mono text-xs tabular-nums text-stone-700 dark:text-stone-300">
-                    {item.product_code}
-                  </td>
-                  <td className="px-4 py-1.5 text-right font-mono text-xs tabular-nums dark:text-stone-300">
-                    {formatQty(item.qty)}
-                  </td>
-                  <td className="px-4 py-1.5 text-xs text-stone-600 dark:text-stone-400">
-                    {item.reason_md}
-                  </td>
-                </tr>
-              ))}
+              {items.map((item) => {
+                const name = item.snapshot?.name ?? "";
+                const lineTotal = item.snapshot?.line_total;
+                return (
+                  <tr
+                    key={item.id}
+                    className="border-t border-stone-100 dark:border-stone-800"
+                  >
+                    <td className="px-4 py-1.5 text-xs">
+                      {name ? (
+                        <>
+                          <div className="text-stone-800 dark:text-stone-100">{name}</div>
+                          <div className="font-mono text-[10px] tabular-nums text-stone-400 dark:text-stone-500">
+                            {item.product_code}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="font-mono tabular-nums text-stone-700 dark:text-stone-300">
+                          {item.product_code}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-1.5 text-right font-mono text-xs tabular-nums text-stone-700 dark:text-stone-300">
+                      {formatQty(item.qty)}
+                    </td>
+                    <td className="px-4 py-1.5 text-right font-mono text-xs tabular-nums text-stone-700 dark:text-stone-300">
+                      {lineTotal ? formatKronor(lineTotal) : ""}
+                    </td>
+                    {showNote && (
+                      <td className="px-4 py-1.5 text-xs text-stone-600 dark:text-stone-400">
+                        {item.reason_md}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
     </section>
   );
+}
+
+function formatKronor(v: number): string {
+  // Swedish number style: "1 299,50 kr"
+  return `${v.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, " ")} kr`;
 }
 
 function formatQty(q: number): string {
