@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ---- Web frontend ---------------------------------------------------------
-FROM node:22-alpine AS web
+FROM node:25-alpine AS web
 WORKDIR /app/web
 RUN corepack enable pnpm
 COPY web/package.json web/pnpm-lock.yaml ./
@@ -10,7 +10,7 @@ COPY web/ ./
 RUN pnpm build
 
 # ---- Go binaries ----------------------------------------------------------
-FROM golang:1.25-alpine AS go
+FROM golang:1.26-alpine AS go
 WORKDIR /app
 RUN apk add --no-cache ca-certificates
 COPY go.mod go.sum ./
@@ -23,7 +23,7 @@ RUN go build -trimpath -ldflags="-s -w" -o /out/veckomenyn ./cmd/veckomenyn && \
     go build -trimpath -ldflags="-s -w" -o /out/veckomenyn-import-week ./cmd/veckomenyn-import-week
 
 # ---- Runtime --------------------------------------------------------------
-FROM alpine:3.22
+FROM alpine:3.23
 RUN apk add --no-cache ca-certificates tzdata && \
     addgroup -S veckomenyn && adduser -S veckomenyn -G veckomenyn
 COPY --from=go /out/veckomenyn /usr/local/bin/veckomenyn
