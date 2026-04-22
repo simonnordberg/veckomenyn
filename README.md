@@ -96,7 +96,13 @@ Everything else, including the Anthropic model, lives in Settings.
 
 ## Backups
 
-The compose stack runs a sidecar that dumps Postgres nightly to `./backups/` on the host. Retention: 14 daily, 8 weekly, 6 monthly. Dumps use `--clean --if-exists --no-owner --no-privileges`, so restoring into a fresh database is one command:
+Opt-in. A sidecar dumps Postgres nightly to `./backups/` on the host, with 14 daily / 8 weekly / 6 monthly rotation:
+
+```sh
+docker compose --profile backup up -d
+```
+
+Dumps use `--clean --if-exists --no-owner --no-privileges`, so restoring into a fresh database is one command:
 
 ```sh
 gzip -dc backups/daily/veckomenyn-YYYY-MM-DD.sql.gz \

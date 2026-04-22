@@ -2,7 +2,7 @@ name: veckomenyn
 
 services:
   db:
-    image: postgres:17-alpine
+    image: public.ecr.aws/docker/library/postgres:17-alpine
     environment:
       POSTGRES_USER: veckomenyn
       POSTGRES_PASSWORD: veckomenyn
@@ -35,8 +35,17 @@ services:
   # Nightly pg_dump to ./backups on the host. Rotation: 14 daily,
   # 8 weekly, 6 monthly. Override SCHEDULE and BACKUP_KEEP_* if you
   # want different retention.
+  #
+  # Gated behind the `backup` profile so plain `docker compose up -d`
+  # doesn't pull it. Start with `docker compose --profile backup up -d`
+  # when you want backups running.
+  #
+  # The image lives on Docker Hub (no ECR Public mirror). If you hit
+  # the anonymous rate limit pulling it, `docker login docker.io` is a
+  # one-time fix.
   backup:
     image: prodrigestivill/postgres-backup-local:17
+    profiles: [backup]
     environment:
       POSTGRES_HOST: db
       POSTGRES_DB: veckomenyn
