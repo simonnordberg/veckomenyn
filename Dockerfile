@@ -5,7 +5,7 @@
 # works as a fallback if you ever need a tag that isn't mirrored here.
 
 # ---- Web frontend ---------------------------------------------------------
-FROM public.ecr.aws/docker/library/node:24-alpine AS web
+FROM public.ecr.aws/docker/library/node:25-alpine AS web
 WORKDIR /app/web
 RUN corepack enable pnpm
 COPY web/package.json web/pnpm-lock.yaml ./
