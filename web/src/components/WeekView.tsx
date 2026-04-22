@@ -138,22 +138,24 @@ function Lifecycle({
         >
           {t("lifecycle.open_willys")} ↗
         </a>
-        {!hasRetro && week.status !== "draft" && (
-          <button
-            type="button"
-            onClick={() =>
-              onAction(
-                t("lifecycle.retrospective_prompt", {
-                  start: week.start_date,
-                  end: week.end_date,
-                }),
-              )
-            }
-            className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
-          >
-            {t("lifecycle.record_retrospective")}
-          </button>
-        )}
+        {!hasRetro &&
+          week.status !== "draft" &&
+          next?.label !== t("lifecycle.record_retrospective") && (
+            <button
+              type="button"
+              onClick={() =>
+                onAction(
+                  t("lifecycle.retrospective_prompt", {
+                    start: week.start_date,
+                    end: week.end_date,
+                  }),
+                )
+              }
+              className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+            >
+              {t("lifecycle.record_retrospective")}
+            </button>
+          )}
         <StatusMenu current={week.status} onPick={(s) => void onPatch({ status: s })} />
       </div>
     </section>
