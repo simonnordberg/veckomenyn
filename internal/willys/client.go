@@ -208,7 +208,7 @@ func (c *Client) fetchCSRFToken() error {
 	if err != nil {
 		return fmt.Errorf("fetching CSRF token: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("CSRF token request failed: %d", resp.StatusCode)
 	}
@@ -267,7 +267,7 @@ func (c *Client) Login(username, password string) (Customer, error) {
 	if err != nil {
 		return Customer{}, fmt.Errorf("login request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 200))
@@ -316,7 +316,7 @@ func (c *Client) GetCustomer() (Customer, error) {
 	if err != nil {
 		return Customer{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return Customer{}, fmt.Errorf("get customer failed: %d", resp.StatusCode)
 	}
@@ -335,7 +335,7 @@ func (c *Client) Search(query string, page, size int) (SearchResult, error) {
 	if err != nil {
 		return SearchResult{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return SearchResult{}, fmt.Errorf("search failed: %d", resp.StatusCode)
 	}
@@ -349,7 +349,7 @@ func (c *Client) GetProduct(code string) (Product, error) {
 	if err != nil {
 		return Product{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return Product{}, fmt.Errorf("get product failed: %d", resp.StatusCode)
 	}
@@ -367,7 +367,7 @@ func (c *Client) Categories() (Category, error) {
 	if err != nil {
 		return Category{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return Category{}, fmt.Errorf("categories failed: %d", resp.StatusCode)
 	}
@@ -386,7 +386,7 @@ func (c *Client) Browse(categoryPath string, page, size int) (SearchResult, erro
 	if err != nil {
 		return SearchResult{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return SearchResult{}, fmt.Errorf("browse failed: %d", resp.StatusCode)
 	}
@@ -400,7 +400,7 @@ func (c *Client) GetCart() (Cart, error) {
 	if err != nil {
 		return Cart{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return Cart{}, fmt.Errorf("get cart failed: %d", resp.StatusCode)
 	}
@@ -436,7 +436,7 @@ func (c *Client) AddToCart(code string, qty int) (Cart, error) {
 	if err != nil {
 		return Cart{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 200))
 		return Cart{}, fmt.Errorf("add to cart failed (%d): %s", resp.StatusCode, b)
@@ -456,7 +456,7 @@ func (c *Client) GetOrderHistory() ([]OrderSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("get order history failed: %d", resp.StatusCode)
 	}
@@ -487,7 +487,7 @@ func (c *Client) GetOrderDetail(orderNumber string) (OrderDetail, error) {
 	if err != nil {
 		return OrderDetail{}, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return OrderDetail{}, fmt.Errorf("get order detail failed: %d", resp.StatusCode)
 	}

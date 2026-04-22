@@ -199,7 +199,7 @@ func conversationTitle(msg string) string {
 
 func sendSSE(w http.ResponseWriter, f http.Flusher, event string, data any) {
 	b, _ := json.Marshal(data)
-	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, b)
+	_, _ = fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, b)
 	f.Flush()
 }
 

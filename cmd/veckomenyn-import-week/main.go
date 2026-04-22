@@ -52,7 +52,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("connect: %v", err)
 	}
-	defer conn.Close(ctx)
+	defer func() { _ = conn.Close(ctx) }()
 
 	md, err := os.ReadFile(*mdPath)
 	if err != nil {

@@ -43,7 +43,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("db connect: %v", err)
 	}
-	defer conn.Close(ctx)
+	defer func() { _ = conn.Close(ctx) }()
 
 	files, err := filepath.Glob(filepath.Join(*from, "*.md"))
 	if err != nil {
