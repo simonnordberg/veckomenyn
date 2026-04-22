@@ -34,6 +34,9 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	if req.WeekID != nil {
+		ctx = agent.WithWeekID(ctx, *req.WeekID)
+	}
 
 	convID, err := s.ensureConversation(ctx, req.ConversationID, req.WeekID, req.Message)
 	if err != nil {

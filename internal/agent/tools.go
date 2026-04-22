@@ -75,10 +75,10 @@ func registerTools(db *pgxpool.Pool, shop shopping.Provider, log *slog.Logger) [
 		tools = append(tools,
 			shopSearchTool(shop),
 			shopCartGetTool(shop),
-			shopCartAddTool(shop),
-			shopCartAddManyTool(shop),
-			shopCartRemoveTool(shop),
-			shopCartClearTool(shop),
+			shopCartAddTool(shop, db),
+			shopCartAddManyTool(shop, db),
+			shopCartRemoveTool(shop, db),
+			shopCartClearTool(shop, db),
 			shopOrdersRecentTool(shop),
 			shopOrderDetailTool(shop),
 		)
@@ -1022,36 +1022,48 @@ func shopCartGetTool(shop shopping.Provider) Tool {
 	)
 }
 
-func shopCartAddTool(shop shopping.Provider) Tool {
+func shopCartAddTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 	return newTool(
 		"willys_cart_add",
-		"Add a product to the Willys cart by code (the value returned by willys_search). qty defaults to 1. Returns the full updated cart.",
+		"Add a product to the Willys cart by code (the value returned by willys_search). qty defaults to 1. When the user is planning a specific week (visible in chat context), pass reason so the line is saved to the week's shopping list. Returns the full updated cart.",
 		map[string]any{
-			"code": map[string]any{"type": "string", "description": "Product code, e.g. '101253219_KG'."},
-			"qty":  map[string]any{"type": "integer", "description": "Units to add (default 1)."},
+			"code":   map[string]any{"type": "string", "description": "Product code, e.g. '101253219_KG'."},
+			"qty":    map[string]any{"type": "integer", "description": "Units to add (default 1)."},
+			"reason": map[string]any{"type": "string", "description": "Why this product is in the cart. One short line. Example: 'Sej för pankopanerad sej (tors)'."},
 		},
 		[]string{"code"},
 		func(ctx context.Context, input json.RawMessage) (string, error) {
 			var in struct {
-				Code string `json:"code"`
-				Qty  int    `json:"qty"`
+				Code   string `json:"code"`
+				Qty    int    `json:"qty"`
+				Reason string `json:"reason"`
 			}
 			if err := json.Unmarshal(input, &in); err != nil {
 				return "", err
 			}
-			cart, err := shop.CartAdd(ctx, in.Code, in.Qty)
+			qty := in.Qty
+			if qty <= 0 {
+				qty = 1
+			}
+			cart, err := shop.CartAdd(ctx, in.Code, qty)
 			if err != nil {
 				return "", err
+			}
+			if weekID := WeekIDFrom(ctx); weekID > 0 {
+				_, _ = db.Exec(ctx, `
+					INSERT INTO cart_items (week_id, product_code, qty, reason_md, committed)
+					VALUES ($1, $2, $3, $4, false)`,
+					weekID, in.Code, qty, in.Reason)
 			}
 			return fmt.Sprintf("added; cart now:\n%s", formatCart(cart)), nil
 		},
 	)
 }
 
-func shopCartAddManyTool(shop shopping.Provider) Tool {
+func shopCartAddManyTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 	return newTool(
 		"willys_cart_add_many",
-		"Add many products to the Willys cart in one call. Prefer this over looping willys_cart_add — one iteration fits a full week's shop (40-60 items). Returns a count of successes/failures plus the final cart.",
+		"Add many products to the Willys cart in one call. Prefer this over looping willys_cart_add. One iteration fits a full week's shop (40-60 items). Give each item a short reason line; when the chat is about a specific week, every reason gets saved to that week's shopping list alongside the product.",
 		map[string]any{
 			"items": map[string]any{
 				"type":        "array",
@@ -1059,8 +1071,9 @@ func shopCartAddManyTool(shop shopping.Provider) Tool {
 				"items": map[string]any{
 					"type": "object",
 					"properties": map[string]any{
-						"code": map[string]any{"type": "string", "description": "Product code from willys_search."},
-						"qty":  map[string]any{"type": "integer", "description": "Units to add (default 1)."},
+						"code":   map[string]any{"type": "string", "description": "Product code from willys_search."},
+						"qty":    map[string]any{"type": "integer", "description": "Units to add (default 1)."},
+						"reason": map[string]any{"type": "string", "description": "Why this product is in the cart. One short line."},
 					},
 					"required":             []string{"code"},
 					"additionalProperties": false,
@@ -1071,13 +1084,15 @@ func shopCartAddManyTool(shop shopping.Provider) Tool {
 		func(ctx context.Context, input json.RawMessage) (string, error) {
 			var in struct {
 				Items []struct {
-					Code string `json:"code"`
-					Qty  int    `json:"qty"`
+					Code   string `json:"code"`
+					Qty    int    `json:"qty"`
+					Reason string `json:"reason"`
 				} `json:"items"`
 			}
 			if err := json.Unmarshal(input, &in); err != nil {
 				return "", err
 			}
+			weekID := WeekIDFrom(ctx)
 			var success, failure int
 			var errLines []string
 			for _, it := range in.Items {
@@ -1088,8 +1103,14 @@ func shopCartAddManyTool(shop shopping.Provider) Tool {
 				if _, err := shop.CartAdd(ctx, it.Code, qty); err != nil {
 					failure++
 					errLines = append(errLines, fmt.Sprintf("%s: %v", it.Code, err))
-				} else {
-					success++
+					continue
+				}
+				success++
+				if weekID > 0 {
+					_, _ = db.Exec(ctx, `
+						INSERT INTO cart_items (week_id, product_code, qty, reason_md, committed)
+						VALUES ($1, $2, $3, $4, false)`,
+						weekID, it.Code, qty, it.Reason)
 				}
 			}
 			cart, err := shop.CartGet(ctx)
@@ -1112,10 +1133,10 @@ func shopCartAddManyTool(shop shopping.Provider) Tool {
 	)
 }
 
-func shopCartRemoveTool(shop shopping.Provider) Tool {
+func shopCartRemoveTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 	return newTool(
 		"willys_cart_remove",
-		"Remove a product from the Willys cart by code.",
+		"Remove a product from the Willys cart by code. Also drops matching rows from the week's shopping list when chat is in-week.",
 		map[string]any{
 			"code": map[string]any{"type": "string"},
 		},
@@ -1131,20 +1152,28 @@ func shopCartRemoveTool(shop shopping.Provider) Tool {
 			if err != nil {
 				return "", err
 			}
+			if weekID := WeekIDFrom(ctx); weekID > 0 {
+				_, _ = db.Exec(ctx,
+					`DELETE FROM cart_items WHERE week_id = $1 AND product_code = $2`,
+					weekID, in.Code)
+			}
 			return fmt.Sprintf("removed; cart now:\n%s", formatCart(cart)), nil
 		},
 	)
 }
 
-func shopCartClearTool(shop shopping.Provider) Tool {
+func shopCartClearTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 	return newTool(
 		"willys_cart_clear",
-		"Empty the Willys cart. Use when the user confirms they want a fresh start.",
+		"Empty the Willys cart. Use when the user confirms they want a fresh start. Also clears the current week's shopping list when chat is in-week.",
 		map[string]any{},
 		nil,
 		func(ctx context.Context, _ json.RawMessage) (string, error) {
 			if err := shop.CartClear(ctx); err != nil {
 				return "", err
+			}
+			if weekID := WeekIDFrom(ctx); weekID > 0 {
+				_, _ = db.Exec(ctx, `DELETE FROM cart_items WHERE week_id = $1`, weekID)
 			}
 			return "cart cleared", nil
 		},

@@ -216,7 +216,10 @@ function StatusMenu({
 }
 
 function CartSection({ items }: { items: CartItem[] }) {
-  const [open, setOpen] = useState(false);
+  // Default open if the cart has items. An empty collapsed section with
+  // "(0)" next to it isn't telling you anything; a populated one hiding
+  // 74 rows behind a small caret isn't either.
+  const [open, setOpen] = useState(items.length > 0);
   const total = items.length;
   return (
     <section className="rounded-md border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
