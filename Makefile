@@ -1,4 +1,4 @@
-.PHONY: build build-server build-import build-import-week build-web dev test lint fmt clean
+.PHONY: build build-server build-import build-import-week build-web dev test lint fmt verify install-hooks clean
 
 build: build-web build-server build-import build-import-week
 
@@ -30,6 +30,22 @@ lint:
 fmt:
 	go fmt ./...
 	cd web && pnpm format
+
+# Mirrors .github/workflows/ci.yml exactly. Run before pushing if you
+# want to know what CI is going to say.
+verify:
+	go build ./...
+	go test -race ./...
+	golangci-lint run
+	cd web && pnpm install --frozen-lockfile
+	cd web && pnpm exec biome ci .
+	cd web && pnpm typecheck
+	cd web && pnpm build
+
+# One-time: point git at the tracked hooks in .githooks/.
+install-hooks:
+	git config core.hooksPath .githooks
+	@echo "Pre-push hook installed. Runs 'make verify' before every push."
 
 clean:
 	rm -rf bin web/dist/assets web/dist/index.html web/*.tsbuildinfo

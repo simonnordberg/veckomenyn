@@ -18,11 +18,18 @@ make dev
 ## Before the PR
 
 ```sh
-make test
-make lint
+make verify   # runs the full CI pipeline locally
 ```
 
-CI runs the same checks. PRs that fail them don't merge.
+`verify` mirrors `.github/workflows/ci.yml` exactly: go build + race tests + golangci-lint + biome ci + typecheck + frontend build. Green here means green in CI.
+
+If you want the same checks to run automatically before every push:
+
+```sh
+make install-hooks
+```
+
+That points git at `.githooks/`, where a `pre-push` hook runs `make verify` and blocks the push on failure. Skip in a pinch with `git push --no-verify`.
 
 ## Style
 

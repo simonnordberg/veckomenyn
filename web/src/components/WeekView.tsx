@@ -222,10 +222,7 @@ function CartSection({ items }: { items: CartItem[] }) {
   const [open, setOpen] = useState(items.length > 0);
   const total = items.length;
   const showNote = items.some((i) => i.reason_md && i.reason_md.trim() !== "");
-  const runningTotal = items.reduce(
-    (acc, i) => acc + (i.snapshot?.line_total ?? 0),
-    0,
-  );
+  const runningTotal = items.reduce((acc, i) => acc + (i.snapshot?.line_total ?? 0), 0);
   return (
     <section className="rounded-md border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
       <button
@@ -262,10 +259,7 @@ function CartSection({ items }: { items: CartItem[] }) {
                 const name = item.snapshot?.name ?? "";
                 const lineTotal = item.snapshot?.line_total;
                 return (
-                  <tr
-                    key={item.id}
-                    className="border-t border-stone-100 dark:border-stone-800"
-                  >
+                  <tr key={item.id} className="border-t border-stone-100 dark:border-stone-800">
                     <td className="px-4 py-1.5 text-xs">
                       {name ? (
                         <>
@@ -304,7 +298,10 @@ function CartSection({ items }: { items: CartItem[] }) {
 
 function formatKronor(v: number): string {
   // Swedish number style: "1 299,50 kr"
-  return `${v.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, " ")} kr`;
+  return `${v
+    .toFixed(2)
+    .replace(".", ",")
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ")} kr`;
 }
 
 function formatQty(q: number): string {
