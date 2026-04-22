@@ -1,0 +1,176 @@
+export const en: Record<string, string> = {
+  // Top bar
+  "topbar.working": "agent working",
+  "topbar.stop": "Stop",
+  "topbar.refresh": "Refresh",
+  "topbar.settings": "Settings",
+  "topbar.open_chat": "Open chat",
+  "topbar.close_chat": "Close chat",
+
+  // Plan new form
+  "plan.title": "Plan a week",
+  "plan.subtitle": "Pick the first day of the menu and how many dinners you want.",
+  "plan.start_date": "Start date",
+  "plan.menu_runs_through": "Menu runs through {end}",
+  "plan.num_dinners": "Number of dinners",
+  "plan.notes": "Notes (optional)",
+  "plan.notes_hint": "Kids away, fika bake, anything we should know.",
+  "plan.notes_placeholder": "Noah away Thu–Sun. Extra bake for work fika Friday.",
+  "plan.submit": "Plan the week",
+  "plan.submitting": "Planning…",
+  "plan.prompt": "Plan {dinners} dinners, starting {start} and running through {end}.",
+
+  // Week view
+  "week.add_dinner": "Add dinner",
+  "week.regenerate": "Regenerate week",
+  "week.print": "Print",
+  "week.notes_label": "notes",
+  "week.notes_placeholder": "Week notes (kids away, extra bake…)",
+
+  "print.preview_hint": "Preview — use the button or Cmd/Ctrl+P to print.",
+  "print.print_button": "Print",
+  "print.overview": "Overview",
+  "print.day": "Day",
+  "print.dinner": "Dinner",
+  "print.pers": "Pers",
+  "print.source": "Source",
+  "week.no_dinners": "No dinners planned yet.",
+  "week.plan_dinners": "Plan dinners",
+  "week.this_week": "This week",
+  "week.retrospective": "Retrospective",
+  "week.set_label": "set {label}",
+  "week.edit_label": "Edit {label}",
+  "week.add_dinner_prompt": "Add another dinner to the week running {start} through {end}.",
+  "week.regenerate_prompt":
+    "Regenerate the meal plan for the week running {start} through {end}. Replace each dinner with a fresh option, keeping the same constraints.",
+  "week.plan_dinners_prompt": "Plan dinners for the week running {start} through {end}.",
+
+  // Dinner card
+  "dinner.adjust": "Adjust",
+  "dinner.adjust_placeholder":
+    "Swap for something different, less spicy, use pork instead, add potatoes as a side…",
+  "dinner.adjust_hint": "⌘/Ctrl+Enter to send",
+  "dinner.adjust_send": "Send",
+  "dinner.adjust_cancel": "Cancel",
+  "dinner.adjust_prompt":
+    "For the dinner on {date} (dinner_id {id}, '{name}'): {request}. Use update_dinner to apply the change — a small tweak should preserve the dish, a swap means a new dish entirely.",
+  "dinner.recipe": "Recipe",
+  "dinner.servings": "pers",
+  "dinner.untitled": "(untitled)",
+
+  // Editable placeholders
+  "editable.add_label": "Add {label}",
+
+  // Status labels
+  "status.draft": "draft",
+  "status.cart_built": "cart built",
+  "status.ordered": "ordered",
+  "status.archived": "archived",
+
+  // Settings modal
+  "settings.title": "Household defaults",
+  "settings.language": "Language",
+  "settings.language_sv": "Svenska",
+  "settings.language_en": "English",
+  "settings.delivery_weekday": "Delivery weekday",
+  "settings.delivery_weekday_hint": "Which day groceries usually arrive.",
+  "settings.order_offset": "Order offset (days)",
+  "settings.order_offset_hint":
+    "Negative means you order before delivery. -1 = day before, 0 = same day.",
+  "settings.num_dinners": "Number of dinners",
+  "settings.num_dinners_hint": "Default length of a menu.",
+  "settings.default_servings": "Default servings",
+  "settings.default_servings_hint": "People eating per dinner.",
+  "settings.notes": "Notes",
+  "settings.save": "Save",
+  "settings.saving": "Saving…",
+  "settings.saved": "Saved.",
+  "settings.loading": "Loading…",
+  "settings.close": "Close",
+  "settings.theme": "Theme",
+  "settings.theme_system": "System",
+  "settings.theme_light": "Light",
+  "settings.theme_dark": "Dark",
+  "topbar.theme": "Theme",
+
+  // Weekdays
+  "weekday.monday": "Monday",
+  "weekday.tuesday": "Tuesday",
+  "weekday.wednesday": "Wednesday",
+  "weekday.thursday": "Thursday",
+  "weekday.friday": "Friday",
+  "weekday.saturday": "Saturday",
+  "weekday.sunday": "Sunday",
+
+  // Chat
+  "chat.title": "Chat",
+  "chat.placeholder": "Tweak anything…",
+  "chat.send": "Send",
+  "chat.thinking": "thinking…",
+  "chat.cancelled": "Cancelled.",
+  "chat.clear": "Clear",
+  "chat.clear_confirm": "Clear this week's chat history? This can't be undone.",
+  "chat.empty":
+    'Ask anything — "make Tuesday vegetarian", "Noah didn\'t like the cilantro", "regenerate the week". Actions on the menu also run through chat.',
+
+  // Calendar popup
+  "calendar.today": "Today",
+  "calendar.clear": "Clear",
+  "calendar.prev_month": "Previous month",
+  "calendar.next_month": "Next month",
+
+  "topbar.preferences": "Preferences",
+
+  // Sidebar
+  "sidebar.history": "Weeks",
+  "sidebar.current": "Current week",
+  "sidebar.empty": "No weeks yet.",
+  "sidebar.dinners_short": "dinners",
+
+  // Lifecycle
+  "lifecycle.current": "Current status",
+  "lifecycle.build_cart": "Build cart",
+  "lifecycle.build_cart_prompt":
+    "Build the Willys cart for the week running {start} through {end}. Follow the cart-building method in the system prompt: first willys_cart_clear, then aggregate ingredients across ALL dinners (show the list), pick one product per ingredient, then one willys_cart_add_many with the whole list. Verify with willys_cart_get at the end. When you're done, summarise what you added and mark the week as cart_built.",
+  "lifecycle.mark_cart_built": "Mark cart as built",
+  "lifecycle.mark_ordered": "Mark as ordered",
+  "lifecycle.record_retrospective": "Record retrospective",
+  "lifecycle.archive": "Archive",
+  "lifecycle.open_willys": "Open Willys.se",
+  "lifecycle.set_status": "Change status",
+  "lifecycle.retrospective_prompt":
+    "Record a retrospective for the week running {start} through {end}. Ask me how each dinner went, what worked, what didn't, and anything we should remember for next time. Save the notes and any dish ratings as a retrospective.",
+
+  // Cart section
+  "cart.title": "Shopping cart",
+  "cart.code": "Code",
+  "cart.qty": "Qty",
+  "cart.reason": "Note",
+
+  // Preferences modal
+  "prefs.title": "Preferences",
+  "prefs.subtitle": "Cooking principles, family, sourcing, rules. Free-form markdown per category.",
+  "prefs.pick_one": "Pick a category on the left.",
+  "prefs.new_category": "New category",
+  "prefs.delete": "Delete",
+  "prefs.confirm_delete": "Delete the '{category}' category? This cannot be undone.",
+
+  // Integrations
+  "integrations.title": "Integrations",
+  "integrations.subtitle":
+    "API keys and shopping accounts. Secrets stored in the database; leave a masked field untouched to keep the existing value.",
+  "integrations.enabled": "Enabled",
+  "integrations.category_llm": "LLM provider",
+  "integrations.category_shopping": "Shopping provider",
+  "integrations.secret_set_hint": "Stored. Type a new value to replace it.",
+
+  // Preferences modal (new + body placeholder)
+  "prefs.new_category_placeholder": "e.g. allergies",
+  "prefs.body_placeholder": "# Heading\n\nMarkdown body…",
+
+  // Print preview
+  "print.loading": "Loading…",
+
+  // Chat drawer aria-label
+  "chat.aria": "Chat",
+};

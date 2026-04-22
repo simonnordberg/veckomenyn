@@ -1,0 +1,43 @@
+# Contributing
+
+This is a small opinionated project. A few notes before a PR.
+
+## Scope
+
+Veckomenyn is a household meal planner. Willys.se is the first shopping backend. Other stores are welcome, but through the provider abstractions (`internal/shopping/Provider`, `internal/providers`). No store-specific code in handlers.
+
+## Local loop
+
+```sh
+docker compose up -d db
+make dev
+```
+
+`go.mod` pins the Go toolchain. `web/` uses pnpm.
+
+## Before the PR
+
+```sh
+make test
+make lint
+```
+
+CI runs the same checks. PRs that fail them don't merge.
+
+## Style
+
+Go follows `gofmt` and `go vet`. `golangci-lint` is the gate.
+
+TypeScript and React go through Biome. One tool for formatting and linting. No ESLint, no Prettier.
+
+Database changes ship as new goose migrations in `internal/migrations/`. Never edit a committed migration.
+
+Dependencies cost. If a helper does the job, write the helper.
+
+## Commits
+
+Conventional Commits. `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `test:`. One logical change per commit. Reference issues where useful.
+
+## Security
+
+Suspected vulnerabilities don't go in public issues. See [SECURITY.md](SECURITY.md).

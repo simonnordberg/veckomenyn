@@ -1,0 +1,12 @@
+.git
+bin
+data
+web/node_modules
+web/dist/assets
+web/dist/index.html
+web/.vite
+web/*.tsbuildinfo
+.env
+.env.local
+.DS_Store
+docs

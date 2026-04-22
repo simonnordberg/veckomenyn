@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 140" role="img" aria-label="Veckomenyn">
+  <defs>
+    <style>
+      .wordmark {
+        font-family: "Source Serif 4", "Source Serif Pro", "Iowan Old Style", "Palatino", Georgia, serif;
+        font-weight: 600;
+        font-size: 84px;
+        letter-spacing: -0.01em;
+        fill: #1a1614;
+      }
+      .sub {
+        font-family: "Source Serif 4", "Source Serif Pro", "Iowan Old Style", "Palatino", Georgia, serif;
+        font-style: italic;
+        font-weight: 400;
+        font-size: 18px;
+        letter-spacing: 0.06em;
+        fill: #6b5f56;
+      }
+      @media (prefers-color-scheme: dark) {
+        .wordmark { fill: #f7f3ec; }
+        .sub { fill: #a89a8e; }
+        .rule { stroke: #f7f3ec; }
+      }
+      .rule { stroke: #1a1614; stroke-width: 1.2; }
+    </style>
+  </defs>
+  <text class="wordmark" x="0" y="92">Veckomenyn</text>
+  <line class="rule" x1="0" y1="112" x2="90" y2="112" />
+  <text class="sub" x="100" y="118">familjens veckomeny</text>
+</svg>

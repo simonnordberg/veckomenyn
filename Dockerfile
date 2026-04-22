@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1.7
+
+# ---- Web frontend ---------------------------------------------------------
+FROM node:22-alpine AS web
+WORKDIR /app/web
+RUN corepack enable pnpm
+COPY web/package.json web/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+COPY web/ ./
+RUN pnpm build
+
+# ---- Go binaries ----------------------------------------------------------
+FROM golang:1.25-alpine AS go
+WORKDIR /app
+RUN apk add --no-cache ca-certificates
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+COPY --from=web /app/web/dist ./web/dist
+ENV CGO_ENABLED=0
+RUN go build -trimpath -ldflags="-s -w" -o /out/veckomenyn ./cmd/veckomenyn && \
+    go build -trimpath -ldflags="-s -w" -o /out/veckomenyn-import ./cmd/veckomenyn-import && \
+    go build -trimpath -ldflags="-s -w" -o /out/veckomenyn-import-week ./cmd/veckomenyn-import-week
+
+# ---- Runtime --------------------------------------------------------------
+FROM alpine:3.22
+RUN apk add --no-cache ca-certificates tzdata && \
+    addgroup -S veckomenyn && adduser -S veckomenyn -G veckomenyn
+COPY --from=go /out/veckomenyn /usr/local/bin/veckomenyn
+COPY --from=go /out/veckomenyn-import /usr/local/bin/veckomenyn-import
+COPY --from=go /out/veckomenyn-import-week /usr/local/bin/veckomenyn-import-week
+COPY --from=go /app/shared-data /usr/local/share/veckomenyn
+USER veckomenyn
+EXPOSE 8080
+ENTRYPOINT ["veckomenyn"]

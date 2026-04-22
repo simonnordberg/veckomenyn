@@ -1,0 +1,194 @@
+import { useEffect, useState } from "react";
+import { t, useLang } from "../i18n";
+import { listProviders, type Provider, type ProviderKindInfo, patchProvider } from "../lib/api";
+
+export function IntegrationsSection() {
+  useLang();
+  const [known, setKnown] = useState<ProviderKindInfo[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [sentinel, setSentinel] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = () =>
+    listProviders()
+      .then((env) => {
+        setKnown(env.known);
+        setProviders(env.providers);
+        setSentinel(env.sentinel);
+      })
+      .catch((e: Error) => setError(e.message));
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  return (
+    <section className="mt-6 border-t border-stone-200 pt-4 dark:border-stone-800">
+      <h3 className="font-serif text-base text-stone-900 dark:text-stone-100">
+        {t("integrations.title")}
+      </h3>
+      <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+        {t("integrations.subtitle")}
+      </p>
+      {error && (
+        <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+          {error}
+        </div>
+      )}
+      <div className="mt-3 flex flex-col gap-3">
+        {known.map((info) => {
+          const p = providers.find((x) => x.kind === info.kind) ?? {
+            kind: info.kind,
+            enabled: false,
+            config: {},
+          };
+          return (
+            <ProviderCard
+              key={info.kind}
+              info={info}
+              provider={p}
+              sentinel={sentinel}
+              onSaved={refresh}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ProviderCard({
+  info,
+  provider,
+  sentinel,
+  onSaved,
+}: {
+  info: ProviderKindInfo;
+  provider: Provider;
+  sentinel: string;
+  onSaved: () => void;
+}) {
+  const initialConfig = (p: Provider) => {
+    const c = { ...p.config };
+    for (const f of info.fields) {
+      if (f.type === "select" && !c[f.key] && f.default) {
+        c[f.key] = f.default;
+      }
+    }
+    return c;
+  };
+  const [enabled, setEnabled] = useState(provider.enabled);
+  const [config, setConfig] = useState<Record<string, string>>(() => initialConfig(provider));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  useEffect(() => {
+    setEnabled(provider.enabled);
+    setConfig(initialConfig(provider));
+  }, [provider]);
+
+  const dirty =
+    enabled !== provider.enabled ||
+    info.fields.some((f) => (config[f.key] ?? "") !== (provider.config[f.key] ?? ""));
+
+  const save = async () => {
+    if (saving || !dirty) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await patchProvider(info.kind, { enabled, config });
+      setSavedAt(Date.now());
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const categoryLabel =
+    info.category === "llm" ? t("integrations.category_llm") : t("integrations.category_shopping");
+
+  return (
+    <article className="rounded-md border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-medium text-stone-900 dark:text-stone-100">
+            {info.display_name}
+          </h4>
+          <p className="text-xs text-stone-500 dark:text-stone-400">{categoryLabel}</p>
+        </div>
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-stone-700 dark:text-stone-300">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+            className="h-4 w-4 accent-stone-900 dark:accent-stone-100"
+          />
+          {t("integrations.enabled")}
+        </label>
+      </header>
+      <div className="mt-3 flex flex-col gap-2">
+        {info.fields.map((f) => (
+          <label
+            key={f.key}
+            className="flex flex-col gap-1 text-xs text-stone-700 dark:text-stone-300"
+          >
+            <span className="font-medium">
+              {f.label}
+              {f.required && <span className="text-red-500"> *</span>}
+            </span>
+            {f.type === "select" ? (
+              <select
+                value={config[f.key] ?? f.default ?? ""}
+                onChange={(e) => setConfig((c) => ({ ...c, [f.key]: e.target.value }))}
+                className="rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm shadow-sm outline-none focus:border-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
+              >
+                {(f.options ?? []).map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type={f.type === "password" ? "password" : "text"}
+                value={config[f.key] ?? ""}
+                onChange={(e) => setConfig((c) => ({ ...c, [f.key]: e.target.value }))}
+                placeholder={f.placeholder ?? ""}
+                className="rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-sm shadow-sm outline-none focus:border-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500"
+              />
+            )}
+            {f.hint && (
+              <span className="text-[10px] text-stone-500 dark:text-stone-400">{f.hint}</span>
+            )}
+            {f.type === "password" && sentinel !== "" && config[f.key] === sentinel && (
+              <span className="text-[10px] text-stone-400 dark:text-stone-500">
+                {t("integrations.secret_set_hint")}
+              </span>
+            )}
+          </label>
+        ))}
+      </div>
+      {error && (
+        <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+          {error}
+        </div>
+      )}
+      <div className="mt-3 flex items-center justify-between">
+        <span className="text-[11px] text-stone-500 dark:text-stone-400">
+          {savedAt ? t("settings.saved") : ""}
+        </span>
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={saving || !dirty}
+          className="rounded-md bg-stone-900 px-3 py-1 text-xs font-medium text-stone-50 shadow-sm hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+        >
+          {saving ? t("settings.saving") : t("settings.save")}
+        </button>
+      </div>
+    </article>
+  );
+}

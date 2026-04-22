@@ -1,0 +1,59 @@
+name: veckomenyn
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: veckomenyn
+      POSTGRES_PASSWORD: veckomenyn
+      POSTGRES_DB: veckomenyn
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veckomenyn"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://veckomenyn:veckomenyn@db:5432/veckomenyn?sslmode=disable
+      # 32-byte AES key. Encrypts provider secrets at rest.
+      # Generate: openssl rand -base64 32
+      MASTER_KEY: ${MASTER_KEY}
+    ports:
+      # Override with HOST_PORT=8081 in .env if 8080 is taken.
+      - "${HOST_PORT:-8080}:8080"
+    restart: unless-stopped
+
+  # Nightly pg_dump to ./backups on the host. Rotation: 14 daily,
+  # 8 weekly, 6 monthly. Override SCHEDULE and BACKUP_KEEP_* if you
+  # want different retention.
+  backup:
+    image: prodrigestivill/postgres-backup-local:17
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: veckomenyn
+      POSTGRES_USER: veckomenyn
+      POSTGRES_PASSWORD: veckomenyn
+      POSTGRES_EXTRA_OPTS: "--clean --if-exists --no-owner --no-privileges"
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 14
+      BACKUP_KEEP_WEEKS: 8
+      BACKUP_KEEP_MONTHS: 6
+      HEALTHCHECK_PORT: "8080"
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
