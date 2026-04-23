@@ -36,3 +36,9 @@ updates:
     groups:
       docker:
         patterns: ["*"]
+    # Node alternates LTS (even) and short-lived "Current" (odd) release
+    # lines. Stay on LTS for the web build stage — skip odd majors so
+    # Dependabot only proposes bumps between LTS lines (e.g. 24 → 26).
+    ignore:
+      - dependency-name: "docker/library/node"
+        versions: ["25.x", "27.x", "29.x", "31.x"]
