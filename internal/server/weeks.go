@@ -657,6 +657,23 @@ func (s *Server) handleCloneWeek(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Pad every remaining day in the target period with an empty slot so the
+	// new plan always has one row per day. Without this, a 3-day period
+	// cloned from a 2-dinner source would show only 2 slots and the agent's
+	// "regenerate" would leave the missing day unplanned.
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO week_dinners (week_id, day_date)
+		SELECT $1, gs::date
+		FROM weeks w, generate_series(w.start_date, w.end_date, '1 day') gs
+		WHERE w.id = $1
+		  AND NOT EXISTS (
+		    SELECT 1 FROM week_dinners wd
+		    WHERE wd.week_id = $1 AND wd.day_date = gs::date
+		  )`, targetID); err != nil {
+		s.internalError(w, r, "clone pad empty days", err)
+		return
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		s.internalError(w, r, "clone commit", err)
 		return
