@@ -19,7 +19,9 @@ export function DuplicatePlanDialog({ source, onCancel, onConfirm }: Props) {
 
   useEffect(() => {
     if (!source) return;
-    setStartDate(addDays(source.start_date, 7));
+    // Default to tomorrow: most duplications are "plan the next stretch
+    // starting soon", not a continuation of the source's calendar.
+    setStartDate(addDays(today(), 1));
     setBusy(false);
   }, [source]);
 
@@ -113,9 +115,17 @@ export function DuplicatePlanDialog({ source, onCancel, onConfirm }: Props) {
   );
 }
 
+function today(): string {
+  return toISO(new Date());
+}
+
 function addDays(base: string, offset: number): string {
   const d = new Date(`${base}T00:00:00`);
   d.setDate(d.getDate() + offset);
+  return toISO(d);
+}
+
+function toISO(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
