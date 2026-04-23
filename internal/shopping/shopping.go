@@ -40,11 +40,11 @@ type OrderSummary struct {
 }
 
 type OrderLine struct {
-	Code       string  `json:"code"`
-	Name       string  `json:"name"`
-	Qty        float64 `json:"qty"`
-	LineTotal  float64 `json:"line_total"`
-	Category   string  `json:"category,omitempty"`
+	Code      string  `json:"code"`
+	Name      string  `json:"name"`
+	Qty       float64 `json:"qty"`
+	LineTotal float64 `json:"line_total"`
+	Category  string  `json:"category,omitempty"`
 }
 
 type Order struct {

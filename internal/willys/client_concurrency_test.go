@@ -61,4 +61,3 @@ func TestClearStateResetsSession(t *testing.T) {
 		t.Errorf("csrf not cleared: %q", c.csrfToken)
 	}
 }
-

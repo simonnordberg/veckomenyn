@@ -60,10 +60,10 @@ type Cart struct {
 
 // Pagination holds paging info for search/browse results.
 type Pagination struct {
-	PageSize               int `json:"pageSize"`
-	CurrentPage            int `json:"currentPage"`
-	NumberOfPages          int `json:"numberOfPages"`
-	TotalNumberOfResults   int `json:"totalNumberOfResults"`
+	PageSize             int `json:"pageSize"`
+	CurrentPage          int `json:"currentPage"`
+	NumberOfPages        int `json:"numberOfPages"`
+	TotalNumberOfResults int `json:"totalNumberOfResults"`
 }
 
 // SearchResult is the response from product search or category browse.
@@ -94,15 +94,15 @@ type OrderStatus struct {
 
 // OrderSummary is a single entry in the order history list.
 type OrderSummary struct {
-	OrderNumber        string         `json:"orderNumber"`
-	Code               string         `json:"code"`
-	OrderStatus        OrderStatus    `json:"orderStatus"`
-	Completed          bool           `json:"completed"`
-	OrderDate          string         `json:"formattedOrderDate"`
-	DeliveryDate       string         `json:"deliveryFormattedDate"`
-	Total              string         `json:"total"`
-	TotalPrice         FormattedPrice `json:"totalPrice"`
-	ReservedAmount     string         `json:"reservedAmount"`
+	OrderNumber    string         `json:"orderNumber"`
+	Code           string         `json:"code"`
+	OrderStatus    OrderStatus    `json:"orderStatus"`
+	Completed      bool           `json:"completed"`
+	OrderDate      string         `json:"formattedOrderDate"`
+	DeliveryDate   string         `json:"deliveryFormattedDate"`
+	Total          string         `json:"total"`
+	TotalPrice     FormattedPrice `json:"totalPrice"`
+	ReservedAmount string         `json:"reservedAmount"`
 }
 
 // OrderEntry is a line item in an order.
@@ -121,15 +121,15 @@ type OrderEntry struct {
 
 // OrderDetail is the full detail of a single order.
 type OrderDetail struct {
-	OrderNumber    string                    `json:"orderNumber"`
-	Code           string                    `json:"code"`
-	OrderStatus    OrderStatus               `json:"orderStatus"`
-	StatusDisplay  string                    `json:"statusDisplay"`
-	Completed      bool                      `json:"completed"`
-	DeliveryDate   string                    `json:"deliveryFormattedDate"`
-	TotalPrice     FormattedPrice            `json:"totalPrice"`
-	NettoCost      FormattedPrice            `json:"nettoTotalCost"`
-	Products       map[string][]OrderEntry   `json:"categoryOrderedDeliveredProducts"`
+	OrderNumber   string                  `json:"orderNumber"`
+	Code          string                  `json:"code"`
+	OrderStatus   OrderStatus             `json:"orderStatus"`
+	StatusDisplay string                  `json:"statusDisplay"`
+	Completed     bool                    `json:"completed"`
+	DeliveryDate  string                  `json:"deliveryFormattedDate"`
+	TotalPrice    FormattedPrice          `json:"totalPrice"`
+	NettoCost     FormattedPrice          `json:"nettoTotalCost"`
+	Products      map[string][]OrderEntry `json:"categoryOrderedDeliveredProducts"`
 }
 
 // Category represents a node in the category tree.

@@ -30,21 +30,21 @@ const (
 // Known tracks the set of provider kinds the app knows about, plus human
 // metadata the Settings UI uses to render a form without hard-coding.
 type KindInfo struct {
-	Kind         Kind     `json:"kind"`
-	Category     string   `json:"category"` // "llm" | "shopping"
-	DisplayName  string   `json:"display_name"`
-	Fields       []Field  `json:"fields"`
+	Kind        Kind    `json:"kind"`
+	Category    string  `json:"category"` // "llm" | "shopping"
+	DisplayName string  `json:"display_name"`
+	Fields      []Field `json:"fields"`
 }
 
 type Field struct {
-	Key         string       `json:"key"`
-	Label       string       `json:"label"`
-	Type        string       `json:"type"` // "text" | "password" | "select"
+	Key         string        `json:"key"`
+	Label       string        `json:"label"`
+	Type        string        `json:"type"`              // "text" | "password" | "select"
 	Options     []FieldOption `json:"options,omitempty"` // only for "select"
-	Default     string       `json:"default,omitempty"`
-	Placeholder string       `json:"placeholder,omitempty"`
-	Required    bool         `json:"required,omitempty"`
-	Hint        string       `json:"hint,omitempty"`
+	Default     string        `json:"default,omitempty"`
+	Placeholder string        `json:"placeholder,omitempty"`
+	Required    bool          `json:"required,omitempty"`
+	Hint        string        `json:"hint,omitempty"`
 }
 
 type FieldOption struct {
