@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { formatWeekday, t, useLang } from "../i18n";
+import { formatPeriod, formatWeekday, t, useLang } from "../i18n";
 import {
   type CartItem,
   clearDinnerRating,
@@ -354,12 +354,7 @@ function WeekHeader({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="font-serif text-3xl tracking-tight text-stone-900 dark:text-stone-100">
-            <EditableText
-              value={week.iso_week}
-              label="iso week"
-              onCommit={(v) => onPatch({ iso_week: v })}
-              className="-mx-1"
-            />
+            {formatPeriod(week.start_date, week.end_date)}
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-1 text-sm text-stone-600 dark:text-stone-400">
             <EditableDate

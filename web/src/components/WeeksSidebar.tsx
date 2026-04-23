@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { t, useLang } from "../i18n";
+import { formatPeriod, t, useLang } from "../i18n";
 import { listWeeks, type WeekSummary } from "../lib/api";
 
 type Props = {
@@ -80,11 +80,11 @@ export function WeeksSidebar({
                     : "text-stone-700 hover:bg-stone-200/60 dark:text-stone-300 dark:hover:bg-stone-800/60"
                 }`}
               >
-                <div className="font-mono text-xs tabular-nums text-stone-700 dark:text-stone-300">
-                  {w.iso_week}
+                <div className="text-xs tabular-nums text-stone-700 dark:text-stone-300">
+                  {formatPeriod(w.start_date, w.end_date)}
                 </div>
                 <div className="mt-0.5 text-[11px] text-stone-500 tabular-nums dark:text-stone-400">
-                  {w.start_date} · {w.dinner_count} {t("sidebar.dinners_short")} ·{" "}
+                  {w.dinner_count} {t("sidebar.dinners_short")} ·{" "}
                   <span className={statusColor(w.status)}>{t(`status.${w.status}`)}</span>
                 </div>
               </button>

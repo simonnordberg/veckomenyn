@@ -63,6 +63,19 @@ export function formatWeekday(isoDate: string): string {
   return d.toLocaleDateString(locale(), { weekday: "short" });
 }
 
+// "Fri, Apr 24" / "fre 24 apr": weekday + day + month for a yyyy-mm-dd date.
+export function formatDayShort(isoDate: string): string {
+  const d = new Date(`${isoDate}T00:00:00`);
+  return d.toLocaleDateString(locale(), { weekday: "short", month: "short", day: "numeric" });
+}
+
+// Render a planning period as its start → end with weekday prefixes.
+// The weekdays tell you at a glance whether it's an early, mid, or late-week
+// period without needing a separate iso_week label.
+export function formatPeriod(startISO: string, endISO: string): string {
+  return `${formatDayShort(startISO)} → ${formatDayShort(endISO)}`;
+}
+
 // Seven short weekday labels starting on Monday, localised. Used by the
 // calendar popup header strip.
 export function shortWeekdaysMondayFirst(): string[] {

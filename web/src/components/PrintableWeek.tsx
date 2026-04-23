@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { formatWeekday, t, useLang } from "../i18n";
+import { formatPeriod, formatWeekday, t, useLang } from "../i18n";
 import { getWeekById, type WeekDetail } from "../lib/api";
 import { Markdown } from "./Markdown";
 
@@ -55,10 +55,9 @@ export function PrintableWeek({ id }: Props) {
       </div>
 
       <header className="mb-6">
-        <h1 className="font-serif text-4xl tracking-tight text-stone-900">{week.iso_week}</h1>
-        <p className="mt-1 text-sm text-stone-600 tabular-nums">
-          {week.start_date} → {week.end_date}
-        </p>
+        <h1 className="font-serif text-4xl tracking-tight text-stone-900">
+          {formatPeriod(week.start_date, week.end_date)}
+        </h1>
         {week.notes_md && (
           <p className="mt-3 whitespace-pre-wrap text-sm italic text-stone-700">{week.notes_md}</p>
         )}

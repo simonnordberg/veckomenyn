@@ -135,9 +135,9 @@ export const en: Record<string, string> = {
 
   // Duplicate plan dialog
   "duplicate.title": "Duplicate plan",
-  "duplicate.source": "Source: {start} → {end}",
+  "duplicate.source_prefix": "Source:",
   "duplicate.start_date": "Start date",
-  "duplicate.new_period": "New period: {start} → {end}",
+  "duplicate.new_period_prefix": "New period:",
   "duplicate.confirm": "Duplicate",
   "duplicate.cancel": "Cancel",
   "duplicate.close": "Close",

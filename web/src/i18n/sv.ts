@@ -136,9 +136,9 @@ export const sv: Record<string, string> = {
 
   // Duplicate plan dialog
   "duplicate.title": "Duplicera plan",
-  "duplicate.source": "Källa: {start} → {end}",
+  "duplicate.source_prefix": "Källa:",
   "duplicate.start_date": "Startdatum",
-  "duplicate.new_period": "Ny period: {start} → {end}",
+  "duplicate.new_period_prefix": "Ny period:",
   "duplicate.confirm": "Duplicera",
   "duplicate.cancel": "Avbryt",
   "duplicate.close": "Stäng",

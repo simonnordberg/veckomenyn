@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { formatWeekday, t, useLang } from "../i18n";
+import { formatDayShort, formatPeriod, t, useLang } from "../i18n";
 import type { WeekSummary } from "../lib/api";
 
 type Props = {
@@ -65,10 +65,7 @@ export function DuplicatePlanDialog({ source, onCancel, onConfirm }: Props) {
             {t("duplicate.title")}
           </h2>
           <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-            {t("duplicate.source", {
-              start: source.start_date,
-              end: source.end_date,
-            })}
+            {t("duplicate.source_prefix")} {formatPeriod(source.start_date, source.end_date)}
           </p>
         </header>
         <form
@@ -90,12 +87,9 @@ export function DuplicatePlanDialog({ source, onCancel, onConfirm }: Props) {
               className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
             />
           </label>
-          <p className="text-xs text-stone-500 tabular-nums dark:text-stone-400">
+          <p className="text-xs text-stone-500 dark:text-stone-400">
             {startDate
-              ? t("duplicate.new_period", {
-                  start: `${startDate} (${formatWeekday(startDate)})`,
-                  end: `${endDate} (${formatWeekday(endDate)})`,
-                })
+              ? `${t("duplicate.new_period_prefix")} ${formatDayShort(startDate)} → ${formatDayShort(endDate)}`
               : ""}
           </p>
           <div className="mt-2 flex items-center justify-end gap-2">
