@@ -44,6 +44,9 @@ function Main({ route }: { route: Route }) {
   const [errorText, setErrorText] = useState<string | null>(null);
 
   const [chatOpen, setChatOpen] = useState(false);
+  // Sidebar is always visible on md+ screens (CSS). On mobile it starts
+  // hidden and slides in when the user taps the hamburger.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [chatEntries, setChatEntries] = useState<ChatEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [conversationID, setConversationID] = useState<number | null>(null);
@@ -326,20 +329,40 @@ function Main({ route }: { route: Route }) {
       <TopBar
         chatOpen={chatOpen}
         onToggleChat={() => setChatOpen((o) => !o)}
+        onToggleSidebar={() => setSidebarOpen((o) => !o)}
         onOpenSettings={() => navigate({ kind: "settings" })}
         onOpenPreferences={() => navigate({ kind: "preferences" })}
         onRefresh={bumpLoad}
         busy={busy}
         onCancel={cancel}
       />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
+        {sidebarOpen && (
+          <button
+            type="button"
+            aria-label="close sidebar"
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 z-20 bg-stone-900/40 backdrop-blur-[1px] md:hidden dark:bg-black/60"
+          />
+        )}
         <WeeksSidebar
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
           selectedID={selectedID}
-          onSelect={(id) => navigate({ kind: "week", id })}
-          onDuplicate={requestDuplicate}
+          onSelect={(id) => {
+            setSidebarOpen(false);
+            navigate({ kind: "week", id });
+          }}
+          onDuplicate={(src) => {
+            setSidebarOpen(false);
+            requestDuplicate(src);
+          }}
           onDelete={deletePlan}
           refreshKey={sidebarRefresh}
-          onPlanNew={() => navigate({ kind: "new" })}
+          onPlanNew={() => {
+            setSidebarOpen(false);
+            navigate({ kind: "new" });
+          }}
           planNewDisabled={busy || planMode}
         />
         <main className="flex-1 overflow-y-auto bg-stone-50 dark:bg-stone-950">
@@ -405,6 +428,7 @@ function routeLoadKey(route: Route): string {
 function TopBar({
   chatOpen,
   onToggleChat,
+  onToggleSidebar,
   onOpenSettings,
   onOpenPreferences,
   onRefresh,
@@ -413,6 +437,7 @@ function TopBar({
 }: {
   chatOpen: boolean;
   onToggleChat: () => void;
+  onToggleSidebar: () => void;
   onOpenSettings: () => void;
   onOpenPreferences: () => void;
   onRefresh: () => void;
@@ -420,9 +445,19 @@ function TopBar({
   onCancel: () => void;
 }) {
   return (
-    <header className="flex items-center justify-between border-b border-stone-200 bg-white px-5 py-3 dark:border-stone-800 dark:bg-stone-900">
-      <div className="flex items-center gap-3">
-        <span className="font-serif text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-100">
+    <header className="flex items-center justify-between gap-2 border-b border-stone-200 bg-white px-3 py-3 sm:px-5 dark:border-stone-800 dark:bg-stone-900">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          aria-label={t("sidebar.history")}
+          className="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-stone-700 hover:bg-stone-100 md:hidden dark:text-stone-200 dark:hover:bg-stone-800"
+        >
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+            <path d="M3 5a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1Zm1 4a1 1 0 1 0 0 2h12a1 1 0 1 0 0-2H4Z" />
+          </svg>
+        </button>
+        <span className="truncate font-serif text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-100">
           Veckomenyn<span className="text-orange-600 dark:text-orange-500">.</span>
         </span>
         {busy && (
@@ -436,20 +471,20 @@ function TopBar({
               className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-500"
               aria-hidden
             />
-            {t("topbar.working")}
-            <span className="ml-1 text-stone-400">·</span>
+            <span className="hidden sm:inline">{t("topbar.working")}</span>
+            <span className="mx-1 hidden text-stone-400 sm:inline">·</span>
             <span className="font-medium text-stone-700 dark:text-stone-200">
               {t("topbar.stop")}
             </span>
           </button>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2">
         <ThemeToggleButton />
         <button
           type="button"
           onClick={onRefresh}
-          className="rounded-md border border-stone-300 bg-white px-2.5 py-1 text-xs text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+          className="hidden rounded-md border border-stone-300 bg-white px-2.5 py-1 text-xs text-stone-700 hover:bg-stone-50 sm:inline-flex dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
           title={t("topbar.refresh")}
         >
           {t("topbar.refresh")}
@@ -457,7 +492,7 @@ function TopBar({
         <button
           type="button"
           onClick={onOpenPreferences}
-          className="rounded-md border border-stone-300 bg-white px-2.5 py-1 text-xs text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+          className="hidden rounded-md border border-stone-300 bg-white px-2.5 py-1 text-xs text-stone-700 hover:bg-stone-50 sm:inline-flex dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
         >
           {t("topbar.preferences")}
         </button>

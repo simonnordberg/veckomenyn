@@ -95,7 +95,7 @@ export function SettingsModal({ open, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-30 flex items-center justify-center bg-stone-900/40 backdrop-blur-[1px] dark:bg-black/60"
+      className="fixed inset-0 z-30 flex items-center justify-center bg-stone-900/40 p-3 backdrop-blur-[1px] sm:p-6 dark:bg-black/60"
       onClick={onClose}
       onKeyDown={(e) => e.key === "Escape" && onClose()}
       role="button"

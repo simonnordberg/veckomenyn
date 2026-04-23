@@ -39,7 +39,7 @@ export function WeekView({
   const rateable = week.status === "ordered";
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-8">
+    <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
       <WeekHeader week={week} onAction={onAction} onPatch={onPatch} />
       {week.exceptions.length > 0 && <Exceptions items={week.exceptions} />}
       <section className="flex flex-col gap-3">
@@ -268,7 +268,7 @@ function CartSection({ items }: { items: CartItem[] }) {
         </span>
       </button>
       {open && (
-        <div className="border-t border-stone-100 dark:border-stone-800">
+        <div className="overflow-x-auto border-t border-stone-100 dark:border-stone-800">
           <table className="w-full text-sm">
             <thead className="bg-stone-50 text-xs uppercase tracking-wide text-stone-500 dark:bg-stone-800/50 dark:text-stone-400">
               <tr>
@@ -351,9 +351,9 @@ function WeekHeader({
 }) {
   return (
     <header className="border-b border-stone-200 pb-4 dark:border-stone-800">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="font-serif text-3xl tracking-tight text-stone-900 dark:text-stone-100">
+          <h1 className="font-serif text-2xl tracking-tight text-stone-900 sm:text-3xl dark:text-stone-100">
             {formatPeriod(week.start_date, week.end_date)}
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-1 text-sm text-stone-600 dark:text-stone-400">
@@ -394,7 +394,7 @@ function WeekHeader({
             />
           </div>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
           <a
             href={`/weeks/${week.id}/print`}
             target="_blank"

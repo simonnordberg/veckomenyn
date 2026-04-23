@@ -43,7 +43,7 @@ export function PlanNewForm({ onSubmit, onCancel }: Props) {
   };
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col px-6 py-12">
+    <div className="mx-auto flex max-w-xl flex-col px-4 py-8 sm:px-6 sm:py-12">
       <h1 className="font-serif text-3xl tracking-tight text-stone-900 dark:text-stone-100">
         {t("plan.title")}
       </h1>

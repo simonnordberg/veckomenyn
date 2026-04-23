@@ -3,6 +3,8 @@ import { formatPeriod, t, useLang } from "../i18n";
 import { listWeeks, type WeekSummary } from "../lib/api";
 
 type Props = {
+  open: boolean;
+  onClose: () => void;
   selectedID: number | null;
   onSelect: (id: number) => void;
   onDuplicate: (source: WeekSummary) => void;
@@ -13,6 +15,8 @@ type Props = {
 };
 
 export function WeeksSidebar({
+  open,
+  onClose,
   selectedID,
   onSelect,
   onDuplicate,
@@ -40,26 +44,47 @@ export function WeeksSidebar({
   }, [refreshKey]);
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-stone-200 bg-stone-100/50 dark:border-stone-800 dark:bg-stone-900/50">
-      <header className="flex items-center justify-between border-b border-stone-200 px-4 py-3 dark:border-stone-800">
+    <aside
+      aria-label={t("sidebar.history")}
+      className={`fixed inset-y-0 left-0 z-30 flex w-72 max-w-[85vw] flex-col border-r border-stone-200 bg-stone-100 transition-transform md:static md:z-auto md:w-64 md:max-w-none md:shrink-0 md:translate-x-0 md:bg-stone-100/50 dark:border-stone-800 dark:bg-stone-900 md:dark:bg-stone-900/50 ${open ? "translate-x-0" : "-translate-x-full"}`}
+    >
+      <header className="flex items-center justify-between gap-2 border-b border-stone-200 px-4 py-3 dark:border-stone-800">
         <h2 className="font-serif text-base text-stone-900 dark:text-stone-100">
           {t("sidebar.history")}
         </h2>
-        {onPlanNew && (
+        <div className="flex items-center gap-1">
+          {onPlanNew && (
+            <button
+              type="button"
+              onClick={onPlanNew}
+              disabled={planNewDisabled}
+              title={t("sidebar.new_week_title")}
+              aria-label={t("sidebar.new_week_title")}
+              className="flex items-center gap-1 rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M10 3a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4a1 1 0 0 1 1-1Z" />
+              </svg>
+              {t("sidebar.new_week")}
+            </button>
+          )}
           <button
             type="button"
-            onClick={onPlanNew}
-            disabled={planNewDisabled}
-            title={t("sidebar.new_week_title")}
-            aria-label={t("sidebar.new_week_title")}
-            className="flex items-center gap-1 rounded-md border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+            onClick={onClose}
+            aria-label={t("topbar.close_chat")}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-stone-500 hover:bg-stone-200 md:hidden dark:text-stone-400 dark:hover:bg-stone-700"
           >
-            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-              <path d="M10 3a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4a1 1 0 0 1 1-1Z" />
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
             </svg>
-            {t("sidebar.new_week")}
           </button>
-        )}
+        </div>
       </header>
       <nav className="mt-2 flex-1 overflow-y-auto px-2 pb-3">
         {error && <div className="px-2 py-2 text-xs text-red-600 dark:text-red-400">{error}</div>}
@@ -88,7 +113,7 @@ export function WeeksSidebar({
                   <span className={statusColor(w.status)}>{t(`status.${w.status}`)}</span>
                 </div>
               </button>
-              <div className="absolute right-1.5 top-1.5 flex gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+              <div className="absolute right-1.5 top-1.5 flex gap-0.5 opacity-100 transition-opacity focus-within:opacity-100 md:opacity-0 md:group-hover:opacity-100">
                 <button
                   type="button"
                   onClick={() => onDuplicate(w)}

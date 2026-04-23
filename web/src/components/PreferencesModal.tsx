@@ -92,7 +92,7 @@ export function PreferencesModal({ open, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-30 flex items-center justify-center bg-stone-900/40 backdrop-blur-[1px] dark:bg-black/60"
+      className="fixed inset-0 z-30 flex items-center justify-center bg-stone-900/40 p-3 backdrop-blur-[1px] sm:p-6 dark:bg-black/60"
       onClick={onClose}
       onKeyDown={(e) => e.key === "Escape" && onClose()}
       role="button"
@@ -127,7 +127,7 @@ export function PreferencesModal({ open, onClose }: Props) {
           </div>
         )}
         <div className="flex flex-1 overflow-hidden">
-          <aside className="flex w-56 shrink-0 flex-col border-r border-stone-200 bg-stone-50/60 dark:border-stone-800 dark:bg-stone-950/60">
+          <aside className="flex w-40 shrink-0 flex-col border-r border-stone-200 bg-stone-50/60 sm:w-56 dark:border-stone-800 dark:bg-stone-950/60">
             <p className="px-3 pt-3 text-xs text-stone-500 dark:text-stone-400">
               {t("prefs.subtitle")}
             </p>

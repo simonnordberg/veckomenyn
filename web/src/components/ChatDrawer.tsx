@@ -44,7 +44,7 @@ export function ChatDrawer({ open, onOpenChange, busy, entries, onSend, onClear 
 
   return (
     <aside
-      className="flex h-full w-96 shrink-0 flex-col border-l border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900"
+      className="fixed inset-0 z-30 flex h-full flex-col border-l border-stone-200 bg-white md:static md:z-auto md:w-96 md:shrink-0 dark:border-stone-800 dark:bg-stone-900"
       aria-label={t("chat.aria")}
     >
       <header className="flex items-center justify-between border-b border-stone-200 px-4 py-3 dark:border-stone-800">
