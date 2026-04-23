@@ -41,7 +41,6 @@ export const sv: Record<string, string> = {
   "week.set_label": "sätt {label}",
   "week.edit_label": "Redigera {label}",
   "week.clone_next": "Planera nästa vecka utifrån denna",
-  "week.clone_next_pending": "Planerar nästa vecka…",
   "week.add_dinner_prompt":
     "Lägg till ytterligare en middag till veckan som löper från {start} till {end}.",
   "week.regenerate_prompt":
@@ -131,6 +130,19 @@ export const sv: Record<string, string> = {
   "sidebar.new_week": "Ny vecka",
   "sidebar.new_week_title": "Planera en ny vecka",
   "sidebar.duplicate": "Duplicera",
+  "sidebar.delete": "Ta bort",
+  "sidebar.delete_confirm":
+    "Ta bort den här planen, inklusive middagar och kundvagn? Går inte att ångra.",
+
+  // Duplicate plan dialog
+  "duplicate.title": "Duplicera plan",
+  "duplicate.source": "Källa: {start} → {end}",
+  "duplicate.start_date": "Startdatum",
+  "duplicate.new_period": "Ny period: {start} → {end}",
+  "duplicate.confirm": "Duplicera",
+  "duplicate.cancel": "Avbryt",
+  "duplicate.close": "Stäng",
+  "duplicate.submitting": "Duplicerar…",
 
   // Lifecycle
   "lifecycle.current": "Aktuell status",

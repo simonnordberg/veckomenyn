@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { applyAgentEvent, ChatDrawer, type ChatEntry } from "./components/ChatDrawer";
+import { DuplicatePlanDialog } from "./components/DuplicatePlanDialog";
 import { PlanNewForm } from "./components/PlanNewForm";
 import { PreferencesModal } from "./components/PreferencesModal";
 import { PrintableWeek } from "./components/PrintableWeek";
@@ -11,6 +12,7 @@ import {
   type AgentEvent,
   cloneWeek,
   createWeek,
+  deleteWeek,
   deleteWeekConversations,
   getCurrentWeek,
   getSettings,
@@ -22,6 +24,7 @@ import {
   type WeekCreate,
   type WeekDetail,
   type WeekPatch,
+  type WeekSummary,
 } from "./lib/api";
 import { goBack, navigate, type Route, useRoute } from "./lib/route";
 import { setTheme, useTheme } from "./lib/theme";
@@ -254,15 +257,44 @@ function Main({ route }: { route: Route }) {
     navigate({ kind: "week", id: created.id }, { replace: true });
   }, []);
 
-  const duplicatePlan = useCallback(async (id: number) => {
-    try {
-      const cloned = await cloneWeek(id);
-      setSidebarRefresh((k) => k + 1);
-      navigate({ kind: "week", id: cloned.id });
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : String(err));
-    }
+  const [duplicateSource, setDuplicateSource] = useState<WeekSummary | null>(null);
+  const requestDuplicate = useCallback((source: WeekSummary) => {
+    setDuplicateSource(source);
   }, []);
+  const confirmDuplicate = useCallback(
+    async (startDate: string) => {
+      if (!duplicateSource) return;
+      try {
+        const cloned = await cloneWeek(duplicateSource.id, { start_date: startDate });
+        setSidebarRefresh((k) => k + 1);
+        setDuplicateSource(null);
+        navigate({ kind: "week", id: cloned.id });
+      } catch (err) {
+        window.alert(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [duplicateSource],
+  );
+
+  const deletePlan = useCallback(
+    async (target: WeekSummary) => {
+      if (!window.confirm(t("sidebar.delete_confirm"))) return;
+      try {
+        await deleteWeek(target.id);
+        setSidebarRefresh((k) => k + 1);
+        // If the deleted plan was the one being viewed, fall back to the
+        // current plan so we don't stay on a dead URL.
+        if (week?.id === target.id) {
+          setWeek(null);
+          setStatus("loading");
+          navigate({ kind: "current" }, { replace: true });
+        }
+      } catch (err) {
+        window.alert(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [week?.id],
+  );
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();
@@ -304,7 +336,8 @@ function Main({ route }: { route: Route }) {
         <WeeksSidebar
           selectedID={selectedID}
           onSelect={(id) => navigate({ kind: "week", id })}
-          onDuplicate={duplicatePlan}
+          onDuplicate={requestDuplicate}
+          onDelete={deletePlan}
           refreshKey={sidebarRefresh}
           onPlanNew={() => navigate({ kind: "new" })}
           planNewDisabled={busy || planMode}
@@ -331,6 +364,7 @@ function Main({ route }: { route: Route }) {
                   onAction={send}
                   onPatch={patchCurrentWeek}
                   onRefetch={bumpLoad}
+                  onDuplicate={requestDuplicate}
                 />
               )}
             </>
@@ -347,6 +381,11 @@ function Main({ route }: { route: Route }) {
       </div>
       <SettingsModal open={settingsOpen} onClose={() => goBack()} />
       <PreferencesModal open={preferencesOpen} onClose={() => goBack()} />
+      <DuplicatePlanDialog
+        source={duplicateSource}
+        onCancel={() => setDuplicateSource(null)}
+        onConfirm={confirmDuplicate}
+      />
     </div>
   );
 }

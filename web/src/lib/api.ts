@@ -180,10 +180,23 @@ export type WeekPatch = Partial<{
   notes_md: string;
 }>;
 
-export async function cloneWeek(sourceID: number): Promise<WeekDetail> {
-  const r = await fetch(`/api/weeks/id/${sourceID}/clone`, { method: "POST" });
+export async function cloneWeek(
+  sourceID: number,
+  opts?: { start_date?: string },
+): Promise<WeekDetail> {
+  const body = opts?.start_date ? JSON.stringify({ start_date: opts.start_date }) : undefined;
+  const r = await fetch(`/api/weeks/id/${sourceID}/clone`, {
+    method: "POST",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body,
+  });
   if (!r.ok) throw new Error(`clone week: ${r.status} ${await r.text()}`);
   return (await r.json()) as WeekDetail;
+}
+
+export async function deleteWeek(id: number): Promise<void> {
+  const r = await fetch(`/api/weeks/id/${id}`, { method: "DELETE" });
+  if (!r.ok && r.status !== 404) throw new Error(`delete week: ${r.status} ${await r.text()}`);
 }
 
 export async function patchWeek(id: number, patch: WeekPatch): Promise<WeekDetail> {

@@ -5,7 +5,8 @@ import { listWeeks, type WeekSummary } from "../lib/api";
 type Props = {
   selectedID: number | null;
   onSelect: (id: number) => void;
-  onDuplicate: (id: number) => void | Promise<void>;
+  onDuplicate: (source: WeekSummary) => void;
+  onDelete: (source: WeekSummary) => void | Promise<void>;
   refreshKey: number;
   onPlanNew?: () => void;
   planNewDisabled?: boolean;
@@ -15,6 +16,7 @@ export function WeeksSidebar({
   selectedID,
   onSelect,
   onDuplicate,
+  onDelete,
   refreshKey,
   onPlanNew,
   planNewDisabled,
@@ -86,23 +88,42 @@ export function WeeksSidebar({
                   <span className={statusColor(w.status)}>{t(`status.${w.status}`)}</span>
                 </div>
               </button>
-              <button
-                type="button"
-                onClick={() => void onDuplicate(w.id)}
-                title={t("sidebar.duplicate")}
-                aria-label={t("sidebar.duplicate")}
-                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded text-stone-500 opacity-0 transition-opacity hover:bg-stone-200 hover:text-stone-900 focus:opacity-100 group-hover:opacity-100 dark:text-stone-400 dark:hover:bg-stone-700 dark:hover:text-stone-100"
-              >
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  aria-hidden="true"
+              <div className="absolute right-1.5 top-1.5 flex gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                <button
+                  type="button"
+                  onClick={() => onDuplicate(w)}
+                  title={t("sidebar.duplicate")}
+                  aria-label={t("sidebar.duplicate")}
+                  className="flex h-6 w-6 items-center justify-center rounded text-stone-500 hover:bg-stone-200 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-700 dark:hover:text-stone-100"
                 >
-                  <path d="M7 3a2 2 0 0 0-2 2v1H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H7Zm6 13v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h1v7a2 2 0 0 0 2 2h6Zm3-3a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v8Z" />
-                </svg>
-              </button>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M7 3a2 2 0 0 0-2 2v1H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H7Zm6 13v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h1v7a2 2 0 0 0 2 2h6Zm3-3a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v8Z" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void onDelete(w)}
+                  title={t("sidebar.delete")}
+                  aria-label={t("sidebar.delete")}
+                  className="flex h-6 w-6 items-center justify-center rounded text-stone-500 hover:bg-red-100 hover:text-red-700 dark:text-stone-400 dark:hover:bg-red-950/60 dark:hover:text-red-300"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d="M8 2a1 1 0 0 0-.894.553L6.382 4H4a1 1 0 0 0 0 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6a1 1 0 1 0 0-2h-2.382l-.724-1.447A1 1 0 0 0 12 2H8Zm1 6a1 1 0 0 1 2 0v7a1 1 0 1 1-2 0V8ZM7 7a1 1 0 0 1 1 1v7a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1Zm6 0a1 1 0 0 1 1 1v7a1 1 0 1 1-2 0V8a1 1 0 0 1 1-1Z" />
+                  </svg>
+                </button>
+              </div>
             </li>
           ))}
         </ul>

@@ -74,6 +74,7 @@ func (s *Server) routes() {
 		r.Get("/weeks/{iso}", s.handleGetWeek)
 		r.Get("/weeks/id/{id}", s.handleGetWeekByID)
 		r.Patch("/weeks/id/{id}", s.handlePatchWeek)
+		r.Delete("/weeks/id/{id}", s.handleDeleteWeek)
 		r.Post("/weeks/id/{id}/clone", s.handleCloneWeek)
 		r.Get("/weeks/id/{id}/conversation", s.handleGetWeekConversation)
 		r.Delete("/weeks/id/{id}/conversations", s.handleDeleteWeekConversations)

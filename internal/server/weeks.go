@@ -147,6 +147,26 @@ func (s *Server) handleCurrentWeek(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, detail)
 }
 
+// handleDeleteWeek removes a plan and everything that hangs off it. The FK
+// constraints have ON DELETE CASCADE, so dinners, exceptions, cart items,
+// retrospectives, and conversation links all go with it.
+func (s *Server) handleDeleteWeek(w http.ResponseWriter, r *http.Request) {
+	id, ok := parsePositiveID(w, r, "id")
+	if !ok {
+		return
+	}
+	tag, err := s.db.Pool.Exec(r.Context(), `DELETE FROM weeks WHERE id = $1`, id)
+	if err != nil {
+		s.internalError(w, r, "delete week", err)
+		return
+	}
+	if tag.RowsAffected() == 0 {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) handleGetWeekByID(w http.ResponseWriter, r *http.Request) {
 	id, ok := parsePositiveID(w, r, "id")
 	if !ok {
@@ -444,16 +464,30 @@ func (s *Server) handlePutWeekRetrospective(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleCloneWeek forks any plan into a new draft that starts 7 days after
-// the source. Dinners are copied with shifted day_dates; ratings,
-// retrospectives, cart items, and week-level notes stay with the source.
-// Multiple plans may share the same iso_week label: the new plan is always a
-// fresh row, never merged into an existing one. Works on any status: a draft
-// can be duplicated as a starting point for an alternate, and an ordered
-// plan can seed the next shopping period.
+type cloneInput struct {
+	StartDate string `json:"start_date"` // optional; defaults to source.start + 7
+}
+
+// handleCloneWeek forks any plan into a new draft. By default the new plan
+// starts 7 days after the source; caller can pass a specific start_date in
+// the body and the duration is preserved. Dinners are copied with their
+// day_date shifted by the same offset; ratings, retrospectives, cart items,
+// and week-level notes stay with the source. Multiple plans may share the
+// same iso_week label: the new plan is always a fresh row.
 func (s *Server) handleCloneWeek(w http.ResponseWriter, r *http.Request) {
 	sourceID, ok := parsePositiveID(w, r, "id")
 	if !ok {
+		return
+	}
+	var in cloneInput
+	if r.Body != nil && r.ContentLength != 0 {
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			http.Error(w, "bad json: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+	if in.StartDate != "" && !dateRE.MatchString(in.StartDate) {
+		http.Error(w, "start_date must be YYYY-MM-DD", http.StatusBadRequest)
 		return
 	}
 
@@ -465,14 +499,22 @@ func (s *Server) handleCloneWeek(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	// NULLIF('','') lets the same query handle "default to +7" and an explicit
+	// start_date. The dinner-shift offset is new_start - source_start, so the
+	// new plan preserves the source's duration.
 	var targetID int64
 	err = tx.QueryRow(ctx, `
+		WITH src AS (
+		  SELECT start_date AS s, end_date AS e FROM weeks WHERE id = $2
+		), target AS (
+		  SELECT COALESCE(NULLIF($1,'')::date, s + 7) AS new_start,
+		         e - s AS duration
+		  FROM src
+		)
 		INSERT INTO weeks (iso_week, start_date, end_date)
-		SELECT to_char(start_date + 7, 'IYYY-"W"IW'),
-		       start_date + 7,
-		       end_date + 7
-		FROM weeks WHERE id = $1
-		RETURNING id`, sourceID).Scan(&targetID)
+		SELECT to_char(new_start, 'IYYY-"W"IW'), new_start, new_start + duration
+		FROM target
+		RETURNING id`, in.StartDate, sourceID).Scan(&targetID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
@@ -484,7 +526,9 @@ func (s *Server) handleCloneWeek(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO week_dinners (week_id, day_date, dish_id, servings, sourcing_json, notes, sort_order)
-		SELECT $1, day_date + 7, dish_id, servings, sourcing_json, notes, sort_order
+		SELECT $1,
+		       day_date + ((SELECT start_date FROM weeks WHERE id = $1) - (SELECT start_date FROM weeks WHERE id = $2)),
+		       dish_id, servings, sourcing_json, notes, sort_order
 		FROM week_dinners WHERE week_id = $2`, targetID, sourceID); err != nil {
 		s.internalError(w, r, "clone copy dinners", err)
 		return

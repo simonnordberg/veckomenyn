@@ -3,7 +3,6 @@ import { formatWeekday, t, useLang } from "../i18n";
 import {
   type CartItem,
   clearDinnerRating,
-  cloneWeek,
   type Dinner,
   type DinnerRating,
   type Exception,
@@ -11,8 +10,8 @@ import {
   setWeekRetrospective,
   type WeekDetail,
   type WeekPatch,
+  type WeekSummary,
 } from "../lib/api";
-import { navigate } from "../lib/route";
 import { EditableDate, EditableText } from "./Editable";
 import { Markdown } from "./Markdown";
 
@@ -22,9 +21,17 @@ type Props = {
   onAction: (action: string) => void;
   onPatch: (patch: WeekPatch) => Promise<void>;
   onRefetch: () => void;
+  onDuplicate: (source: WeekSummary) => void;
 };
 
-export function WeekView({ week, activeDayDate, onAction, onPatch, onRefetch }: Props) {
+export function WeekView({
+  week,
+  activeDayDate,
+  onAction,
+  onPatch,
+  onRefetch,
+  onDuplicate,
+}: Props) {
   useLang();
   const dinners = useMemo(() => groupByDay(week.dinners), [week.dinners]);
   // Rating & retrospective live on weeks you've actually cooked through.
@@ -69,7 +76,7 @@ export function WeekView({ week, activeDayDate, onAction, onPatch, onRefetch }: 
         )}
       </section>
       {week.cart_items.length > 0 && <CartSection items={week.cart_items} />}
-      <Lifecycle week={week} onAction={onAction} onPatch={onPatch} />
+      <Lifecycle week={week} onAction={onAction} onPatch={onPatch} onDuplicate={onDuplicate} />
       {rateable && <WeekRetrospective week={week} />}
     </div>
   );
@@ -79,26 +86,14 @@ function Lifecycle({
   week,
   onAction,
   onPatch,
+  onDuplicate,
 }: {
   week: WeekDetail;
   onAction: (a: string) => void;
   onPatch: (patch: WeekPatch) => Promise<void>;
+  onDuplicate: (source: WeekSummary) => void;
 }) {
   const hasRetro = week.retrospectives.length > 0;
-  const [cloning, setCloning] = useState(false);
-
-  const runClone = async () => {
-    if (cloning) return;
-    setCloning(true);
-    try {
-      const next = await cloneWeek(week.id);
-      navigate({ kind: "week", id: next.id });
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : String(err));
-    } finally {
-      setCloning(false);
-    }
-  };
 
   // Next recommended step based on status. For an ordered + retro'd week, the
   // natural next step is starting next week from this one (clone).
@@ -137,8 +132,8 @@ function Lifecycle({
               ),
           };
         return {
-          label: cloning ? t("week.clone_next_pending") : t("week.clone_next"),
-          run: () => void runClone(),
+          label: t("week.clone_next"),
+          run: () => onDuplicate(week),
         };
     }
   })();

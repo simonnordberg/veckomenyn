@@ -41,7 +41,6 @@ export const en: Record<string, string> = {
   "week.set_label": "set {label}",
   "week.edit_label": "Edit {label}",
   "week.clone_next": "Plan next week from this one",
-  "week.clone_next_pending": "Planning next week…",
   "week.add_dinner_prompt": "Add another dinner to the week running {start} through {end}.",
   "week.regenerate_prompt":
     "Regenerate the meal plan for the week running {start} through {end}. Replace each dinner with a fresh option, keeping the same constraints.",
@@ -130,6 +129,19 @@ export const en: Record<string, string> = {
   "sidebar.new_week": "New week",
   "sidebar.new_week_title": "Plan a new week",
   "sidebar.duplicate": "Duplicate",
+  "sidebar.delete": "Delete",
+  "sidebar.delete_confirm":
+    "Delete this plan, including its dinners and cart? This can't be undone.",
+
+  // Duplicate plan dialog
+  "duplicate.title": "Duplicate plan",
+  "duplicate.source": "Source: {start} → {end}",
+  "duplicate.start_date": "Start date",
+  "duplicate.new_period": "New period: {start} → {end}",
+  "duplicate.confirm": "Duplicate",
+  "duplicate.cancel": "Cancel",
+  "duplicate.close": "Close",
+  "duplicate.submitting": "Duplicating…",
 
   // Lifecycle
   "lifecycle.current": "Current status",
