@@ -27,7 +27,7 @@ export function WeekView({ week, activeDayDate, onAction, onPatch, onRefetch }: 
   const dinners = useMemo(() => groupByDay(week.dinners), [week.dinners]);
   // Rating & retrospective live on weeks you've actually cooked through.
   // Hiding them while planning keeps the card tidy and reflects the lifecycle.
-  const rateable = week.status === "ordered" || week.status === "archived";
+  const rateable = week.status === "ordered";
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-8">
@@ -108,7 +108,6 @@ function Lifecycle({
             }),
         };
       case "ordered":
-      case "archived":
         if (!hasRetro)
           return {
             label: t("lifecycle.record_retrospective"),
@@ -182,7 +181,6 @@ function StatusMenu({
   onPick: (s: WeekDetail["status"]) => void;
 }) {
   const [open, setOpen] = useState(false);
-  // "archived" intentionally omitted — it auto-transitions when end_date passes.
   const statuses: WeekDetail["status"][] = ["draft", "cart_built", "ordered"];
   return (
     <div className="relative">

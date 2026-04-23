@@ -591,7 +591,7 @@ func updateWeekTool(db *pgxpool.Pool) Tool {
 			"end_date":      map[string]any{"type": "string", "description": "YYYY-MM-DD"},
 			"delivery_date": map[string]any{"type": "string", "description": "YYYY-MM-DD. Empty string clears it."},
 			"order_date":    map[string]any{"type": "string", "description": "YYYY-MM-DD. Empty string clears it."},
-			"status":        map[string]any{"type": "string", "enum": []string{"draft", "cart_built", "ordered", "archived"}},
+			"status":        map[string]any{"type": "string", "enum": []string{"draft", "cart_built", "ordered"}},
 			"notes_md":      map[string]any{"type": "string"},
 		},
 		nil,

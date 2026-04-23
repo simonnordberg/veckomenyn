@@ -66,7 +66,6 @@ export const en: Record<string, string> = {
   "status.draft": "draft",
   "status.cart_built": "ready to order",
   "status.ordered": "ordered",
-  "status.archived": "archived",
 
   // Settings modal
   "settings.title": "Household defaults",

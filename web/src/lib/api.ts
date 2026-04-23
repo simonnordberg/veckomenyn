@@ -31,7 +31,7 @@ export type WeekSummary = {
   end_date: string;
   delivery_date: string | null;
   order_date: string | null;
-  status: "draft" | "cart_built" | "ordered" | "archived";
+  status: "draft" | "cart_built" | "ordered";
   dinner_count: number;
   updated_at: string;
 };

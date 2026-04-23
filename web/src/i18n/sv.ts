@@ -68,7 +68,6 @@ export const sv: Record<string, string> = {
   "status.draft": "utkast",
   "status.cart_built": "klar att beställa",
   "status.ordered": "beställd",
-  "status.archived": "arkiverad",
 
   // Settings modal
   "settings.title": "Hushållsinställningar",

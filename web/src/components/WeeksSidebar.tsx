@@ -100,7 +100,5 @@ function statusColor(s: WeekSummary["status"]): string {
       return "text-amber-700 dark:text-amber-400";
     case "ordered":
       return "text-emerald-700 dark:text-emerald-400";
-    case "archived":
-      return "text-stone-400 dark:text-stone-500";
   }
 }

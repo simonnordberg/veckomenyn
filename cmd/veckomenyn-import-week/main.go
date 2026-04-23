@@ -35,7 +35,7 @@ func main() {
 	endDate := flag.String("end-date", "", "YYYY-MM-DD, last menu day (required)")
 	orderDate := flag.String("order-date", "", "YYYY-MM-DD, optional")
 	deliveryDate := flag.String("delivery-date", "", "YYYY-MM-DD, optional")
-	status := flag.String("status", "archived", "week status (draft|cart_built|ordered|archived)")
+	status := flag.String("status", "ordered", "week status (draft|cart_built|ordered)")
 	flag.Parse()
 
 	if *mdPath == "" || *isoWeek == "" || *startDate == "" || *endDate == "" {
