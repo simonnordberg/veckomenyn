@@ -1,21 +1,21 @@
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { t, useLang } from "../i18n";
-import { getSettings } from "../lib/api";
+import { getSettings, type WeekCreate } from "../lib/api";
 import { EditableDate } from "./Editable";
 
 type Props = {
-  onSubmit: (prompt: string) => void;
-  busy: boolean;
+  onSubmit: (input: WeekCreate) => Promise<void>;
   onCancel?: () => void;
 };
 
 const DEFAULT_DINNERS = 7;
 
-export function PlanNewForm({ onSubmit, busy, onCancel }: Props) {
+export function PlanNewForm({ onSubmit, onCancel }: Props) {
   useLang();
   const [startDate, setStartDate] = useState(() => addDays(today(), 1));
   const [dinners, setDinners] = useState(DEFAULT_DINNERS);
   const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     getSettings()
@@ -27,12 +27,19 @@ export function PlanNewForm({ onSubmit, busy, onCancel }: Props) {
 
   const endDate = useMemo(() => addDays(startDate, dinners - 1), [startDate, dinners]);
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (busy) return;
-    const parts = [t("plan.prompt", { dinners, start: startDate, end: endDate })];
-    if (notes.trim()) parts.push(notes.trim());
-    onSubmit(parts.join(" "));
+    setBusy(true);
+    try {
+      await onSubmit({
+        start_date: startDate,
+        end_date: endDate,
+        notes_md: notes.trim(),
+      });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (

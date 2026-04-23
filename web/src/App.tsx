@@ -9,6 +9,8 @@ import { WeekView } from "./components/WeekView";
 import { setLang, t, useLang } from "./i18n";
 import {
   type AgentEvent,
+  cloneWeek,
+  createWeek,
   deleteWeekConversations,
   getCurrentWeek,
   getSettings,
@@ -17,6 +19,7 @@ import {
   MUTATING_TOOLS,
   patchWeek,
   streamChat,
+  type WeekCreate,
   type WeekDetail,
   type WeekPatch,
 } from "./lib/api";
@@ -45,9 +48,6 @@ function Main({ route }: { route: Route }) {
   const [sidebarRefresh, setSidebarRefresh] = useState(0);
   const [loadKey, setLoadKey] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
-  // Set when the user submits the plan-new form; the next data load uses
-  // this to resolve and navigate to the freshly created week.
-  const planSubmittedRef = useRef(false);
 
   const planMode = route.kind === "new";
   const settingsOpen = route.kind === "settings";
@@ -75,23 +75,6 @@ function Main({ route }: { route: Route }) {
     let cancelled = false;
     (async () => {
       try {
-        // After the user submits the plan form, the first load resolves to
-        // the newly created week and pins its canonical URL.
-        if (planSubmittedRef.current) {
-          planSubmittedRef.current = false;
-          const fetched = await getCurrentWeek();
-          if (cancelled) return;
-          if (fetched) {
-            setWeek(fetched);
-            setStatus("ready");
-            navigate({ kind: "week", id: fetched.id }, { replace: true });
-          } else {
-            setStatus("empty");
-          }
-          setSidebarRefresh((k) => k + 1);
-          return;
-        }
-
         if (route.kind === "new") {
           // Plan form owns the main area. If nothing is loaded yet (fresh
           // bookmark), fetch a week in the background so cancel has a real
@@ -215,37 +198,27 @@ function Main({ route }: { route: Route }) {
   );
 
   const send = useCallback(
-    (message: string, opts?: { fresh?: boolean }) => {
+    (message: string) => {
       if (busy) return;
-      const fresh = opts?.fresh ?? false;
       const controller = new AbortController();
       abortRef.current = controller;
       setBusy(true);
       setChatOpen(true);
       assistantIndex.current = { current: -1 };
       toolsByID.current = new Map();
-      if (fresh) {
-        // Planning a brand-new week: drop any prior conversation so the agent
-        // doesn't carry over context from another week, and flag the post-run
-        // load so it pins the URL to the new week.
-        planSubmittedRef.current = true;
-        setConversationID(null);
-        setChatEntries([{ kind: "user", text: message }]);
-      } else {
-        setChatEntries((prev) => [...prev, { kind: "user", text: message }]);
-      }
+      setChatEntries((prev) => [...prev, { kind: "user", text: message }]);
 
       (async () => {
         try {
           await streamChat(
             {
-              conversation_id: fresh ? undefined : (conversationID ?? undefined),
-              week_id: fresh ? undefined : week?.id,
+              conversation_id: conversationID ?? undefined,
+              week_id: week?.id,
               message,
             },
             {
               onMeta: ({ conversation_id }) => {
-                if (fresh || conversationID == null) setConversationID(conversation_id);
+                if (conversationID == null) setConversationID(conversation_id);
               },
               onEvent: handleAgentEvent,
             },
@@ -270,6 +243,26 @@ function Main({ route }: { route: Route }) {
     },
     [busy, conversationID, week?.id, handleAgentEvent, bumpLoad],
   );
+
+  const createNewPlan = useCallback(async (input: WeekCreate) => {
+    const created = await createWeek(input);
+    setWeek(created);
+    setStatus("ready");
+    setSidebarRefresh((k) => k + 1);
+    setChatEntries([]);
+    setConversationID(null);
+    navigate({ kind: "week", id: created.id }, { replace: true });
+  }, []);
+
+  const duplicatePlan = useCallback(async (id: number) => {
+    try {
+      const cloned = await cloneWeek(id);
+      setSidebarRefresh((k) => k + 1);
+      navigate({ kind: "week", id: cloned.id });
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();
@@ -311,6 +304,7 @@ function Main({ route }: { route: Route }) {
         <WeeksSidebar
           selectedID={selectedID}
           onSelect={(id) => navigate({ kind: "week", id })}
+          onDuplicate={duplicatePlan}
           refreshKey={sidebarRefresh}
           onPlanNew={() => navigate({ kind: "new" })}
           planNewDisabled={busy || planMode}
@@ -318,8 +312,7 @@ function Main({ route }: { route: Route }) {
         <main className="flex-1 overflow-y-auto bg-stone-50 dark:bg-stone-950">
           {planMode ? (
             <PlanNewForm
-              onSubmit={(p) => send(p, { fresh: true })}
-              busy={busy}
+              onSubmit={createNewPlan}
               onCancel={week ? () => goBack({ kind: "week", id: week.id }) : undefined}
             />
           ) : (
@@ -330,9 +323,7 @@ function Main({ route }: { route: Route }) {
                   {errorText}
                 </div>
               )}
-              {status === "empty" && (
-                <PlanNewForm onSubmit={(p) => send(p, { fresh: true })} busy={busy} />
-              )}
+              {status === "empty" && <PlanNewForm onSubmit={createNewPlan} />}
               {status === "ready" && week && (
                 <WeekView
                   week={week}

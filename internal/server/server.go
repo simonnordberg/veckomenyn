@@ -69,6 +69,7 @@ func (s *Server) routes() {
 		r.Get("/conversations", s.handleListConversations)
 		r.Get("/conversations/{id}", s.handleGetConversation)
 		r.Get("/weeks", s.handleListWeeks)
+		r.Post("/weeks", s.handleCreateWeek)
 		r.Get("/weeks/current", s.handleCurrentWeek)
 		r.Get("/weeks/{iso}", s.handleGetWeek)
 		r.Get("/weeks/id/{id}", s.handleGetWeekByID)
@@ -175,6 +176,10 @@ func parsePositiveID(w http.ResponseWriter, r *http.Request, name string) (int64
 
 // ISO-8601 week identifier, e.g. "2025-W03". We accept weeks 01-53.
 var isoWeekRE = regexp.MustCompile(`^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$`)
+
+// Calendar date, YYYY-MM-DD. Postgres will still reject impossible dates
+// (e.g. 2026-02-30); this regex only catches obviously malformed input.
+var dateRE = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 
 const placeholderHTML = `<!doctype html>
 <html lang="en">

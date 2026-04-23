@@ -198,6 +198,50 @@ func (s *Server) handleGetWeek(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, detail)
 }
 
+type weekCreate struct {
+	StartDate string `json:"start_date"`
+	EndDate   string `json:"end_date"`
+	NotesMD   string `json:"notes_md"`
+}
+
+// handleCreateWeek inserts a fresh draft plan from a start/end date pair.
+// Deterministic: no agent involvement. The iso_week label is derived from
+// start_date; the user can rename it later.
+func (s *Server) handleCreateWeek(w http.ResponseWriter, r *http.Request) {
+	var in weekCreate
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		http.Error(w, "bad json: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if !dateRE.MatchString(in.StartDate) || !dateRE.MatchString(in.EndDate) {
+		http.Error(w, "start_date and end_date must be YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+
+	var id int64
+	err := s.db.Pool.QueryRow(r.Context(), `
+		INSERT INTO weeks (iso_week, start_date, end_date, notes_md)
+		VALUES (to_char($1::date, 'IYYY-"W"IW'), $1::date, $2::date, $3)
+		RETURNING id`, in.StartDate, in.EndDate, in.NotesMD).Scan(&id)
+	if err != nil {
+		s.internalError(w, r, "create week", err)
+		return
+	}
+
+	row := s.db.Pool.QueryRow(r.Context(), weekSelect+`WHERE w.id = $1`, id)
+	ws, err := scanWeekSummary(row)
+	if err != nil {
+		s.internalError(w, r, "create week reload", err)
+		return
+	}
+	detail, err := s.loadWeekDetail(r, ws)
+	if err != nil {
+		s.internalError(w, r, "create week detail", err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, detail)
+}
+
 type weekPatch struct {
 	IsoWeek      *string `json:"iso_week"`
 	StartDate    *string `json:"start_date"`
@@ -400,11 +444,13 @@ func (s *Server) handlePutWeekRetrospective(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleCloneWeek forks an ordered plan into a new draft that starts 7 days
-// after the source. Dinners are copied with shifted day_dates; ratings,
+// handleCloneWeek forks any plan into a new draft that starts 7 days after
+// the source. Dinners are copied with shifted day_dates; ratings,
 // retrospectives, cart items, and week-level notes stay with the source.
 // Multiple plans may share the same iso_week label: the new plan is always a
-// fresh row, never merged into an existing one.
+// fresh row, never merged into an existing one. Works on any status: a draft
+// can be duplicated as a starting point for an alternate, and an ordered
+// plan can seed the next shopping period.
 func (s *Server) handleCloneWeek(w http.ResponseWriter, r *http.Request) {
 	sourceID, ok := parsePositiveID(w, r, "id")
 	if !ok {
@@ -419,7 +465,6 @@ func (s *Server) handleCloneWeek(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	var srcStatus string
 	var targetID int64
 	err = tx.QueryRow(ctx, `
 		INSERT INTO weeks (iso_week, start_date, end_date)
@@ -427,19 +472,13 @@ func (s *Server) handleCloneWeek(w http.ResponseWriter, r *http.Request) {
 		       start_date + 7,
 		       end_date + 7
 		FROM weeks WHERE id = $1
-		RETURNING id,
-		          (SELECT status FROM weeks WHERE id = $1)`, sourceID).Scan(&targetID, &srcStatus)
+		RETURNING id`, sourceID).Scan(&targetID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 	if err != nil {
 		s.internalError(w, r, "clone create target", err)
-		return
-	}
-	if srcStatus != "ordered" {
-		// Roll back the just-inserted row: the source wasn't eligible.
-		http.Error(w, "source week must be ordered", http.StatusConflict)
 		return
 	}
 

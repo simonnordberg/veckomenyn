@@ -5,6 +5,7 @@ import { listWeeks, type WeekSummary } from "../lib/api";
 type Props = {
   selectedID: number | null;
   onSelect: (id: number) => void;
+  onDuplicate: (id: number) => void | Promise<void>;
   refreshKey: number;
   onPlanNew?: () => void;
   planNewDisabled?: boolean;
@@ -13,6 +14,7 @@ type Props = {
 export function WeeksSidebar({
   selectedID,
   onSelect,
+  onDuplicate,
   refreshKey,
   onPlanNew,
   planNewDisabled,
@@ -66,11 +68,11 @@ export function WeeksSidebar({
         )}
         <ul className="space-y-0.5">
           {weeks.map((w) => (
-            <li key={w.id}>
+            <li key={w.id} className="group relative">
               <button
                 type="button"
                 onClick={() => onSelect(w.id)}
-                className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${
+                className={`w-full rounded-md px-3 py-2 pr-9 text-left text-sm transition-colors ${
                   selectedID === w.id
                     ? "bg-stone-200 text-stone-900 dark:bg-stone-800 dark:text-stone-50"
                     : "text-stone-700 hover:bg-stone-200/60 dark:text-stone-300 dark:hover:bg-stone-800/60"
@@ -83,6 +85,23 @@ export function WeeksSidebar({
                   {w.start_date} · {w.dinner_count} {t("sidebar.dinners_short")} ·{" "}
                   <span className={statusColor(w.status)}>{t(`status.${w.status}`)}</span>
                 </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => void onDuplicate(w.id)}
+                title={t("sidebar.duplicate")}
+                aria-label={t("sidebar.duplicate")}
+                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded text-stone-500 opacity-0 transition-opacity hover:bg-stone-200 hover:text-stone-900 focus:opacity-100 group-hover:opacity-100 dark:text-stone-400 dark:hover:bg-stone-700 dark:hover:text-stone-100"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M7 3a2 2 0 0 0-2 2v1H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H7Zm6 13v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h1v7a2 2 0 0 0 2 2h6Zm3-3a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v8Z" />
+                </svg>
               </button>
             </li>
           ))}

@@ -19,7 +19,6 @@ export const en: Record<string, string> = {
   "plan.submit": "Plan the week",
   "plan.submitting": "Planning…",
   "plan.cancel": "Cancel",
-  "plan.prompt": "Plan {dinners} dinners, starting {start} and running through {end}.",
 
   // Week view
   "week.add_dinner": "Add dinner",
@@ -130,6 +129,7 @@ export const en: Record<string, string> = {
   "sidebar.dinners_short": "dinners",
   "sidebar.new_week": "New week",
   "sidebar.new_week_title": "Plan a new week",
+  "sidebar.duplicate": "Duplicate",
 
   // Lifecycle
   "lifecycle.current": "Current status",

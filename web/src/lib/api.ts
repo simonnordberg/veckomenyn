@@ -128,6 +128,22 @@ export async function getCurrentWeek(): Promise<WeekDetail | null> {
   return (await r.json()) as WeekDetail;
 }
 
+export type WeekCreate = {
+  start_date: string;
+  end_date: string;
+  notes_md: string;
+};
+
+export async function createWeek(input: WeekCreate): Promise<WeekDetail> {
+  const r = await fetch("/api/weeks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!r.ok) throw new Error(`create week: ${r.status} ${await r.text()}`);
+  return (await r.json()) as WeekDetail;
+}
+
 export async function getWeek(iso: string): Promise<WeekDetail> {
   const r = await fetch(`/api/weeks/${encodeURIComponent(iso)}`);
   if (!r.ok) throw new Error(`get week: ${r.status}`);
