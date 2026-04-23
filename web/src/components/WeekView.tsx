@@ -1,6 +1,16 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatWeekday, t, useLang } from "../i18n";
-import type { CartItem, Dinner, Exception, WeekDetail, WeekPatch } from "../lib/api";
+import {
+  type CartItem,
+  clearDinnerRating,
+  type Dinner,
+  type DinnerRating,
+  type Exception,
+  setDinnerRating,
+  setWeekRetrospective,
+  type WeekDetail,
+  type WeekPatch,
+} from "../lib/api";
 import { EditableDate, EditableText } from "./Editable";
 import { Markdown } from "./Markdown";
 
@@ -9,11 +19,13 @@ type Props = {
   activeDayDate: string | null; // day the agent is currently writing a dinner for, for subtle highlight
   onAction: (action: string) => void;
   onPatch: (patch: WeekPatch) => Promise<void>;
+  onRefetch: () => void;
 };
 
-export function WeekView({ week, activeDayDate, onAction, onPatch }: Props) {
+export function WeekView({ week, activeDayDate, onAction, onPatch, onRefetch }: Props) {
   useLang();
   const dinners = useMemo(() => groupByDay(week.dinners), [week.dinners]);
+  const hasPastDinners = useMemo(() => dinners.some((d) => isPastDay(d.day_date)), [dinners]);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-8">
@@ -45,14 +57,16 @@ export function WeekView({ week, activeDayDate, onAction, onPatch }: Props) {
               dinner={d}
               dimmed={activeDayDate !== null && activeDayDate !== d.day_date}
               active={activeDayDate === d.day_date}
+              past={isPastDay(d.day_date)}
               onAction={onAction}
+              onRatingChanged={onRefetch}
             />
           ))
         )}
       </section>
       {week.cart_items.length > 0 && <CartSection items={week.cart_items} />}
       <Lifecycle week={week} onAction={onAction} onPatch={onPatch} />
-      {week.retrospectives.length > 0 && <Retrospectives items={week.retrospectives} />}
+      {hasPastDinners && <WeekRetrospective week={week} />}
     </div>
   );
 }
@@ -423,29 +437,199 @@ function Exceptions({ items }: { items: Exception[] }) {
   );
 }
 
-function Retrospectives({ items }: { items: { id: number; notes_md: string }[] }) {
+function WeekRetrospective({ week }: { week: WeekDetail }) {
+  const initial = week.retrospectives[0]?.notes_md ?? "";
+  const [value, setValue] = useState(initial);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const timerRef = useRef<number | null>(null);
+
+  // Reset local state when switching to a different week.
+  useEffect(() => {
+    setValue(initial);
+    setStatus("idle");
+  }, [initial]);
+
+  const save = (next: string) => {
+    setStatus("saving");
+    setWeekRetrospective(week.id, next)
+      .then(() => setStatus("saved"))
+      .catch(() => setStatus("error"));
+  };
+
+  const onChange = (next: string) => {
+    setValue(next);
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => save(next), 700);
+  };
+
   return (
-    <section className="mt-6 rounded-md border border-stone-200 bg-stone-50 px-4 py-3 dark:border-stone-800 dark:bg-stone-900/50">
-      <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100">
-        {t("week.retrospective")}
-      </h2>
-      {items.map((r) => (
-        <Markdown key={r.id} source={r.notes_md} variant="compact" className="mt-2" />
-      ))}
+    <section className="mt-2 rounded-md border border-stone-200 bg-stone-50 px-4 py-3 dark:border-stone-800 dark:bg-stone-900/50">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100">
+          {t("week.retrospective")}
+        </h2>
+        <span className="text-xs text-stone-400 dark:text-stone-500">
+          {status === "saving"
+            ? t("retro.saving")
+            : status === "saved"
+              ? t("retro.saved")
+              : status === "error"
+                ? t("retro.error")
+                : ""}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{t("retro.hint")}</p>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={4}
+        placeholder={t("retro.placeholder")}
+        className="mt-2 w-full resize-y rounded-md border border-stone-300 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500"
+      />
     </section>
   );
+}
+
+function RatingControl({ dinner, onChanged }: { dinner: Dinner; onChanged: () => void }) {
+  const [rating, setRating] = useState<DinnerRating | null>(dinner.rating);
+  const [notes, setNotes] = useState(dinner.rating_notes);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const timerRef = useRef<number | null>(null);
+
+  // If the prop changes (e.g. week refetch after agent tool) pick it up.
+  useEffect(() => {
+    setRating(dinner.rating);
+    setNotes(dinner.rating_notes);
+  }, [dinner.rating, dinner.rating_notes]);
+
+  const persist = (nextRating: DinnerRating, nextNotes: string) => {
+    setStatus("saving");
+    setDinnerRating(dinner.id, nextRating, nextNotes)
+      .then(() => {
+        setStatus("saved");
+        onChanged();
+      })
+      .catch(() => setStatus("error"));
+  };
+
+  const pickRating = (next: DinnerRating) => {
+    setRating(next);
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    persist(next, notes);
+  };
+
+  const changeNotes = (next: string) => {
+    setNotes(next);
+    if (!rating) return; // notes alone aren't meaningful without a rating
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => persist(rating, next), 700);
+  };
+
+  const clear = () => {
+    setRating(null);
+    setNotes("");
+    setStatus("saving");
+    clearDinnerRating(dinner.id)
+      .then(() => {
+        setStatus("idle");
+        onChanged();
+      })
+      .catch(() => setStatus("error"));
+  };
+
+  return (
+    <div className="mt-3 border-t border-stone-100 pt-3 dark:border-stone-800">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-xs text-stone-500 dark:text-stone-400">
+          {rating ? t("rating.your_verdict") : t("rating.how_was_it")}
+        </span>
+        {(["loved", "liked", "meh", "disliked"] as DinnerRating[]).map((r) => {
+          const selected = rating === r;
+          return (
+            <button
+              key={r}
+              type="button"
+              onClick={() => pickRating(r)}
+              className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${
+                selected
+                  ? ratingSelectedClass(r)
+                  : "border-stone-300 bg-white text-stone-600 hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
+              }`}
+            >
+              {t(`rating.${r}`)}
+            </button>
+          );
+        })}
+        {rating && (
+          <>
+            <span className="ml-auto text-xs text-stone-400 dark:text-stone-500">
+              {status === "saving"
+                ? t("retro.saving")
+                : status === "saved"
+                  ? t("retro.saved")
+                  : status === "error"
+                    ? t("retro.error")
+                    : ""}
+            </span>
+            <button
+              type="button"
+              onClick={clear}
+              className="text-xs text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
+            >
+              {t("rating.clear")}
+            </button>
+          </>
+        )}
+      </div>
+      {rating && (
+        <textarea
+          value={notes}
+          onChange={(e) => changeNotes(e.target.value)}
+          rows={2}
+          placeholder={t("rating.notes_placeholder")}
+          className="mt-2 w-full resize-none rounded-md border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 shadow-sm outline-none focus:border-stone-500 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100 dark:placeholder:text-stone-500"
+        />
+      )}
+    </div>
+  );
+}
+
+function ratingSelectedClass(r: DinnerRating): string {
+  switch (r) {
+    case "loved":
+      return "border-rose-300 bg-rose-100 text-rose-800 dark:border-rose-800 dark:bg-rose-950/60 dark:text-rose-200";
+    case "liked":
+      return "border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200";
+    case "meh":
+      return "border-stone-400 bg-stone-200 text-stone-800 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
+    case "disliked":
+      return "border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-200";
+  }
+}
+
+function isPastDay(day: string): boolean {
+  return day < todayISO();
+}
+
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function DinnerCard({
   dinner,
   dimmed,
   active,
+  past,
   onAction,
+  onRatingChanged,
 }: {
   dinner: Dinner;
   dimmed: boolean;
   active: boolean;
+  past: boolean;
   onAction: (a: string) => void;
+  onRatingChanged: () => void;
 }) {
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [adjustDraft, setAdjustDraft] = useState("");
@@ -514,17 +698,27 @@ function DinnerCard({
             <p className="mt-2 text-sm italic text-stone-600 dark:text-stone-400">{dinner.notes}</p>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => setAdjustOpen((o) => !o)}
-          className={`shrink-0 rounded-md border px-2.5 py-1 text-xs ${
-            adjustOpen
-              ? "border-stone-900 bg-stone-900 text-stone-50 dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900"
-              : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
-          }`}
-        >
-          {t("dinner.adjust")}
-        </button>
+        <div className="flex shrink-0 items-start gap-2">
+          {dinner.rating && (
+            <span
+              className={`rounded-full border px-2 py-0.5 text-xs ${ratingSelectedClass(dinner.rating)}`}
+              title={dinner.rating_notes || undefined}
+            >
+              {t(`rating.${dinner.rating}`)}
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setAdjustOpen((o) => !o)}
+            className={`shrink-0 rounded-md border px-2.5 py-1 text-xs ${
+              adjustOpen
+                ? "border-stone-900 bg-stone-900 text-stone-50 dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900"
+                : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+            }`}
+          >
+            {t("dinner.adjust")}
+          </button>
+        </div>
       </header>
       {adjustOpen && (
         <div className="border-t border-stone-100 bg-stone-50/60 px-4 py-3 dark:border-stone-800 dark:bg-stone-950/60">
@@ -586,6 +780,11 @@ function DinnerCard({
             headingShift={2}
           />
         </details>
+      )}
+      {past && (
+        <div className="px-4 pb-3">
+          <RatingControl dinner={dinner} onChanged={onRatingChanged} />
+        </div>
       )}
     </article>
   );

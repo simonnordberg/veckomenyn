@@ -339,6 +339,7 @@ function Main({ route }: { route: Route }) {
                   activeDayDate={activeDay}
                   onAction={send}
                   onPatch={patchCurrentWeek}
+                  onRefetch={bumpLoad}
                 />
               )}
             </>

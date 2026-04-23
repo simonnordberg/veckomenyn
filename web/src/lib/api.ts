@@ -36,6 +36,8 @@ export type WeekSummary = {
   updated_at: string;
 };
 
+export type DinnerRating = "loved" | "liked" | "meh" | "disliked";
+
 export type Dinner = {
   id: number;
   day_date: string;
@@ -46,7 +48,36 @@ export type Dinner = {
   sourcing: Record<string, string>;
   recipe_md: string;
   notes: string;
+  rating: DinnerRating | null;
+  rating_notes: string;
 };
+
+export async function setDinnerRating(
+  dinnerID: number,
+  rating: DinnerRating,
+  notes: string,
+): Promise<void> {
+  const r = await fetch(`/api/dinners/id/${dinnerID}/rating`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rating, notes }),
+  });
+  if (!r.ok) throw new Error(`set rating: ${r.status} ${await r.text()}`);
+}
+
+export async function clearDinnerRating(dinnerID: number): Promise<void> {
+  const r = await fetch(`/api/dinners/id/${dinnerID}/rating`, { method: "DELETE" });
+  if (!r.ok) throw new Error(`clear rating: ${r.status}`);
+}
+
+export async function setWeekRetrospective(weekID: number, notesMD: string): Promise<void> {
+  const r = await fetch(`/api/weeks/id/${weekID}/retrospective`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ notes_md: notesMD }),
+  });
+  if (!r.ok) throw new Error(`set retrospective: ${r.status} ${await r.text()}`);
+}
 
 export type Exception = {
   id: number;

@@ -4,7 +4,7 @@ export const en: Record<string, string> = {
   "topbar.stop": "Stop",
   "topbar.refresh": "Refresh",
   "topbar.settings": "Settings",
-  "topbar.open_chat": "Open chat",
+  "topbar.open_chat": "Ask agent",
   "topbar.close_chat": "Close chat",
 
   // Plan new form
@@ -23,7 +23,7 @@ export const en: Record<string, string> = {
 
   // Week view
   "week.add_dinner": "Add dinner",
-  "week.regenerate": "Regenerate week",
+  "week.regenerate": "Suggest new menu",
   "week.print": "Print",
   "week.notes_label": "notes",
   "week.notes_placeholder": "Week notes (kids away, extra bake…)",
@@ -64,7 +64,7 @@ export const en: Record<string, string> = {
 
   // Status labels
   "status.draft": "draft",
-  "status.cart_built": "cart built",
+  "status.cart_built": "ready to order",
   "status.ordered": "ordered",
   "status.archived": "archived",
 
@@ -142,7 +142,7 @@ export const en: Record<string, string> = {
   "lifecycle.open_willys": "Open Willys.se",
   "lifecycle.set_status": "Change status",
   "lifecycle.retrospective_prompt":
-    "Record a retrospective for the week running {start} through {end}. Ask me how each dinner went, what worked, what didn't, and anything we should remember for next time. Save the notes and any dish ratings as a retrospective.",
+    "Record a retrospective for the week running {start} through {end}. Per-dinner verdicts are already captured on each card — ask me about what those don't show: pacing, portion sizes, overall balance, whether the week felt too heavy or lopsided, anything specific to carry into next week's plan. Save it as a week-level retrospective and update preferences when a lesson should stick.",
 
   // Cart section
   "cart.title": "Shopping cart",
@@ -178,4 +178,24 @@ export const en: Record<string, string> = {
 
   // Chat drawer aria-label
   "chat.aria": "Chat",
+
+  // Per-dinner rating
+  "rating.how_was_it": "How was it?",
+  "rating.your_verdict": "Verdict:",
+  "rating.loved": "Loved",
+  "rating.liked": "Liked",
+  "rating.meh": "Meh",
+  "rating.disliked": "No",
+  "rating.clear": "Clear",
+  "rating.notes_placeholder":
+    "What did you think? (too salty, kids wouldn't eat it, perfect for lunch next day…)",
+
+  // Week-level retrospective
+  "retro.hint":
+    "Pacing, portion sizes, overall balance — whatever the per-dinner verdicts don't already capture.",
+  "retro.placeholder":
+    "Heavy on red meat this week — mix in more fish next. The porchetta stretched to three days.",
+  "retro.saving": "Saving…",
+  "retro.saved": "Saved",
+  "retro.error": "Could not save",
 };

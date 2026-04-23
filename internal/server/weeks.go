@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -25,15 +26,17 @@ type weekSummary struct {
 }
 
 type dinnerOut struct {
-	ID        int64           `json:"id"`
-	DayDate   string          `json:"day_date"`
-	DishID    *int64          `json:"dish_id"`
-	DishName  string          `json:"dish_name"`
-	Cuisine   *string         `json:"cuisine"`
-	Servings  int             `json:"servings"`
-	Sourcing  json.RawMessage `json:"sourcing"`
-	RecipeMD  string          `json:"recipe_md"`
-	Notes     string          `json:"notes"`
+	ID          int64           `json:"id"`
+	DayDate     string          `json:"day_date"`
+	DishID      *int64          `json:"dish_id"`
+	DishName    string          `json:"dish_name"`
+	Cuisine     *string         `json:"cuisine"`
+	Servings    int             `json:"servings"`
+	Sourcing    json.RawMessage `json:"sourcing"`
+	RecipeMD    string          `json:"recipe_md"`
+	Notes       string          `json:"notes"`
+	Rating      *string         `json:"rating"`
+	RatingNotes string          `json:"rating_notes"`
 }
 
 type exceptionOut struct {
@@ -285,9 +288,11 @@ func (s *Server) loadDinners(r *http.Request, weekID int64) ([]dinnerOut, error)
 	rows, err := s.db.Pool.Query(r.Context(), `
 		SELECT wd.id, wd.day_date::text, wd.dish_id, wd.servings,
 		       COALESCE(wd.sourcing_json, '{}'::jsonb)::text,
-		       COALESCE(d.name, ''), d.cuisine, COALESCE(d.recipe_md, ''), wd.notes
+		       COALESCE(d.name, ''), d.cuisine, COALESCE(d.recipe_md, ''), wd.notes,
+		       dr.rating, COALESCE(dr.notes, '')
 		FROM week_dinners wd
 		LEFT JOIN dishes d ON d.id = wd.dish_id
+		LEFT JOIN dish_ratings dr ON dr.week_dinner_id = wd.id
 		WHERE wd.week_id = $1
 		ORDER BY wd.day_date, wd.sort_order`, weekID)
 	if err != nil {
@@ -298,9 +303,11 @@ func (s *Server) loadDinners(r *http.Request, weekID int64) ([]dinnerOut, error)
 	for rows.Next() {
 		var d dinnerOut
 		var dishID sql.NullInt64
-		var cuisine sql.NullString
+		var cuisine, rating sql.NullString
 		var sourcingRaw string
-		if err := rows.Scan(&d.ID, &d.DayDate, &dishID, &d.Servings, &sourcingRaw, &d.DishName, &cuisine, &d.RecipeMD, &d.Notes); err != nil {
+		if err := rows.Scan(&d.ID, &d.DayDate, &dishID, &d.Servings, &sourcingRaw,
+			&d.DishName, &cuisine, &d.RecipeMD, &d.Notes,
+			&rating, &d.RatingNotes); err != nil {
 			return nil, err
 		}
 		if dishID.Valid {
@@ -310,6 +317,10 @@ func (s *Server) loadDinners(r *http.Request, weekID int64) ([]dinnerOut, error)
 		if cuisine.Valid {
 			v := cuisine.String
 			d.Cuisine = &v
+		}
+		if rating.Valid {
+			v := rating.String
+			d.Rating = &v
 		}
 		d.Sourcing = json.RawMessage(sourcingRaw)
 		out = append(out, d)
@@ -333,6 +344,33 @@ func (s *Server) loadExceptions(r *http.Request, weekID int64) ([]exceptionOut, 
 		out = append(out, e)
 	}
 	return out, nil
+}
+
+type retrospectivePut struct {
+	NotesMD string `json:"notes_md"`
+}
+
+// handlePutWeekRetrospective upserts the week-level free-form retrospective
+// (pacing, portions, general feedback for next week's planning).
+func (s *Server) handlePutWeekRetrospective(w http.ResponseWriter, r *http.Request) {
+	id, ok := parsePositiveID(w, r, "id")
+	if !ok {
+		return
+	}
+	var body retrospectivePut
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "bad json: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := store.UpsertWeekRetrospective(r.Context(), s.db.Pool, id, body.NotesMD); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		s.internalError(w, r, "upsert retrospective", err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) loadRetrospectives(r *http.Request, weekID int64) ([]retrospectiveOut, error) {

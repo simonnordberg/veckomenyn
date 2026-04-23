@@ -4,7 +4,7 @@ export const sv: Record<string, string> = {
   "topbar.stop": "Stoppa",
   "topbar.refresh": "Uppdatera",
   "topbar.settings": "Inställningar",
-  "topbar.open_chat": "Öppna chatt",
+  "topbar.open_chat": "Fråga agenten",
   "topbar.close_chat": "Stäng chatt",
 
   // Plan new form
@@ -23,7 +23,7 @@ export const sv: Record<string, string> = {
 
   // Week view
   "week.add_dinner": "Lägg till middag",
-  "week.regenerate": "Gör om veckan",
+  "week.regenerate": "Föreslå ny meny",
   "week.print": "Skriv ut",
   "week.notes_label": "noteringar",
   "week.notes_placeholder": "Vecknoteringar (barn borta, extra bak…)",
@@ -66,7 +66,7 @@ export const sv: Record<string, string> = {
 
   // Status labels
   "status.draft": "utkast",
-  "status.cart_built": "kundvagn byggd",
+  "status.cart_built": "klar att beställa",
   "status.ordered": "beställd",
   "status.archived": "arkiverad",
 
@@ -144,7 +144,7 @@ export const sv: Record<string, string> = {
   "lifecycle.open_willys": "Öppna Willys.se",
   "lifecycle.set_status": "Ändra status",
   "lifecycle.retrospective_prompt":
-    "Dokumentera en återblick för veckan som löpte från {start} till {end}. Fråga hur varje middag blev, vad som fungerade, vad som inte gjorde det, och något vi bör komma ihåg till nästa gång. Spara noteringarna och eventuella dish-betyg som en retrospektiv.",
+    "Dokumentera en återblick för veckan som löpte från {start} till {end}. Per-middags-betyg sparas redan direkt i kortet — fråga istället om det som inte syns där: pacing, portionsstorlekar, mängder, om veckan kändes för tung eller obalanserad, och något specifikt att ta med till nästa vecka. Spara som veckoåterblick och uppdatera preferenser när en lärdom bör bli permanent.",
 
   // Cart section
   "cart.title": "Inköpslista",
@@ -180,4 +180,24 @@ export const sv: Record<string, string> = {
 
   // Chat drawer aria-label
   "chat.aria": "Chatt",
+
+  // Per-dinner rating
+  "rating.how_was_it": "Hur blev den?",
+  "rating.your_verdict": "Omdöme:",
+  "rating.loved": "Älskade",
+  "rating.liked": "Gick bra",
+  "rating.meh": "Sådär",
+  "rating.disliked": "Nej",
+  "rating.clear": "Rensa",
+  "rating.notes_placeholder":
+    "Vad tyckte ni? (för salt, barnen åt inte, perfekt till lunch dagen efter…)",
+
+  // Week-level retrospective
+  "retro.hint":
+    "Pacing, portionsstorlekar, mängder, allmän vibe. Allt som inte fångas av per-middags-betygen.",
+  "retro.placeholder":
+    "Tung vecka med mycket röd köttfärs — blanda in mer fisk nästa. Porchettan räckte till tre dagar.",
+  "retro.saving": "Sparar…",
+  "retro.saved": "Sparat",
+  "retro.error": "Kunde inte spara",
 };

@@ -30,8 +30,8 @@ type simpleTool struct {
 	fn   func(ctx context.Context, input json.RawMessage) (string, error)
 }
 
-func (t *simpleTool) Name() string                                    { return t.name }
-func (t *simpleTool) Def() anthropic.ToolParam                        { return t.def }
+func (t *simpleTool) Name() string                                              { return t.name }
+func (t *simpleTool) Def() anthropic.ToolParam                                  { return t.def }
 func (t *simpleTool) Call(c context.Context, i json.RawMessage) (string, error) { return t.fn(c, i) }
 
 func newTool(name, desc string, props map[string]any, required []string,
@@ -192,15 +192,11 @@ func listDishesRecentTool(db *pgxpool.Pool) Tool {
 				in.Weeks = 4
 			}
 			rows, err := db.Query(ctx, `
-				SELECT wd.day_date::text, d.name, d.cuisine, COALESCE(avg_rating.r, '')
+				SELECT wd.day_date::text, d.name, d.cuisine, dr.rating, COALESCE(dr.notes, '')
 				FROM week_dinners wd
 				JOIN weeks w ON w.id = wd.week_id
 				LEFT JOIN dishes d ON d.id = wd.dish_id
-				LEFT JOIN LATERAL (
-					SELECT string_agg(DISTINCT rating, ',') AS r
-					FROM dish_ratings
-					WHERE week_dinner_id = wd.id
-				) avg_rating ON true
+				LEFT JOIN dish_ratings dr ON dr.week_dinner_id = wd.id
 				WHERE w.start_date >= current_date - ($1::int * interval '7 days')
 				ORDER BY wd.day_date DESC
 			`, in.Weeks)
@@ -210,9 +206,9 @@ func listDishesRecentTool(db *pgxpool.Pool) Tool {
 			defer rows.Close()
 			var buf strings.Builder
 			for rows.Next() {
-				var day string
+				var day, ratingNotes string
 				var name, cuisine, rating *string
-				if err := rows.Scan(&day, &name, &cuisine, &rating); err != nil {
+				if err := rows.Scan(&day, &name, &cuisine, &rating, &ratingNotes); err != nil {
 					return "", err
 				}
 				line := fmt.Sprintf("- %s: %s", day, coalesce(name, "(no dish linked)"))
@@ -221,6 +217,9 @@ func listDishesRecentTool(db *pgxpool.Pool) Tool {
 				}
 				if rating != nil && *rating != "" {
 					line += fmt.Sprintf(" [%s]", *rating)
+				}
+				if ratingNotes != "" {
+					line += fmt.Sprintf(" — %s", ratingNotes)
 				}
 				buf.WriteString(line)
 				buf.WriteByte('\n')
@@ -451,9 +450,11 @@ func getWeekTool(db *pgxpool.Pool) Tool {
 
 			rows, err := db.Query(ctx, `
 				SELECT wd.id, wd.day_date::text, wd.servings, wd.sourcing_json::text,
-				       COALESCE(d.name,''), COALESCE(d.recipe_md,''), wd.notes
+				       COALESCE(d.name,''), COALESCE(d.recipe_md,''), wd.notes,
+				       dr.rating, COALESCE(dr.notes, '')
 				FROM week_dinners wd
 				LEFT JOIN dishes d ON d.id = wd.dish_id
+				LEFT JOIN dish_ratings dr ON dr.week_dinner_id = wd.id
 				WHERE wd.week_id = $1 ORDER BY wd.day_date, wd.sort_order
 			`, weekID)
 			if err != nil {
@@ -463,9 +464,11 @@ func getWeekTool(db *pgxpool.Pool) Tool {
 			fmt.Fprintf(&buf, "\n## Dinners\n")
 			for rows.Next() {
 				var id int64
-				var day, sourcing, name, recipe, dinnerNotes string
+				var day, sourcing, name, recipe, dinnerNotes, ratingNotes string
+				var rating *string
 				var servings int
-				if err := rows.Scan(&id, &day, &servings, &sourcing, &name, &recipe, &dinnerNotes); err != nil {
+				if err := rows.Scan(&id, &day, &servings, &sourcing, &name, &recipe, &dinnerNotes,
+					&rating, &ratingNotes); err != nil {
 					return "", err
 				}
 				fmt.Fprintf(&buf, "\n### %s — %s (id=%d, %d pers)\n", day, name, id, servings)
@@ -474,6 +477,13 @@ func getWeekTool(db *pgxpool.Pool) Tool {
 				}
 				if dinnerNotes != "" {
 					fmt.Fprintf(&buf, "Notes: %s\n", dinnerNotes)
+				}
+				if rating != nil && *rating != "" {
+					if ratingNotes != "" {
+						fmt.Fprintf(&buf, "Verdict: %s — %s\n", *rating, ratingNotes)
+					} else {
+						fmt.Fprintf(&buf, "Verdict: %s\n", *rating)
+					}
 				}
 				if recipe != "" {
 					fmt.Fprintf(&buf, "\n%s\n", recipe)
@@ -944,7 +954,10 @@ func recordRetrospectiveTool(db *pgxpool.Pool) Tool {
 			}
 			for _, r := range in.Ratings {
 				if _, err := tx.Exec(ctx,
-					`INSERT INTO dish_ratings (week_dinner_id, rating, notes) VALUES ($1, $2, $3)`,
+					`INSERT INTO dish_ratings (week_dinner_id, rating, notes)
+					 VALUES ($1, $2, $3)
+					 ON CONFLICT (week_dinner_id) DO UPDATE
+					 SET rating = EXCLUDED.rating, notes = EXCLUDED.notes`,
 					r.DinnerID, r.Rating, r.Notes); err != nil {
 					return "", err
 				}
