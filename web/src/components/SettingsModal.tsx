@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { setLang, t, useLang } from "../i18n";
 import { getSettings, type HouseholdSettings, patchSettings } from "../lib/api";
 import { setTheme, type Theme, useTheme } from "../lib/theme";
@@ -9,42 +9,86 @@ type Props = {
   onClose: () => void;
 };
 
+type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+const SAVE_DEBOUNCE_MS = 400;
+const SAVED_FLASH_MS = 1500;
+
 export function SettingsModal({ open, onClose }: Props) {
   useLang();
   const { theme } = useTheme();
   const [settings, setSettings] = useState<HouseholdSettings | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
-  useEffect(() => {
-    if (!open) return;
+  // Accumulates field changes between debounced flushes so rapid edits to
+  // different fields ship as one PATCH.
+  const pendingPatch = useRef<Partial<HouseholdSettings>>({});
+  const saveTimer = useRef<number | null>(null);
+
+  const flush = useCallback(async () => {
+    const toSend = pendingPatch.current;
+    pendingPatch.current = {};
+    if (saveTimer.current) {
+      window.clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    if (Object.keys(toSend).length === 0) return;
+    setSaveStatus("saving");
     setError(null);
+    try {
+      const next = await patchSettings(toSend);
+      setSettings(next);
+      if (toSend.language) setLang(next.language);
+      setSaveStatus("saved");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setSaveStatus("error");
+    }
+  }, []);
+
+  const scheduleSave = useCallback(
+    (patch: Partial<HouseholdSettings>) => {
+      pendingPatch.current = { ...pendingPatch.current, ...patch };
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+      saveTimer.current = window.setTimeout(() => {
+        void flush();
+      }, SAVE_DEBOUNCE_MS);
+    },
+    [flush],
+  );
+
+  // Load on open; flush pending patch on close so the user doesn't lose
+  // edits made right before dismissing the modal.
+  useEffect(() => {
+    if (!open) {
+      if (Object.keys(pendingPatch.current).length > 0) void flush();
+      return;
+    }
+    setError(null);
+    setSaveStatus("idle");
     getSettings()
       .then(setSettings)
       .catch((e: Error) => setError(e.message));
-  }, [open]);
+  }, [open, flush]);
+
+  // "Saved" is a momentary confirmation — fade it back to idle shortly.
+  useEffect(() => {
+    if (saveStatus !== "saved") return;
+    const handle = window.setTimeout(() => setSaveStatus("idle"), SAVED_FLASH_MS);
+    return () => window.clearTimeout(handle);
+  }, [saveStatus]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    };
+  }, []);
 
   const update = <K extends keyof HouseholdSettings>(key: K, value: HouseholdSettings[K]) => {
     setSettings((prev) => (prev ? { ...prev, [key]: value } : prev));
     if (key === "language") setLang(value as "sv" | "en");
-  };
-
-  const save = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!settings || saving) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const next = await patchSettings(settings);
-      setSettings(next);
-      setLang(next.language);
-      setSavedAt(Date.now());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSaving(false);
-    }
+    scheduleSave({ [key]: value } as Partial<HouseholdSettings>);
   };
 
   if (!open) return null;
@@ -66,10 +110,13 @@ export function SettingsModal({ open, onClose }: Props) {
         aria-modal="true"
         aria-label={t("settings.title")}
       >
-        <header className="flex shrink-0 items-center justify-between border-b border-stone-200 px-5 py-3 dark:border-stone-800">
-          <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100">
-            {t("settings.title")}
-          </h2>
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-stone-200 px-5 py-3 dark:border-stone-800">
+          <div className="flex items-baseline gap-3">
+            <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100">
+              {t("settings.title")}
+            </h2>
+            <SaveIndicator status={saveStatus} />
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -89,7 +136,7 @@ export function SettingsModal({ open, onClose }: Props) {
           )}
           {!settings && !error && <p className="text-sm text-stone-500">{t("settings.loading")}</p>}
           {settings && (
-            <form onSubmit={save} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4">
               <Field label={t("settings.theme")}>
                 <ThemePicker value={theme} onChange={setTheme} />
               </Field>
@@ -138,22 +185,21 @@ export function SettingsModal({ open, onClose }: Props) {
                   className="w-full resize-none rounded-md border border-stone-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
                 />
               </Field>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-stone-500">{savedAt ? t("settings.saved") : ""}</span>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50 shadow-sm hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
-                >
-                  {saving ? t("settings.saving") : t("settings.save")}
-                </button>
-              </div>
-            </form>
+            </div>
           )}
           <IntegrationsSection />
         </div>
       </div>
     </div>
+  );
+}
+
+function SaveIndicator({ status }: { status: SaveStatus }) {
+  if (status === "idle" || status === "error") return null;
+  return (
+    <span className="text-xs text-stone-500 dark:text-stone-400" aria-live="polite" role="status">
+      {status === "saving" ? t("settings.saving") : t("settings.saved")}
+    </span>
   );
 }
 
