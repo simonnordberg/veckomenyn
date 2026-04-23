@@ -326,10 +326,21 @@ func (s *Server) handlePatchWeek(w http.ResponseWriter, r *http.Request) {
 	// Apply start-shift side-effects before the standard update runs.
 	effectiveEnd := curEnd
 	if p.StartDate != nil && *p.StartDate != curStart {
+		// Pack dinners consecutively from the new start: first dinner on
+		// day 1, second on day 2, etc., in their existing order. The
+		// user's mental model is "align meals to the start date and
+		// increment from there", not "preserve whatever calendar gaps
+		// were there before".
 		if _, err := tx.Exec(ctx, `
-			UPDATE week_dinners
-			SET day_date = day_date + ($1::date - $2::date)
-			WHERE week_id = $3`, *p.StartDate, curStart, id); err != nil {
+			WITH ranked AS (
+			  SELECT id,
+			         (row_number() OVER (ORDER BY day_date, sort_order, id) - 1)::int AS n
+			  FROM week_dinners WHERE week_id = $2
+			)
+			UPDATE week_dinners wd
+			SET day_date = $1::date + ranked.n
+			FROM ranked
+			WHERE wd.id = ranked.id`, *p.StartDate, id); err != nil {
 			s.internalError(w, r, "patch shift dinners", err)
 			return
 		}
@@ -629,10 +640,17 @@ func (s *Server) handleCloneWeek(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Pack the cloned dinners consecutively from the target's start_date,
+	// in the source's existing order (by day_date, then sort_order, then id).
+	// The first dinner lands on the new start date; subsequent dinners
+	// increment by 1 day each. Original calendar gaps are dropped so the new
+	// plan starts fresh from its own day 1.
 	if _, err := tx.Exec(ctx, `
+		WITH target_start AS (SELECT start_date FROM weeks WHERE id = $1)
 		INSERT INTO week_dinners (week_id, day_date, dish_id, servings, sourcing_json, notes, sort_order)
 		SELECT $1,
-		       day_date + ((SELECT start_date FROM weeks WHERE id = $1) - (SELECT start_date FROM weeks WHERE id = $2)),
+		       (SELECT start_date FROM target_start)
+		         + ((row_number() OVER (ORDER BY day_date, sort_order, id) - 1)::int),
 		       dish_id, servings, sourcing_json, notes, sort_order
 		FROM week_dinners WHERE week_id = $2`, targetID, sourceID); err != nil {
 		s.internalError(w, r, "clone copy dinners", err)
