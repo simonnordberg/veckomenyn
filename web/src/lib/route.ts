@@ -2,16 +2,17 @@ import { useSyncExternalStore } from "react";
 
 // Route is the set of canonical URLs the app understands. Everything the user
 // can navigate to should appear here so the URL bar, back/forward, and
-// deep-linking all work the same way.
+// deep-linking all work the same way. A plan is identified by its numeric id
+// so the permalink points at one specific plan; iso_week is a label only.
 export type Route =
   | { kind: "current" } //          /
-  | { kind: "week"; iso: string } //         /weeks/:iso
+  | { kind: "week"; id: number } //         /weeks/:id
   | { kind: "new" } //              /weeks/new
-  | { kind: "print"; iso: string } //        /weeks/:iso/print
+  | { kind: "print"; id: number } //        /weeks/:id/print
   | { kind: "settings" } //         /settings
   | { kind: "preferences" }; //     /preferences
 
-const ISO_RE = /^\d{4}-W\d{2}$/;
+const ID_RE = /^\d+$/;
 
 export function parseRoute(pathname: string): Route {
   if (pathname === "/" || pathname === "") return { kind: "current" };
@@ -20,9 +21,10 @@ export function parseRoute(pathname: string): Route {
   if (pathname === "/preferences") return { kind: "preferences" };
 
   const parts = pathname.split("/").filter(Boolean);
-  if (parts.length >= 2 && parts[0] === "weeks" && ISO_RE.test(parts[1])) {
-    if (parts.length === 2) return { kind: "week", iso: parts[1] };
-    if (parts.length === 3 && parts[2] === "print") return { kind: "print", iso: parts[1] };
+  if (parts.length >= 2 && parts[0] === "weeks" && ID_RE.test(parts[1])) {
+    const id = Number(parts[1]);
+    if (parts.length === 2) return { kind: "week", id };
+    if (parts.length === 3 && parts[2] === "print") return { kind: "print", id };
   }
   return { kind: "current" };
 }
@@ -32,11 +34,11 @@ export function routeToPath(route: Route): string {
     case "current":
       return "/";
     case "week":
-      return `/weeks/${route.iso}`;
+      return `/weeks/${route.id}`;
     case "new":
       return "/weeks/new";
     case "print":
-      return `/weeks/${route.iso}/print`;
+      return `/weeks/${route.id}/print`;
     case "settings":
       return "/settings";
     case "preferences":

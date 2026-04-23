@@ -134,6 +134,12 @@ export async function getWeek(iso: string): Promise<WeekDetail> {
   return (await r.json()) as WeekDetail;
 }
 
+export async function getWeekById(id: number): Promise<WeekDetail> {
+  const r = await fetch(`/api/weeks/id/${id}`);
+  if (!r.ok) throw new Error(`get week: ${r.status}`);
+  return (await r.json()) as WeekDetail;
+}
+
 // Tools whose completion means the current week's structured data changed.
 // The UI refetches after any of these to keep the view live.
 export const MUTATING_TOOLS = new Set([

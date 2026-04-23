@@ -147,6 +147,29 @@ func (s *Server) handleCurrentWeek(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, detail)
 }
 
+func (s *Server) handleGetWeekByID(w http.ResponseWriter, r *http.Request) {
+	id, ok := parsePositiveID(w, r, "id")
+	if !ok {
+		return
+	}
+	row := s.db.Pool.QueryRow(r.Context(), weekSelect+`WHERE w.id = $1`, id)
+	ws, err := scanWeekSummary(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		s.internalError(w, r, "request", err)
+		return
+	}
+	detail, err := s.loadWeekDetail(r, ws)
+	if err != nil {
+		s.internalError(w, r, "request", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, detail)
+}
+
 func (s *Server) handleGetWeek(w http.ResponseWriter, r *http.Request) {
 	iso := chi.URLParam(r, "iso")
 	if !isoWeekRE.MatchString(iso) {

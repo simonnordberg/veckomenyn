@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { formatWeekday, t, useLang } from "../i18n";
-import { getWeek, type WeekDetail } from "../lib/api";
+import { getWeekById, type WeekDetail } from "../lib/api";
 import { Markdown } from "./Markdown";
 
 type Props = {
-  iso: string;
+  id: number;
 };
 
-export function PrintableWeek({ iso }: Props) {
+export function PrintableWeek({ id }: Props) {
   useLang();
   const [week, setWeek] = useState<WeekDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -28,10 +28,10 @@ export function PrintableWeek({ iso }: Props) {
   }, []);
 
   useEffect(() => {
-    getWeek(iso)
+    getWeekById(id)
       .then(setWeek)
       .catch((e: Error) => setError(e.message));
-  }, [iso]);
+  }, [id]);
 
   if (error) {
     return <p className="m-8 text-sm text-red-700">{error}</p>;

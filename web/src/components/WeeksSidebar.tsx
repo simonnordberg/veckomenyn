@@ -3,15 +3,15 @@ import { t, useLang } from "../i18n";
 import { listWeeks, type WeekSummary } from "../lib/api";
 
 type Props = {
-  selectedISO: string | null;
-  onSelect: (iso: string) => void;
+  selectedID: number | null;
+  onSelect: (id: number) => void;
   refreshKey: number;
   onPlanNew?: () => void;
   planNewDisabled?: boolean;
 };
 
 export function WeeksSidebar({
-  selectedISO,
+  selectedID,
   onSelect,
   refreshKey,
   onPlanNew,
@@ -66,12 +66,12 @@ export function WeeksSidebar({
         )}
         <ul className="space-y-0.5">
           {weeks.map((w) => (
-            <li key={w.iso_week}>
+            <li key={w.id}>
               <button
                 type="button"
-                onClick={() => onSelect(w.iso_week)}
+                onClick={() => onSelect(w.id)}
                 className={`w-full rounded-md px-3 py-2 text-left text-sm transition-colors ${
-                  selectedISO === w.iso_week
+                  selectedID === w.id
                     ? "bg-stone-200 text-stone-900 dark:bg-stone-800 dark:text-stone-50"
                     : "text-stone-700 hover:bg-stone-200/60 dark:text-stone-300 dark:hover:bg-stone-800/60"
                 }`}

@@ -12,7 +12,7 @@ import {
   deleteWeekConversations,
   getCurrentWeek,
   getSettings,
-  getWeek,
+  getWeekById,
   getWeekConversation,
   MUTATING_TOOLS,
   patchWeek,
@@ -28,7 +28,7 @@ type Status = "loading" | "empty" | "ready" | "error";
 export function App() {
   const route = useRoute();
   // Print mode renders a completely separate tree with no sidebar/chat/topbar.
-  if (route.kind === "print") return <PrintableWeek iso={route.iso} />;
+  if (route.kind === "print") return <PrintableWeek id={route.id} />;
   return <Main route={route} />;
 }
 
@@ -52,7 +52,7 @@ function Main({ route }: { route: Route }) {
   const planMode = route.kind === "new";
   const settingsOpen = route.kind === "settings";
   const preferencesOpen = route.kind === "preferences";
-  const selectedISO = route.kind === "week" ? route.iso : (week?.iso_week ?? null);
+  const selectedID = route.kind === "week" ? route.id : (week?.id ?? null);
 
   useLang(); // subscribe root to language changes
 
@@ -84,7 +84,7 @@ function Main({ route }: { route: Route }) {
           if (fetched) {
             setWeek(fetched);
             setStatus("ready");
-            navigate({ kind: "week", iso: fetched.iso_week }, { replace: true });
+            navigate({ kind: "week", id: fetched.id }, { replace: true });
           } else {
             setStatus("empty");
           }
@@ -109,17 +109,17 @@ function Main({ route }: { route: Route }) {
 
         let fetched: WeekDetail | null;
         if (route.kind === "week") {
-          fetched = await getWeek(route.iso);
+          fetched = await getWeekById(route.id);
         } else if (route.kind === "settings" || route.kind === "preferences") {
           // Modals overlay the most recently loaded week. If nothing is
           // loaded yet (fresh bookmark), fall back to the current week.
-          fetched = week?.iso_week ? await getWeek(week.iso_week) : await getCurrentWeek();
+          fetched = week?.id ? await getWeekById(week.id) : await getCurrentWeek();
         } else {
           // kind === "current" (fallback landing route): resolve via the
           // backend and pin the URL to the specific week.
           fetched = await getCurrentWeek();
           if (fetched) {
-            navigate({ kind: "week", iso: fetched.iso_week }, { replace: true });
+            navigate({ kind: "week", id: fetched.id }, { replace: true });
           }
         }
         if (cancelled) return;
@@ -139,10 +139,10 @@ function Main({ route }: { route: Route }) {
     return () => {
       cancelled = true;
     };
-    // routeKey captures the parts of route we care about; week?.iso_week
+    // routeKey captures the parts of route we care about; week?.id
     // lets the settings/preferences branch refetch the underlying week
     // when it loads for the first time.
-  }, [routeKey, loadKey, week?.iso_week]);
+  }, [routeKey, loadKey, week?.id]);
 
   // When the active week changes, rehydrate the chat drawer from its
   // stored conversation so you can resume where you left off.
@@ -309,8 +309,8 @@ function Main({ route }: { route: Route }) {
       />
       <div className="flex flex-1 overflow-hidden">
         <WeeksSidebar
-          selectedISO={selectedISO}
-          onSelect={(iso) => navigate({ kind: "week", iso })}
+          selectedID={selectedID}
+          onSelect={(id) => navigate({ kind: "week", id })}
           refreshKey={sidebarRefresh}
           onPlanNew={() => navigate({ kind: "new" })}
           planNewDisabled={busy || planMode}
@@ -320,7 +320,7 @@ function Main({ route }: { route: Route }) {
             <PlanNewForm
               onSubmit={(p) => send(p, { fresh: true })}
               busy={busy}
-              onCancel={week ? () => goBack({ kind: "week", iso: week.iso_week }) : undefined}
+              onCancel={week ? () => goBack({ kind: "week", id: week.id }) : undefined}
             />
           ) : (
             <>
@@ -366,7 +366,7 @@ function routeLoadKey(route: Route): string {
   switch (route.kind) {
     case "week":
     case "print":
-      return `${route.kind}:${route.iso}`;
+      return `${route.kind}:${route.id}`;
     default:
       return route.kind;
   }
