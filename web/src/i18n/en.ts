@@ -138,7 +138,6 @@ export const en: Record<string, string> = {
   "lifecycle.mark_cart_built": "Mark cart as built",
   "lifecycle.mark_ordered": "Mark as ordered",
   "lifecycle.record_retrospective": "Record retrospective",
-  "lifecycle.archive": "Archive",
   "lifecycle.open_willys": "Open Willys.se",
   "lifecycle.set_status": "Change status",
   "lifecycle.retrospective_prompt":

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -69,6 +70,17 @@ type weekDetail struct {
 	CartItems      []cartItemOut      `json:"cart_items"`
 }
 
+// autoArchivePastOrdered bumps any "ordered" week whose end_date has passed
+// into "archived". Runs on every read — idempotent and cheap; usually 0 rows.
+// Frees users from remembering to archive; weeks age out on their own.
+func (s *Server) autoArchivePastOrdered(ctx context.Context) {
+	if _, err := s.db.Pool.Exec(ctx,
+		`UPDATE weeks SET status = 'archived'
+		 WHERE status = 'ordered' AND end_date < current_date`); err != nil {
+		s.log.Error("auto-archive", "err", err)
+	}
+}
+
 const weekSelect = `
 	SELECT w.id, w.iso_week, w.start_date::text, w.end_date::text,
 	       w.delivery_date::text, w.order_date::text, w.status,
@@ -94,6 +106,7 @@ func scanWeekSummary(row interface{ Scan(...any) error }) (weekSummary, error) {
 }
 
 func (s *Server) handleListWeeks(w http.ResponseWriter, r *http.Request) {
+	s.autoArchivePastOrdered(r.Context())
 	rows, err := s.db.Pool.Query(r.Context(), weekSelect+`ORDER BY w.start_date DESC NULLS LAST LIMIT 50`)
 	if err != nil {
 		s.internalError(w, r, "request", err)
@@ -118,6 +131,7 @@ func (s *Server) handleCurrentWeek(w http.ResponseWriter, r *http.Request) {
 	//   2. else the nearest upcoming week,
 	//   3. else the most recent past week.
 	// Returns 204 if no weeks exist at all.
+	s.autoArchivePastOrdered(r.Context())
 	row := s.db.Pool.QueryRow(r.Context(), weekSelect+`
 		ORDER BY
 		  CASE
@@ -153,6 +167,7 @@ func (s *Server) handleGetWeek(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad iso_week (expected YYYY-Www)", http.StatusBadRequest)
 		return
 	}
+	s.autoArchivePastOrdered(r.Context())
 	row := s.db.Pool.QueryRow(r.Context(), weekSelect+`WHERE w.iso_week = $1`, iso)
 	ws, err := scanWeekSummary(row)
 	if errors.Is(err, pgx.ErrNoRows) {

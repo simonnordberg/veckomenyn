@@ -140,7 +140,6 @@ export const sv: Record<string, string> = {
   "lifecycle.mark_cart_built": "Markera kundvagn klar",
   "lifecycle.mark_ordered": "Markera som beställd",
   "lifecycle.record_retrospective": "Dokumentera återblick",
-  "lifecycle.archive": "Arkivera",
   "lifecycle.open_willys": "Öppna Willys.se",
   "lifecycle.set_status": "Ändra status",
   "lifecycle.retrospective_prompt":

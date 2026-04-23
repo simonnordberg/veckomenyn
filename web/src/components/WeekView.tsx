@@ -108,6 +108,7 @@ function Lifecycle({
             }),
         };
       case "ordered":
+      case "archived":
         if (!hasRetro)
           return {
             label: t("lifecycle.record_retrospective"),
@@ -119,11 +120,6 @@ function Lifecycle({
                 }),
               ),
           };
-        return {
-          label: t("lifecycle.archive"),
-          run: () => void onPatch({ status: "archived" }),
-        };
-      case "archived":
         return null;
     }
   })();
@@ -186,7 +182,8 @@ function StatusMenu({
   onPick: (s: WeekDetail["status"]) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const statuses: WeekDetail["status"][] = ["draft", "cart_built", "ordered", "archived"];
+  // "archived" intentionally omitted — it auto-transitions when end_date passes.
+  const statuses: WeekDetail["status"][] = ["draft", "cart_built", "ordered"];
   return (
     <div className="relative">
       <button
