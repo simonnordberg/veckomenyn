@@ -70,14 +70,14 @@ export function EditableDate({
         disabled={saving}
         aria-label={t("week.edit_label", { label })}
         aria-expanded={open}
-        className="rounded px-1 py-0.5 text-left font-mono tabular-nums hover:bg-stone-100"
+        className="rounded px-1 py-0.5 text-left font-mono tabular-nums hover:bg-stone-100 dark:hover:bg-stone-800"
       >
         {value ? value : <span className="text-stone-400">{t("week.set_label", { label })}</span>}
       </button>
       {open && (
         <div
           ref={popRef}
-          className="absolute left-0 top-full z-40 mt-1 rounded-md border border-stone-200 bg-white p-3 shadow-lg"
+          className="absolute left-0 top-full z-40 mt-1 rounded-md border border-stone-200 bg-white p-3 shadow-lg dark:border-stone-700 dark:bg-stone-800"
         >
           <CalendarPopup value={value} nullable={nullable} onSelect={select} />
         </div>
@@ -112,12 +112,12 @@ function CalendarPopup({ value, nullable, onSelect }: CalendarProps) {
   const monthLabel = formatMonthYear(viewMonth.year, viewMonth.month);
 
   return (
-    <div className="w-64 text-sm text-stone-800">
+    <div className="w-64 text-sm text-stone-800 dark:text-stone-100">
       <div className="mb-2 flex items-center justify-between">
         <button
           type="button"
           onClick={() => shiftMonth(-1)}
-          className="rounded px-2 py-1 text-stone-600 hover:bg-stone-100"
+          className="rounded px-2 py-1 text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700"
           aria-label={t("calendar.prev_month")}
         >
           ‹
@@ -126,7 +126,7 @@ function CalendarPopup({ value, nullable, onSelect }: CalendarProps) {
         <button
           type="button"
           onClick={() => shiftMonth(1)}
-          className="rounded px-2 py-1 text-stone-600 hover:bg-stone-100"
+          className="rounded px-2 py-1 text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700"
           aria-label={t("calendar.next_month")}
         >
           ›
@@ -152,10 +152,14 @@ function CalendarPopup({ value, nullable, onSelect }: CalendarProps) {
               onClick={() => onSelect(cell.iso)}
               className={`rounded py-1 font-mono text-xs tabular-nums ${
                 isSelected
-                  ? "bg-stone-900 text-stone-50 hover:bg-stone-800"
-                  : `hover:bg-stone-100 ${
-                      isToday ? "ring-1 ring-inset ring-stone-400" : ""
-                    } ${inMonth ? "text-stone-800" : "text-stone-300"}`
+                  ? "bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+                  : `hover:bg-stone-100 dark:hover:bg-stone-700 ${
+                      isToday ? "ring-1 ring-inset ring-stone-400 dark:ring-stone-500" : ""
+                    } ${
+                      inMonth
+                        ? "text-stone-800 dark:text-stone-100"
+                        : "text-stone-300 dark:text-stone-600"
+                    }`
               }`}
             >
               {cell.day}
@@ -167,7 +171,7 @@ function CalendarPopup({ value, nullable, onSelect }: CalendarProps) {
         <button
           type="button"
           onClick={() => onSelect(formatISO(new Date()))}
-          className="rounded px-2 py-1 text-xs text-stone-600 hover:bg-stone-100"
+          className="rounded px-2 py-1 text-xs text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700"
         >
           {t("calendar.today")}
         </button>
@@ -175,7 +179,7 @@ function CalendarPopup({ value, nullable, onSelect }: CalendarProps) {
           <button
             type="button"
             onClick={() => onSelect(null)}
-            className="rounded px-2 py-1 text-xs text-stone-600 hover:bg-stone-100"
+            className="rounded px-2 py-1 text-xs text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-700"
           >
             {t("calendar.clear")}
           </button>
@@ -292,7 +296,7 @@ export function EditableText({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className={`rounded px-1 py-0.5 text-left hover:bg-stone-100 ${className}`}
+        className={`rounded px-1 py-0.5 text-left hover:bg-stone-100 dark:hover:bg-stone-800 ${className}`}
         aria-label={t("week.edit_label", { label })}
       >
         {value || (
@@ -315,7 +319,7 @@ export function EditableText({
         disabled={saving}
         placeholder={placeholder}
         rows={3}
-        className={`w-full resize-y rounded-sm border border-stone-400 bg-white px-1 py-0.5 text-sm shadow-sm ${className}`}
+        className={`w-full resize-y rounded-sm border border-stone-400 bg-white px-1 py-0.5 text-sm shadow-sm dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 ${className}`}
       />
     );
   }
@@ -330,7 +334,7 @@ export function EditableText({
       onKeyDown={handleKey}
       disabled={saving}
       placeholder={placeholder}
-      className={`rounded-sm border border-stone-400 bg-white px-1 py-0.5 text-sm shadow-sm ${className}`}
+      className={`rounded-sm border border-stone-400 bg-white px-1 py-0.5 text-sm shadow-sm dark:border-stone-600 dark:bg-stone-800 dark:text-stone-100 ${className}`}
     />
   );
 }
