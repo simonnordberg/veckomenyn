@@ -3,6 +3,7 @@ import { formatWeekday, t, useLang } from "../i18n";
 import {
   type CartItem,
   clearDinnerRating,
+  cloneWeek,
   type Dinner,
   type DinnerRating,
   type Exception,
@@ -11,6 +12,7 @@ import {
   type WeekDetail,
   type WeekPatch,
 } from "../lib/api";
+import { navigate } from "../lib/route";
 import { EditableDate, EditableText } from "./Editable";
 import { Markdown } from "./Markdown";
 
@@ -83,8 +85,23 @@ function Lifecycle({
   onPatch: (patch: WeekPatch) => Promise<void>;
 }) {
   const hasRetro = week.retrospectives.length > 0;
+  const [cloning, setCloning] = useState(false);
 
-  // Next recommended step based on status.
+  const runClone = async () => {
+    if (cloning) return;
+    setCloning(true);
+    try {
+      const next = await cloneWeek(week.id);
+      navigate({ kind: "week", iso: next.iso_week });
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCloning(false);
+    }
+  };
+
+  // Next recommended step based on status. For an ordered + retro'd week, the
+  // natural next step is starting next week from this one (clone).
   const next: { label: string; run: () => void } | null = (() => {
     switch (week.status) {
       case "draft":
@@ -119,7 +136,10 @@ function Lifecycle({
                 }),
               ),
           };
-        return null;
+        return {
+          label: cloning ? t("week.clone_next_pending") : t("week.clone_next"),
+          run: () => void runClone(),
+        };
     }
   })();
 

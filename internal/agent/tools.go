@@ -425,7 +425,8 @@ func getWeekTool(db *pgxpool.Pool) Tool {
 			if in.ID > 0 {
 				row = db.QueryRow(ctx, `SELECT `+weekCols+` FROM weeks WHERE id=$1`, in.ID)
 			} else if in.IsoWeek != "" {
-				row = db.QueryRow(ctx, `SELECT `+weekCols+` FROM weeks WHERE iso_week=$1`, in.IsoWeek)
+				// iso_week is not unique; pick the most recently updated.
+				row = db.QueryRow(ctx, `SELECT `+weekCols+` FROM weeks WHERE iso_week=$1 ORDER BY updated_at DESC LIMIT 1`, in.IsoWeek)
 			} else {
 				return "", fmt.Errorf("need id or iso_week")
 			}
@@ -616,7 +617,8 @@ func updateWeekTool(db *pgxpool.Pool) Tool {
 				if in.IsoWeek == "" {
 					return "", fmt.Errorf("need week_id or iso_week")
 				}
-				err := db.QueryRow(ctx, `SELECT id FROM weeks WHERE iso_week = $1`, in.IsoWeek).Scan(&id)
+				// iso_week is not unique; pick the most recently updated.
+				err := db.QueryRow(ctx, `SELECT id FROM weeks WHERE iso_week = $1 ORDER BY updated_at DESC LIMIT 1`, in.IsoWeek).Scan(&id)
 				if err != nil {
 					if err == pgx.ErrNoRows {
 						return fmt.Sprintf("no week with iso_week=%s", in.IsoWeek), nil

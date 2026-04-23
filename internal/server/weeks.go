@@ -153,7 +153,11 @@ func (s *Server) handleGetWeek(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad iso_week (expected YYYY-Www)", http.StatusBadRequest)
 		return
 	}
-	row := s.db.Pool.QueryRow(r.Context(), weekSelect+`WHERE w.iso_week = $1`, iso)
+	// iso_week is a label, not an identity: multiple plans can share it.
+	// Resolve to the most recently updated match so the URL points to the
+	// one most likely being worked on.
+	row := s.db.Pool.QueryRow(r.Context(),
+		weekSelect+`WHERE w.iso_week = $1 ORDER BY w.updated_at DESC LIMIT 1`, iso)
 	ws, err := scanWeekSummary(row)
 	if errors.Is(err, pgx.ErrNoRows) {
 		http.Error(w, "not found", http.StatusNotFound)
@@ -371,6 +375,76 @@ func (s *Server) handlePutWeekRetrospective(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleCloneWeek forks an ordered plan into a new draft that starts 7 days
+// after the source. Dinners are copied with shifted day_dates; ratings,
+// retrospectives, cart items, and week-level notes stay with the source.
+// Multiple plans may share the same iso_week label: the new plan is always a
+// fresh row, never merged into an existing one.
+func (s *Server) handleCloneWeek(w http.ResponseWriter, r *http.Request) {
+	sourceID, ok := parsePositiveID(w, r, "id")
+	if !ok {
+		return
+	}
+
+	ctx := r.Context()
+	tx, err := s.db.Pool.Begin(ctx)
+	if err != nil {
+		s.internalError(w, r, "clone begin", err)
+		return
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var srcStatus string
+	var targetID int64
+	err = tx.QueryRow(ctx, `
+		INSERT INTO weeks (iso_week, start_date, end_date)
+		SELECT to_char(start_date + 7, 'IYYY-"W"IW'),
+		       start_date + 7,
+		       end_date + 7
+		FROM weeks WHERE id = $1
+		RETURNING id,
+		          (SELECT status FROM weeks WHERE id = $1)`, sourceID).Scan(&targetID, &srcStatus)
+	if errors.Is(err, pgx.ErrNoRows) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		s.internalError(w, r, "clone create target", err)
+		return
+	}
+	if srcStatus != "ordered" {
+		// Roll back the just-inserted row: the source wasn't eligible.
+		http.Error(w, "source week must be ordered", http.StatusConflict)
+		return
+	}
+
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO week_dinners (week_id, day_date, dish_id, servings, sourcing_json, notes, sort_order)
+		SELECT $1, day_date + 7, dish_id, servings, sourcing_json, notes, sort_order
+		FROM week_dinners WHERE week_id = $2`, targetID, sourceID); err != nil {
+		s.internalError(w, r, "clone copy dinners", err)
+		return
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		s.internalError(w, r, "clone commit", err)
+		return
+	}
+
+	row := s.db.Pool.QueryRow(ctx, weekSelect+`WHERE w.id = $1`, targetID)
+	ws, err := scanWeekSummary(row)
+	if err != nil {
+		s.internalError(w, r, "clone reload", err)
+		return
+	}
+	detail, err := s.loadWeekDetail(r, ws)
+	if err != nil {
+		s.internalError(w, r, "clone detail", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, detail)
 }
 
 func (s *Server) loadRetrospectives(r *http.Request, weekID int64) ([]retrospectiveOut, error) {

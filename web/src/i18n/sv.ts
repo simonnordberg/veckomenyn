@@ -41,6 +41,8 @@ export const sv: Record<string, string> = {
   "week.retrospective": "Återblick",
   "week.set_label": "sätt {label}",
   "week.edit_label": "Redigera {label}",
+  "week.clone_next": "Planera nästa vecka utifrån denna",
+  "week.clone_next_pending": "Planerar nästa vecka…",
   "week.add_dinner_prompt":
     "Lägg till ytterligare en middag till veckan som löper från {start} till {end}.",
   "week.regenerate_prompt":

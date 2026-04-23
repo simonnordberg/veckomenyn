@@ -158,6 +158,12 @@ export type WeekPatch = Partial<{
   notes_md: string;
 }>;
 
+export async function cloneWeek(sourceID: number): Promise<WeekDetail> {
+  const r = await fetch(`/api/weeks/id/${sourceID}/clone`, { method: "POST" });
+  if (!r.ok) throw new Error(`clone week: ${r.status} ${await r.text()}`);
+  return (await r.json()) as WeekDetail;
+}
+
 export async function patchWeek(id: number, patch: WeekPatch): Promise<WeekDetail> {
   const r = await fetch(`/api/weeks/id/${id}`, {
     method: "PATCH",

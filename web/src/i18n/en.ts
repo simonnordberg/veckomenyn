@@ -41,6 +41,8 @@ export const en: Record<string, string> = {
   "week.retrospective": "Retrospective",
   "week.set_label": "set {label}",
   "week.edit_label": "Edit {label}",
+  "week.clone_next": "Plan next week from this one",
+  "week.clone_next_pending": "Planning next week…",
   "week.add_dinner_prompt": "Add another dinner to the week running {start} through {end}.",
   "week.regenerate_prompt":
     "Regenerate the meal plan for the week running {start} through {end}. Replace each dinner with a fresh option, keeping the same constraints.",
