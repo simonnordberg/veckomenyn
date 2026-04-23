@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDayShort, formatPeriod, t, useLang } from "../i18n";
 import type { WeekSummary } from "../lib/api";
+import { EditableDate } from "./Editable";
 
 type Props = {
   source: WeekSummary | null;
@@ -15,16 +16,11 @@ export function DuplicatePlanDialog({ source, onCancel, onConfirm }: Props) {
   useLang();
   const [startDate, setStartDate] = useState("");
   const [busy, setBusy] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!source) return;
     setStartDate(addDays(source.start_date, 7));
     setBusy(false);
-    // Focus the date input when the dialog opens so users can confirm with
-    // Enter or type a new date straight away.
-    const handle = window.setTimeout(() => inputRef.current?.focus(), 0);
-    return () => window.clearTimeout(handle);
   }, [source]);
 
   if (!source) return null;
@@ -75,18 +71,20 @@ export function DuplicatePlanDialog({ source, onCancel, onConfirm }: Props) {
             void confirm();
           }}
         >
-          <label className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1">
             <span className="text-sm font-medium text-stone-700 dark:text-stone-300">
               {t("duplicate.start_date")}
             </span>
-            <input
-              ref={inputRef}
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100"
-            />
-          </label>
+            <div className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm shadow-sm dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100">
+              <EditableDate
+                value={startDate}
+                label={t("duplicate.start_date")}
+                onCommit={(v) => {
+                  if (v) setStartDate(v);
+                }}
+              />
+            </div>
+          </div>
           <p className="text-xs text-stone-500 dark:text-stone-400">
             {startDate
               ? `${t("duplicate.new_period_prefix")} ${formatDayShort(startDate)} → ${formatDayShort(endDate)}`
