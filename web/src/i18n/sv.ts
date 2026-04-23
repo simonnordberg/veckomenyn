@@ -41,6 +41,8 @@ export const sv: Record<string, string> = {
   "week.set_label": "sätt {label}",
   "week.edit_label": "Redigera {label}",
   "week.clone_next": "Planera nästa vecka utifrån denna",
+  "week.truncate_confirm":
+    "Om du kortar ner planen tas {count} middag(ar) bort som ligger efter det nya slutdatumet. Fortsätt?",
   "week.add_dinner_prompt":
     "Lägg till ytterligare en middag till veckan som löper från {start} till {end}.",
   "week.regenerate_prompt":

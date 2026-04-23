@@ -366,7 +366,18 @@ function WeekHeader({
             <EditableDate
               value={week.end_date}
               label="end date"
-              onCommit={(v) => (v ? onPatch({ end_date: v }) : Promise.resolve())}
+              onCommit={(v) => {
+                if (!v) return Promise.resolve();
+                // Shrinking past existing dinners drops them on the server,
+                // so ask first with the count so the user can back out.
+                if (v < week.end_date) {
+                  const lost = week.dinners.filter((d) => d.day_date > v).length;
+                  if (lost > 0 && !window.confirm(t("week.truncate_confirm", { count: lost }))) {
+                    return Promise.resolve();
+                  }
+                }
+                return onPatch({ end_date: v });
+              }}
             />
             <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-stone-600 dark:bg-stone-800 dark:text-stone-300">
               {t(`status.${week.status}`)}

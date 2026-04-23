@@ -5,8 +5,15 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// Execer captures the Exec method both *pgxpool.Pool and pgx.Tx implement,
+// so store helpers can run inside a transaction or directly on the pool.
+type Execer interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+}
 
 // WeekUpdate describes a partial update to the weeks table. Nil string fields
 // are ignored; empty strings clear the column (nullable columns only).
@@ -21,8 +28,10 @@ type WeekUpdate struct {
 }
 
 // UpdateWeek applies a partial update to the row identified by id. Returns
-// the number of rows updated (0 means not found).
-func UpdateWeek(ctx context.Context, pool *pgxpool.Pool, id int64, u WeekUpdate) (int64, error) {
+// the number of rows updated (0 means not found). Works on either a pool or
+// a transaction so callers that need other side-effects in the same unit of
+// work can share the tx.
+func UpdateWeek(ctx context.Context, db Execer, id int64, u WeekUpdate) (int64, error) {
 	var (
 		sets []string
 		args []any
@@ -65,7 +74,7 @@ func UpdateWeek(ctx context.Context, pool *pgxpool.Pool, id int64, u WeekUpdate)
 	}
 	args = append(args, id)
 	query := fmt.Sprintf(`UPDATE weeks SET %s WHERE id = $%d`, strings.Join(sets, ", "), len(args))
-	tag, err := pool.Exec(ctx, query, args...)
+	tag, err := db.Exec(ctx, query, args...)
 	if err != nil {
 		return 0, err
 	}

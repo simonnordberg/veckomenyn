@@ -274,6 +274,17 @@ type weekPatch struct {
 
 // handlePatchWeek applies a partial update to a week and returns the fresh
 // detail so the UI can update in one round trip.
+//
+// Date edits carry side-effects so the schedule stays consistent with
+// what's inside the plan:
+//   - Changing start_date shifts every dinner's day_date by the same delta
+//     and slides end_date forward/back by the same amount (preserves the
+//     plan's duration). iso_week is recomputed from the new start unless
+//     the caller set it explicitly.
+//   - Shrinking end_date deletes dinners whose day_date falls past the new
+//     end. The UI asks for confirmation before sending that.
+//   - Extending end_date inserts empty dinner rows for each new day so the
+//     new slots surface in the UI.
 func (s *Server) handlePatchWeek(w http.ResponseWriter, r *http.Request) {
 	id, ok := parsePositiveID(w, r, "id")
 	if !ok {
@@ -284,8 +295,97 @@ func (s *Server) handlePatchWeek(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad json: "+err.Error(), http.StatusBadRequest)
 		return
 	}
+	if p.StartDate != nil && !dateRE.MatchString(*p.StartDate) {
+		http.Error(w, "start_date must be YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
+	if p.EndDate != nil && !dateRE.MatchString(*p.EndDate) {
+		http.Error(w, "end_date must be YYYY-MM-DD", http.StatusBadRequest)
+		return
+	}
 
-	n, err := store.UpdateWeek(r.Context(), s.db.Pool, id, store.WeekUpdate{
+	ctx := r.Context()
+	tx, err := s.db.Pool.Begin(ctx)
+	if err != nil {
+		s.internalError(w, r, "patch begin", err)
+		return
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	var curStart, curEnd string
+	err = tx.QueryRow(ctx, `SELECT start_date::text, end_date::text FROM weeks WHERE id = $1`, id).Scan(&curStart, &curEnd)
+	if errors.Is(err, pgx.ErrNoRows) {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		s.internalError(w, r, "patch load", err)
+		return
+	}
+
+	// Apply start-shift side-effects before the standard update runs.
+	effectiveEnd := curEnd
+	if p.StartDate != nil && *p.StartDate != curStart {
+		if _, err := tx.Exec(ctx, `
+			UPDATE week_dinners
+			SET day_date = day_date + ($1::date - $2::date)
+			WHERE week_id = $3`, *p.StartDate, curStart, id); err != nil {
+			s.internalError(w, r, "patch shift dinners", err)
+			return
+		}
+		// Slide end_date by the same delta unless the caller set it too.
+		if p.EndDate == nil {
+			if err := tx.QueryRow(ctx, `
+				SELECT ($1::date + ($2::date - $3::date))::text`,
+				curEnd, *p.StartDate, curStart).Scan(&effectiveEnd); err != nil {
+				s.internalError(w, r, "patch compute end", err)
+				return
+			}
+			p.EndDate = &effectiveEnd
+		}
+		// Keep the iso_week label aligned with start_date by default.
+		if p.IsoWeek == nil {
+			var newIso string
+			if err := tx.QueryRow(ctx, `SELECT to_char($1::date, 'IYYY-"W"IW')`, *p.StartDate).Scan(&newIso); err != nil {
+				s.internalError(w, r, "patch compute iso_week", err)
+				return
+			}
+			p.IsoWeek = &newIso
+		}
+		// The standard update below will rewrite start_date too; update our
+		// cached curStart so downstream range checks use the right baseline.
+		curStart = *p.StartDate
+		curEnd = effectiveEnd
+	}
+
+	// Apply end-resize side-effects.
+	if p.EndDate != nil && *p.EndDate != curEnd {
+		if *p.EndDate < curStart {
+			http.Error(w, "end_date cannot be before start_date", http.StatusBadRequest)
+			return
+		}
+		if *p.EndDate < curEnd {
+			if _, err := tx.Exec(ctx, `
+				DELETE FROM week_dinners
+				WHERE week_id = $1 AND day_date > $2::date`, id, *p.EndDate); err != nil {
+				s.internalError(w, r, "patch truncate dinners", err)
+				return
+			}
+		} else if *p.EndDate > curEnd {
+			// Insert one empty slot per added day so the new days surface in
+			// the UI as (untitled) dinners, ready to be filled.
+			if _, err := tx.Exec(ctx, `
+				INSERT INTO week_dinners (week_id, day_date)
+				SELECT $1, gs::date
+				FROM generate_series(($2::date + 1), $3::date, '1 day') gs`,
+				id, curEnd, *p.EndDate); err != nil {
+				s.internalError(w, r, "patch add empty slots", err)
+				return
+			}
+		}
+	}
+
+	n, err := store.UpdateWeek(ctx, tx, id, store.WeekUpdate{
 		IsoWeek:      p.IsoWeek,
 		StartDate:    p.StartDate,
 		EndDate:      p.EndDate,
@@ -295,7 +395,7 @@ func (s *Server) handlePatchWeek(w http.ResponseWriter, r *http.Request) {
 		NotesMD:      p.NotesMD,
 	})
 	if err != nil {
-		s.internalError(w, r, "request", err)
+		s.internalError(w, r, "patch update week", err)
 		return
 	}
 	if n == 0 {
@@ -303,7 +403,12 @@ func (s *Server) handlePatchWeek(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	row := s.db.Pool.QueryRow(r.Context(), weekSelect+`WHERE w.id = $1`, id)
+	if err := tx.Commit(ctx); err != nil {
+		s.internalError(w, r, "patch commit", err)
+		return
+	}
+
+	row := s.db.Pool.QueryRow(ctx, weekSelect+`WHERE w.id = $1`, id)
 	ws, err := scanWeekSummary(row)
 	if err != nil {
 		s.internalError(w, r, "request", err)
