@@ -15,4 +15,4 @@ labels: enhancement
 
 ## Alternatives considered
 
-<!-- Optional — anything you ruled out and why. -->
+<!-- Optional. Anything you ruled out and why. -->

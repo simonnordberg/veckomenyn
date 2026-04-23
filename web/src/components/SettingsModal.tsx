@@ -72,7 +72,7 @@ export function SettingsModal({ open, onClose }: Props) {
       .catch((e: Error) => setError(e.message));
   }, [open, flush]);
 
-  // "Saved" is a momentary confirmation — fade it back to idle shortly.
+  // "Saved" is a momentary confirmation; fade it back to idle shortly.
   useEffect(() => {
     if (saveStatus !== "saved") return;
     const handle = window.setTimeout(() => setSaveStatus("idle"), SAVED_FLASH_MS);

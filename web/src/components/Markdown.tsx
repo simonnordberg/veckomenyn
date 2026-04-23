@@ -11,7 +11,7 @@ type Props = {
   // Strip a single leading "# <heading>" if its text matches this string
   // (case-insensitive, whitespace-trimmed). Used for recipe bodies whose
   // first line repeats the dish name shown by the caller. Unmatched h1s
-  // are preserved — no content is silently dropped.
+  // are preserved; no content is silently dropped.
   stripLeadingHeading?: string;
   // Demote every heading by N levels so a recipe's "## Ingredients" isn't
   // as big as the page title. 0 means render as-is.

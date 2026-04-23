@@ -2,10 +2,10 @@
 
 Two adults and two children. Edit this file to describe your household.
 
-- **Alex** (adult, 40s) — vegetarian
-- **Sam** (adult, 40s) — no restrictions
-- **Jordan** (child, 12) — eats almost anything
-- **Casey** (child, 9) — dislikes very spicy food
+- **Alex** (adult, 40s): vegetarian
+- **Sam** (adult, 40s): no restrictions
+- **Jordan** (child, 12): eats almost anything
+- **Casey** (child, 9): dislikes very spicy food
 
 ## Schedule
 

@@ -223,7 +223,7 @@ func (s *Store) Get(ctx context.Context, kind Kind) (*Provider, error) {
 }
 
 // decryptSecrets replaces any enc:v1: wrapped values with their plaintext.
-// Unencrypted values pass through — lets plaintext rows coexist with
+// Unencrypted values pass through; lets plaintext rows coexist with
 // encrypted ones during MASTER_KEY rollout.
 func (s *Store) decryptSecrets(kind Kind, config map[string]any) {
 	if s.crypt == nil {

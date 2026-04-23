@@ -3,7 +3,7 @@
 - Prefer the house brand (e.g. Garant at Willys) for dairy and pantry staples
 - Buy mince in large packages (1 kg), split into meal portions and freeze the rest
 - Default rice: basmati (not jasmine unless a specific dish calls for it)
-- Skip citrus at full price — only buy extra when there's a multi-buy discount
+- Skip citrus at full price; only buy extra when there's a multi-buy discount
 
 ## Rotation
 

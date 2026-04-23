@@ -298,7 +298,7 @@ func parseInt(s string, def int) int {
 func parseSourcing(s string) map[string]string {
 	out := map[string]string{}
 	s = strings.TrimSpace(s)
-	if s == "" || s == "—" || s == "-" {
+	if s == "" || s == "\u2014" || s == "-" {
 		return out
 	}
 	for _, part := range strings.Split(s, ",") {

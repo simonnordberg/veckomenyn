@@ -71,7 +71,7 @@ func (a *Agent) resolveClient(ctx context.Context) (anthropic.Client, error) {
 }
 
 // Event is a coarse-grained update for callers (chat handlers, tests).
-// Keep this stable — the SSE stream will serialize these directly.
+// Keep this stable; the SSE stream will serialize these directly.
 type Event struct {
 	Type    string `json:"type"` // "text", "tool_call", "tool_result", "error", "done"
 	Text    string `json:"text,omitempty"`
@@ -127,7 +127,7 @@ func (a *Agent) Run(
 		}
 
 		// Stream the LLM response so text shows token-by-token in the UI.
-		// Tool-use still happens per iteration — we accumulate the full message,
+		// Tool-use still happens per iteration; we accumulate the full message,
 		// then run any tool_use blocks and loop.
 		stream := client.Messages.NewStreaming(ctx, params)
 		resp := anthropic.Message{}
@@ -227,7 +227,7 @@ func languageBlock(ctx context.Context, db *pgxpool.Pool, log *slog.Logger) anth
 	switch lang {
 	case "sv":
 		text = `<language>sv</language>
-Write all user-facing output in Swedish: chat replies, recipe_md bodies, dish names, notes, and summaries. Use Swedish cooking terminology (sjud, fräs, stek, etc.). Keep tool call arguments as-is — dates, IDs, statuses, category slugs remain English/ISO. Do not translate existing recipe content; only new content you generate from this point.`
+Write all user-facing output in Swedish: chat replies, recipe_md bodies, dish names, notes, and summaries. Use Swedish cooking terminology (sjud, fräs, stek, etc.). Keep tool call arguments as-is (dates, IDs, statuses, category slugs remain English/ISO). Do not translate existing recipe content; only new content you generate from this point.`
 	case "en":
 		text = `<language>en</language>
 Write all user-facing output in English. Do not translate existing content; leave it in whatever language it was recorded.`

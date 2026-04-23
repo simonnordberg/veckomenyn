@@ -2,7 +2,7 @@ import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react"
 import { formatMonthYear, shortWeekdaysMondayFirst, t } from "../i18n";
 
 // ---------------------------------------------------------------------------
-// EditableDate — custom calendar popover
+// EditableDate: custom calendar popover
 // ---------------------------------------------------------------------------
 
 type DateProps = {
@@ -227,7 +227,7 @@ function formatISO(d: Date): string {
 }
 
 // ---------------------------------------------------------------------------
-// EditableText — unchanged (inline text/textarea)
+// EditableText: inline text/textarea
 // ---------------------------------------------------------------------------
 
 type TextProps = {

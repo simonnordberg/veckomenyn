@@ -21,7 +21,7 @@ type cryptor struct {
 }
 
 // newCryptor builds an AES-256-GCM cryptor from a 32-byte key. Returns nil
-// when the key is empty, which callers must handle as "no encryption —
+// when the key is empty, which callers must handle as "no encryption;
 // treat everything as plaintext".
 func newCryptor(key []byte) (*cryptor, error) {
 	if len(key) == 0 {

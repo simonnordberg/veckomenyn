@@ -100,7 +100,7 @@ func TestCryptorWrongKey(t *testing.T) {
 
 func TestCryptorNonceUniqueness(t *testing.T) {
 	// Same plaintext under the same key must produce different ciphertexts
-	// every time — otherwise a replay attack is trivial.
+	// every time; otherwise a replay attack is trivial.
 	key := make([]byte, 32)
 	_, _ = rand.Read(key)
 	c, _ := newCryptor(key)

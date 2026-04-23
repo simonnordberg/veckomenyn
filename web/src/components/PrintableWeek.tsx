@@ -42,7 +42,7 @@ export function PrintableWeek({ iso }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl bg-white px-8 py-10 text-stone-900 print:px-0 print:py-0">
-      {/* Print controls — hidden when printing */}
+      {/* Print controls, hidden when printing */}
       <div className="mb-6 flex items-center justify-between border-b border-stone-200 pb-4 print:hidden">
         <div className="text-xs text-stone-500">{t("print.preview_hint")}</div>
         <button
@@ -105,12 +105,12 @@ export function PrintableWeek({ iso }: Props) {
                 <td className="py-1.5 pr-3 font-mono text-xs tabular-nums">
                   {d.day_date} · {formatWeekday(d.day_date)}
                 </td>
-                <td className="py-1.5 pr-3">{d.dish_name || "—"}</td>
+                <td className="py-1.5 pr-3">{d.dish_name || "-"}</td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">{d.servings}</td>
                 <td className="py-1.5 text-xs text-stone-600">
                   {Object.entries(d.sourcing || {})
                     .map(([k, v]) => `${k}: ${v}`)
-                    .join("; ") || "—"}
+                    .join("; ") || "-"}
                 </td>
               </tr>
             ))}

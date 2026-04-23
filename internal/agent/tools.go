@@ -94,7 +94,7 @@ func registerTools(db *pgxpool.Pool, shop shopping.Provider, log *slog.Logger) [
 func readPreferencesTool(db *pgxpool.Pool) Tool {
 	return newTool(
 		"read_preferences",
-		"Returns the family's cooking and shopping preferences as a markdown document. Read this once at the start of any planning session — preferences evolve.",
+		"Returns the family's cooking and shopping preferences as a markdown document. Read this once at the start of any planning session; preferences evolve.",
 		map[string]any{},
 		nil,
 		func(ctx context.Context, _ json.RawMessage) (string, error) {
@@ -219,7 +219,7 @@ func listDishesRecentTool(db *pgxpool.Pool) Tool {
 					line += fmt.Sprintf(" [%s]", *rating)
 				}
 				if ratingNotes != "" {
-					line += fmt.Sprintf(" — %s", ratingNotes)
+					line += fmt.Sprintf(": %s", ratingNotes)
 				}
 				buf.WriteString(line)
 				buf.WriteByte('\n')
@@ -299,7 +299,7 @@ func searchHistoryTool(db *pgxpool.Pool) Tool {
 					if cuisine != "" {
 						cuisineStr = " · " + cuisine
 					}
-					dinners = append(dinners, fmt.Sprintf("- %s (%s%s) — %s", name, day, cuisineStr, iso))
+					dinners = append(dinners, fmt.Sprintf("- %s (%s%s): %s", name, day, cuisineStr, iso))
 				}
 				rows.Close()
 				if len(dinners) > 0 {
@@ -471,7 +471,7 @@ func getWeekTool(db *pgxpool.Pool) Tool {
 					&rating, &ratingNotes); err != nil {
 					return "", err
 				}
-				fmt.Fprintf(&buf, "\n### %s — %s (id=%d, %d pers)\n", day, name, id, servings)
+				fmt.Fprintf(&buf, "\n### %s · %s (id=%d, %d pers)\n", day, name, id, servings)
 				if sourcing != "" && sourcing != "{}" {
 					fmt.Fprintf(&buf, "Sourcing: %s\n", sourcing)
 				}
@@ -480,7 +480,7 @@ func getWeekTool(db *pgxpool.Pool) Tool {
 				}
 				if rating != nil && *rating != "" {
 					if ratingNotes != "" {
-						fmt.Fprintf(&buf, "Verdict: %s — %s\n", *rating, ratingNotes)
+						fmt.Fprintf(&buf, "Verdict: %s (%s)\n", *rating, ratingNotes)
 					} else {
 						fmt.Fprintf(&buf, "Verdict: %s\n", *rating)
 					}
@@ -543,7 +543,7 @@ func getWeekTool(db *pgxpool.Pool) Tool {
 func createWeekTool(db *pgxpool.Pool) Tool {
 	return newTool(
 		"create_week",
-		"Create a new weekly plan. Define it by start_date and end_date. iso_week is the label. delivery_date and order_date are optional post-hoc metadata — omit them unless the user has already placed the order.",
+		"Create a new weekly plan. Define it by start_date and end_date. iso_week is the label. delivery_date and order_date are optional post-hoc metadata; omit them unless the user has already placed the order.",
 		map[string]any{
 			"iso_week":      map[string]any{"type": "string", "description": "ISO week like 2026-W17. Compute from start_date if unsure."},
 			"start_date":    map[string]any{"type": "string", "description": "YYYY-MM-DD, first menu day."},
@@ -582,7 +582,7 @@ func createWeekTool(db *pgxpool.Pool) Tool {
 func updateWeekTool(db *pgxpool.Pool) Tool {
 	return newTool(
 		"update_week",
-		"Update the shape or metadata of an existing week. All fields are optional — pass only what changes. Look up by week_id or iso_week. Use this when the user wants to shift delivery, extend/shorten the menu, rename the week, change status, or edit notes.",
+		"Update the shape or metadata of an existing week. All fields are optional; pass only what changes. Look up by week_id or iso_week. Use this when the user wants to shift delivery, extend/shorten the menu, rename the week, change status, or edit notes.",
 		map[string]any{
 			"week_id":       map[string]any{"type": "integer", "description": "Preferred lookup."},
 			"iso_week":      map[string]any{"type": "string", "description": "Alternative lookup (e.g. 2026-W17)."},
@@ -666,7 +666,7 @@ func readHouseholdSettingsTool(db *pgxpool.Pool) Tool {
 func updateHouseholdSettingsTool(db *pgxpool.Pool) Tool {
 	return newTool(
 		"update_household_settings",
-		"Update the household defaults. All fields optional — pass only what changes. Use when the user says 'we always order on Sundays' or 'make the default 6 dinners'.",
+		"Update the household defaults. All fields optional; pass only what changes. Use when the user says 'we always order on Sundays' or 'make the default 6 dinners'.",
 		map[string]any{
 			"default_dinners":           map[string]any{"type": "integer", "description": "Typical number of dinners per week (1–14)."},
 			"default_delivery_weekday":  map[string]any{"type": "integer", "description": "ISO weekday: 1=Mon, 2=Tue, … 7=Sun."},
@@ -909,7 +909,7 @@ func addExceptionTool(db *pgxpool.Pool) Tool {
 func recordRetrospectiveTool(db *pgxpool.Pool) Tool {
 	return newTool(
 		"record_retrospective",
-		"Save post-week feedback for a week. Use notes_md for free-form reflections. If the user mentioned specific dinners, include ratings — each rating references a week_dinner_id from get_week.",
+		"Save post-week feedback for a week. Use notes_md for free-form reflections. If the user mentioned specific dinners, include ratings; each rating references a week_dinner_id from get_week.",
 		map[string]any{
 			"week_id":  map[string]any{"type": "integer"},
 			"notes_md": map[string]any{"type": "string"},
@@ -1206,7 +1206,7 @@ func shopCartClearTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 func shopOrderDetailTool(shop shopping.Provider) Tool {
 	return newTool(
 		"willys_order_detail",
-		"Fetch the full line items of a past Willys order by its id (from willys_orders_recent). Use this to check what was actually bought — quantities, brands, prices — when planning a new week to mirror or tweak a prior order.",
+		"Fetch the full line items of a past Willys order by its id (from willys_orders_recent). Use this to check what was actually bought (quantities, brands, prices) when planning a new week to mirror or tweak a prior order.",
 		map[string]any{
 			"id": map[string]any{"type": "string", "description": "Order number from willys_orders_recent."},
 		},
@@ -1223,7 +1223,7 @@ func shopOrderDetailTool(shop shopping.Provider) Tool {
 				return "", err
 			}
 			var buf strings.Builder
-			fmt.Fprintf(&buf, "Order %s — %s — %.2f kr — %s\n\n",
+			fmt.Fprintf(&buf, "Order %s · %s · %.2f kr · %s\n\n",
 				d.ID, d.Date, d.Total, d.Status)
 			// Group by category for readability.
 			byCat := map[string][]shopping.OrderLine{}

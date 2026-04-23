@@ -59,7 +59,7 @@ func main() {
 	if provStore.HasEncryption() {
 		log.Info("provider secrets encrypted at rest")
 	} else {
-		log.Warn("MASTER_KEY not set — provider secrets stored in cleartext. Set a 32-byte base64 key to enable encryption.")
+		log.Warn("MASTER_KEY not set; provider secrets stored in cleartext. Set a 32-byte base64 key to enable encryption.")
 	}
 
 	willysShop := shopping.NewWillys(db.Pool, provStore, log)

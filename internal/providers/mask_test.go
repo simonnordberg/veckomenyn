@@ -22,7 +22,7 @@ func TestNewGeneratesSentinel(t *testing.T) {
 		t.Fatalf("sentinel %q missing redacted: prefix", s1.Sentinel())
 	}
 	if s1.Sentinel() == s2.Sentinel() {
-		t.Fatal("two fresh stores produced identical sentinels — rand.Read not consumed")
+		t.Fatal("two fresh stores produced identical sentinels; rand.Read not consumed")
 	}
 }
 

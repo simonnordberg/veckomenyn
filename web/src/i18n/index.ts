@@ -75,7 +75,7 @@ export function shortWeekdaysMondayFirst(): string[] {
   });
 }
 
-// "April 2026" / "april 2026" — month label for the calendar popup.
+// "April 2026" / "april 2026": month label for the calendar popup.
 export function formatMonthYear(year: number, month0: number): string {
   return new Date(year, month0, 1).toLocaleDateString(locale(), {
     month: "long",

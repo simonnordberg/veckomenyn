@@ -86,7 +86,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Persist whatever text made it through before the client bailed. Use a
-	// detached context with a short timeout — the request ctx is cancelled.
+	// detached context with a short timeout; the request ctx is cancelled.
 	if assistantBuf.Len() > 0 {
 		saveCtx, saveCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer saveCancel()
@@ -99,7 +99,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 }
 
 // loadHistory returns a simple text-only replay of the conversation. Tool
-// calls made in prior turns are intentionally dropped — the agent re-reads
+// calls made in prior turns are intentionally dropped; the agent re-reads
 // current state via tools each turn, so the history only needs user/assistant
 // text for context.
 func (s *Server) loadHistory(ctx context.Context, convID int64) ([]anthropic.MessageParam, error) {

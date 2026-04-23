@@ -28,8 +28,7 @@ export const sv: Record<string, string> = {
   "week.notes_label": "noteringar",
   "week.notes_placeholder": "Vecknoteringar (barn borta, extra bak…)",
 
-  "print.preview_hint":
-    "Förhandsvisning — klicka knappen eller tryck Cmd/Ctrl+P för att skriva ut.",
+  "print.preview_hint": "Förhandsvisning. Klicka knappen eller tryck Cmd/Ctrl+P för att skriva ut.",
   "print.print_button": "Skriv ut",
   "print.overview": "Översikt",
   "print.day": "Dag",
@@ -56,7 +55,7 @@ export const sv: Record<string, string> = {
   "dinner.adjust_send": "Skicka",
   "dinner.adjust_cancel": "Avbryt",
   "dinner.adjust_prompt":
-    "För middagen den {date} (dinner_id {id}, ”{name}”): {request}. Använd update_dinner för att genomföra ändringen — en mindre justering bevarar rätten, ett byte innebär en helt ny rätt.",
+    "För middagen den {date} (dinner_id {id}, ”{name}”): {request}. Använd update_dinner för att genomföra ändringen. En mindre justering bevarar rätten, ett byte innebär en helt ny rätt.",
   "dinner.recipe": "Recept",
   "dinner.servings": "pers",
   "dinner.untitled": "(utan titel)",
@@ -113,7 +112,7 @@ export const sv: Record<string, string> = {
   "chat.clear": "Rensa",
   "chat.clear_confirm": "Rensa veckans chatthistorik? Går inte att ångra.",
   "chat.empty":
-    "Fråga vad som helst — ”gör tisdag vegetarisk”, ”Noah tyckte inte om koriander”, ”gör om veckan”. Knapparna på menyn går också via chatten.",
+    "Fråga vad som helst, t.ex. ”gör tisdag vegetarisk”, ”Noah tyckte inte om koriander”, ”gör om veckan”. Knapparna på menyn går också via chatten.",
 
   // Calendar popup
   "calendar.today": "Idag",
@@ -142,7 +141,7 @@ export const sv: Record<string, string> = {
   "lifecycle.open_willys": "Öppna Willys.se",
   "lifecycle.set_status": "Ändra status",
   "lifecycle.retrospective_prompt":
-    "Dokumentera en återblick för veckan som löpte från {start} till {end}. Per-middags-betyg sparas redan direkt i kortet — fråga istället om det som inte syns där: pacing, portionsstorlekar, mängder, om veckan kändes för tung eller obalanserad, och något specifikt att ta med till nästa vecka. Spara som veckoåterblick och uppdatera preferenser när en lärdom bör bli permanent.",
+    "Dokumentera en återblick för veckan som löpte från {start} till {end}. Per-middags-betyg sparas redan direkt i kortet. Fråga istället om det som inte syns där: pacing, portionsstorlekar, mängder, om veckan kändes för tung eller obalanserad, och något specifikt att ta med till nästa vecka. Spara som veckoåterblick och uppdatera preferenser när en lärdom bör bli permanent.",
 
   // Cart section
   "cart.title": "Inköpslista",
@@ -194,7 +193,7 @@ export const sv: Record<string, string> = {
   "retro.hint":
     "Pacing, portionsstorlekar, mängder, allmän vibe. Allt som inte fångas av per-middags-betygen.",
   "retro.placeholder":
-    "Tung vecka med mycket röd köttfärs — blanda in mer fisk nästa. Porchettan räckte till tre dagar.",
+    "Tung vecka med mycket röd köttfärs, blanda in mer fisk nästa. Porchettan räckte till tre dagar.",
   "retro.saving": "Sparar…",
   "retro.saved": "Sparat",
   "retro.error": "Kunde inte spara",

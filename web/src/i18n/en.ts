@@ -28,7 +28,7 @@ export const en: Record<string, string> = {
   "week.notes_label": "notes",
   "week.notes_placeholder": "Week notes (kids away, extra bake…)",
 
-  "print.preview_hint": "Preview — use the button or Cmd/Ctrl+P to print.",
+  "print.preview_hint": "Preview. Use the button or Cmd/Ctrl+P to print.",
   "print.print_button": "Print",
   "print.overview": "Overview",
   "print.day": "Day",
@@ -54,7 +54,7 @@ export const en: Record<string, string> = {
   "dinner.adjust_send": "Send",
   "dinner.adjust_cancel": "Cancel",
   "dinner.adjust_prompt":
-    "For the dinner on {date} (dinner_id {id}, '{name}'): {request}. Use update_dinner to apply the change — a small tweak should preserve the dish, a swap means a new dish entirely.",
+    "For the dinner on {date} (dinner_id {id}, '{name}'): {request}. Use update_dinner to apply the change. A small tweak should preserve the dish; a swap means a new dish entirely.",
   "dinner.recipe": "Recipe",
   "dinner.servings": "pers",
   "dinner.untitled": "(untitled)",
@@ -111,7 +111,7 @@ export const en: Record<string, string> = {
   "chat.clear": "Clear",
   "chat.clear_confirm": "Clear this week's chat history? This can't be undone.",
   "chat.empty":
-    'Ask anything — "make Tuesday vegetarian", "Noah didn\'t like the cilantro", "regenerate the week". Actions on the menu also run through chat.',
+    'Ask anything, e.g. "make Tuesday vegetarian", "Noah didn\'t like the cilantro", "regenerate the week". Actions on the menu also run through chat.',
 
   // Calendar popup
   "calendar.today": "Today",
@@ -140,7 +140,7 @@ export const en: Record<string, string> = {
   "lifecycle.open_willys": "Open Willys.se",
   "lifecycle.set_status": "Change status",
   "lifecycle.retrospective_prompt":
-    "Record a retrospective for the week running {start} through {end}. Per-dinner verdicts are already captured on each card — ask me about what those don't show: pacing, portion sizes, overall balance, whether the week felt too heavy or lopsided, anything specific to carry into next week's plan. Save it as a week-level retrospective and update preferences when a lesson should stick.",
+    "Record a retrospective for the week running {start} through {end}. Per-dinner verdicts are already captured on each card. Ask me about what those don't show: pacing, portion sizes, overall balance, whether the week felt too heavy or lopsided, anything specific to carry into next week's plan. Save it as a week-level retrospective and update preferences when a lesson should stick.",
 
   // Cart section
   "cart.title": "Shopping cart",
@@ -190,9 +190,9 @@ export const en: Record<string, string> = {
 
   // Week-level retrospective
   "retro.hint":
-    "Pacing, portion sizes, overall balance — whatever the per-dinner verdicts don't already capture.",
+    "Pacing, portion sizes, overall balance. Whatever the per-dinner verdicts don't already capture.",
   "retro.placeholder":
-    "Heavy on red meat this week — mix in more fish next. The porchetta stretched to three days.",
+    "Heavy on red meat this week, mix in more fish next. The porchetta stretched to three days.",
   "retro.saving": "Saving…",
   "retro.saved": "Saved",
   "retro.error": "Could not save",

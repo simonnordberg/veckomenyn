@@ -9,7 +9,7 @@ import (
 
 // UpsertWeekRetrospective updates the most recent retrospective row for a week
 // if one exists, or inserts a new row. The week-level retrospective is a single
-// evolving note (pacing, portion totals, overall vibe) — older rows remain in
+// evolving note (pacing, portion totals, overall vibe). Older rows remain in
 // the table as history but aren't surfaced in the editable UI.
 // Returns an error wrapping "not found" if the week id doesn't exist.
 func UpsertWeekRetrospective(ctx context.Context, pool *pgxpool.Pool, weekID int64, notesMD string) error {

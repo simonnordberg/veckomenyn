@@ -177,7 +177,7 @@ func (c *Client) do(method, path string, body any) (*http.Response, error) {
 	if method != http.MethodGet && csrf != "" {
 		req.Header.Set("X-CSRF-TOKEN", csrf)
 	}
-	// Go's cookiejar is too strict for Willys' flow — attach manually.
+	// Go's cookiejar is too strict for Willys' flow; attach manually.
 	if cookieHeader != "" {
 		req.Header.Set("Cookie", cookieHeader)
 	}

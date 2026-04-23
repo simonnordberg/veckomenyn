@@ -207,7 +207,7 @@ function Main({ route }: { route: Route }) {
       }
 
       if (ev.type === "tool_result" && ev.tool && MUTATING_TOOLS.has(ev.tool)) {
-        // Refetch to pick up the new rows — this is what makes the menu feel live.
+        // Refetch to pick up the new rows; this is what makes the menu feel live.
         bumpLoad();
       }
     },
