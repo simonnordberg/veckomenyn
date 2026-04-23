@@ -25,18 +25,18 @@ Shopping backends are pluggable. Willys.se ships today.
 ```sh
 cp .env.example .env
 echo "MASTER_KEY=$(openssl rand -base64 32)" >> .env
-docker compose up -d
+podman compose up -d
 open http://localhost:8080
 ```
 
-`podman-compose up -d` works too. The compose file is plain OCI.
+Podman is the default engine; `docker compose up -d` works the same way. The compose file is plain OCI.
 
 Open Settings. Add an Anthropic API key and store credentials. Both encrypt at rest with AES-256-GCM when `MASTER_KEY` is set, and the API masks them with a per-process sentinel on read.
 
 Seed starter preferences (optional):
 
 ```sh
-docker compose exec app veckomenyn-import --from /usr/local/share/veckomenyn/preferences
+podman compose exec app veckomenyn-import --from /usr/local/share/veckomenyn/preferences
 ```
 
 Any directory of `.md` files works. One file per category.
@@ -77,7 +77,7 @@ The Go binary embeds the Vite bundle via `//go:embed`.
 ## Development
 
 ```sh
-docker compose up -d db   # Postgres only
+podman compose up -d db   # Postgres only (docker compose also works)
 make dev                  # server + frontend with HMR
 make test                 # go test -race + frontend typecheck
 make lint                 # golangci-lint + biome
@@ -99,14 +99,14 @@ Everything else, including the Anthropic model, lives in Settings.
 Opt-in. A sidecar dumps Postgres nightly to `./backups/` on the host, with 14 daily / 8 weekly / 6 monthly rotation:
 
 ```sh
-docker compose --profile backup up -d
+podman compose --profile backup up -d
 ```
 
 Dumps use `--clean --if-exists --no-owner --no-privileges`, so restoring into a fresh database is one command:
 
 ```sh
 gzip -dc backups/daily/veckomenyn-YYYY-MM-DD.sql.gz \
-  | docker compose exec -T db psql -U veckomenyn -d veckomenyn
+  | podman compose exec -T db psql -U veckomenyn -d veckomenyn
 ```
 
 Override `SCHEDULE` or `BACKUP_KEEP_*` in `docker-compose.yml` to change retention. The sidecar is [prodrigestivill/postgres-backup-local](https://github.com/prodrigestivill/docker-postgres-backup-local).

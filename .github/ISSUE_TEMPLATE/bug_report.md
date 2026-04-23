@@ -22,14 +22,15 @@ labels: bug
 ## Environment
 
 - Veckomenyn version / commit:
-- Docker image tag:
+- Container image tag:
+- Container engine (podman / docker):
 - Host OS:
 - Browser (if relevant):
 
 ## Logs
 
 <details>
-<summary>Relevant log lines from <code>docker compose logs app</code></summary>
+<summary>Relevant log lines from <code>podman compose logs app</code> (or <code>docker compose logs app</code>)</summary>
 
 ```
 paste here

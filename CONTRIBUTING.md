@@ -9,7 +9,7 @@ Veckomenyn is a household meal planner. Willys.se is the first shopping backend.
 ## Local loop
 
 ```sh
-docker compose up -d db
+podman compose up -d db   # docker compose works the same
 make dev
 ```
 

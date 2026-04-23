@@ -15,7 +15,7 @@ build-web:
 	cd web && pnpm install --frozen-lockfile && pnpm build
 
 # Run the backend and frontend together with hot-reload.
-# Requires Postgres to be reachable via DATABASE_URL (e.g. `docker compose up -d db`).
+# Requires Postgres to be reachable via DATABASE_URL (e.g. `podman compose up -d db`; `docker compose` also works).
 dev:
 	@(go run ./cmd/veckomenyn & cd web && pnpm dev) 2>&1
 
