@@ -427,6 +427,9 @@ func getWeekTool(db *pgxpool.Pool) Tool {
 			} else if in.IsoWeek != "" {
 				// iso_week is not unique; pick the most recently updated.
 				row = db.QueryRow(ctx, `SELECT `+weekCols+` FROM weeks WHERE iso_week=$1 ORDER BY updated_at DESC LIMIT 1`, in.IsoWeek)
+			} else if curr := WeekIDFrom(ctx); curr > 0 {
+				// Fall back to the plan this chat is bound to.
+				row = db.QueryRow(ctx, `SELECT `+weekCols+` FROM weeks WHERE id=$1`, curr)
 			} else {
 				return "", fmt.Errorf("need id or iso_week")
 			}
@@ -613,10 +616,7 @@ func updateWeekTool(db *pgxpool.Pool) Tool {
 			}
 
 			id := in.WeekID
-			if id == 0 {
-				if in.IsoWeek == "" {
-					return "", fmt.Errorf("need week_id or iso_week")
-				}
+			if id == 0 && in.IsoWeek != "" {
 				// iso_week is not unique; pick the most recently updated.
 				err := db.QueryRow(ctx, `SELECT id FROM weeks WHERE iso_week = $1 ORDER BY updated_at DESC LIMIT 1`, in.IsoWeek).Scan(&id)
 				if err != nil {
@@ -626,6 +626,11 @@ func updateWeekTool(db *pgxpool.Pool) Tool {
 					return "", err
 				}
 			}
+			resolved, err := ResolvePlan(ctx, id)
+			if err != nil {
+				return "", err
+			}
+			id = resolved
 
 			u := store.WeekUpdate{
 				IsoWeek:      in.NewIsoWeek,
@@ -706,9 +711,9 @@ func updateHouseholdSettingsTool(db *pgxpool.Pool) Tool {
 func addDinnerTool(db *pgxpool.Pool) Tool {
 	return newTool(
 		"add_dinner",
-		"Add a dinner to a week. Creates a dish row (if needed) and schedules it. Recipe goes in recipe_md as full markdown (ingredients + numbered steps).",
+		"Add a dinner to the current plan. Creates a dish row (if needed) and schedules it. Recipe goes in recipe_md as full markdown (ingredients + numbered steps). week_id may be omitted; it defaults to the plan this chat is bound to.",
 		map[string]any{
-			"week_id":       map[string]any{"type": "integer"},
+			"week_id":       map[string]any{"type": "integer", "description": "Optional; defaults to the current plan. Passing a different id is refused."},
 			"day_date":      map[string]any{"type": "string", "description": "YYYY-MM-DD"},
 			"dish_name":     map[string]any{"type": "string"},
 			"cuisine":       map[string]any{"type": "string"},
@@ -718,7 +723,7 @@ func addDinnerTool(db *pgxpool.Pool) Tool {
 			"notes":         map[string]any{"type": "string"},
 			"tags":          map[string]any{"type": "array", "items": map[string]any{"type": "string"}, "description": "Free tags like 'fish', 'weekend-easy', 'korean'."},
 		},
-		[]string{"week_id", "day_date", "dish_name"},
+		[]string{"day_date", "dish_name"},
 		func(ctx context.Context, input json.RawMessage) (string, error) {
 			var in struct {
 				WeekID       int64           `json:"week_id"`
@@ -734,6 +739,11 @@ func addDinnerTool(db *pgxpool.Pool) Tool {
 			if err := json.Unmarshal(input, &in); err != nil {
 				return "", err
 			}
+			weekID, err := ResolvePlan(ctx, in.WeekID)
+			if err != nil {
+				return "", err
+			}
+			in.WeekID = weekID
 			if in.Servings == 0 {
 				in.Servings = 4
 			}
@@ -805,6 +815,9 @@ func updateDinnerTool(db *pgxpool.Pool) Tool {
 			if err := json.Unmarshal(input, &in); err != nil {
 				return "", err
 			}
+			if err := CheckDinnerInScope(ctx, db, in.DinnerID); err != nil {
+				return "", err
+			}
 			if in.Servings == 0 {
 				in.Servings = 4
 			}
@@ -865,6 +878,9 @@ func deleteDinnerTool(db *pgxpool.Pool) Tool {
 			if err := json.Unmarshal(input, &in); err != nil {
 				return "", err
 			}
+			if err := CheckDinnerInScope(ctx, db, in.DinnerID); err != nil {
+				return "", err
+			}
 			tag, err := db.Exec(ctx, `DELETE FROM week_dinners WHERE id=$1`, in.DinnerID)
 			if err != nil {
 				return "", err
@@ -880,13 +896,13 @@ func deleteDinnerTool(db *pgxpool.Pool) Tool {
 func addExceptionTool(db *pgxpool.Pool) Tool {
 	return newTool(
 		"add_exception",
-		"Record a week-level exception (e.g. 'Noah away Thu–Sun' or 'extra fika bake Friday'). These inform future planning and appear on the week view.",
+		"Record a plan-level exception on the current plan (e.g. 'Noah away Thu-Sun' or 'extra fika bake Friday'). These inform future planning and appear on the plan view. week_id may be omitted; it defaults to the plan this chat is bound to.",
 		map[string]any{
-			"week_id":     map[string]any{"type": "integer"},
+			"week_id":     map[string]any{"type": "integer", "description": "Optional; defaults to the current plan. Passing a different id is refused."},
 			"kind":        map[string]any{"type": "string", "description": "Short slug: 'absence', 'extra_meal', 'bake', 'other'."},
 			"description": map[string]any{"type": "string"},
 		},
-		[]string{"week_id", "kind", "description"},
+		[]string{"kind", "description"},
 		func(ctx context.Context, input json.RawMessage) (string, error) {
 			var in struct {
 				WeekID      int64  `json:"week_id"`
@@ -896,10 +912,14 @@ func addExceptionTool(db *pgxpool.Pool) Tool {
 			if err := json.Unmarshal(input, &in); err != nil {
 				return "", err
 			}
+			weekID, err := ResolvePlan(ctx, in.WeekID)
+			if err != nil {
+				return "", err
+			}
 			var id int64
-			err := db.QueryRow(ctx,
+			err = db.QueryRow(ctx,
 				`INSERT INTO week_exceptions (week_id, kind, description) VALUES ($1, $2, $3) RETURNING id`,
-				in.WeekID, in.Kind, in.Description).Scan(&id)
+				weekID, in.Kind, in.Description).Scan(&id)
 			if err != nil {
 				return "", err
 			}
@@ -911,9 +931,9 @@ func addExceptionTool(db *pgxpool.Pool) Tool {
 func recordRetrospectiveTool(db *pgxpool.Pool) Tool {
 	return newTool(
 		"record_retrospective",
-		"Save post-week feedback for a week. Use notes_md for free-form reflections. If the user mentioned specific dinners, include ratings; each rating references a week_dinner_id from get_week.",
+		"Save post-plan feedback on the current plan. Use notes_md for free-form reflections. If the user mentioned specific dinners, include ratings; each rating references a week_dinner_id from get_week. week_id may be omitted; it defaults to the plan this chat is bound to.",
 		map[string]any{
-			"week_id":  map[string]any{"type": "integer"},
+			"week_id":  map[string]any{"type": "integer", "description": "Optional; defaults to the current plan. Passing a different id is refused."},
 			"notes_md": map[string]any{"type": "string"},
 			"ratings": map[string]any{
 				"type": "array",
@@ -929,7 +949,7 @@ func recordRetrospectiveTool(db *pgxpool.Pool) Tool {
 				},
 			},
 		},
-		[]string{"week_id", "notes_md"},
+		[]string{"notes_md"},
 		func(ctx context.Context, input json.RawMessage) (string, error) {
 			var in struct {
 				WeekID  int64  `json:"week_id"`
@@ -943,6 +963,11 @@ func recordRetrospectiveTool(db *pgxpool.Pool) Tool {
 			if err := json.Unmarshal(input, &in); err != nil {
 				return "", err
 			}
+			weekID, err := ResolvePlan(ctx, in.WeekID)
+			if err != nil {
+				return "", err
+			}
+			in.WeekID = weekID
 			tx, err := db.Begin(ctx)
 			if err != nil {
 				return "", err
@@ -955,6 +980,15 @@ func recordRetrospectiveTool(db *pgxpool.Pool) Tool {
 				return "", err
 			}
 			for _, r := range in.Ratings {
+				// Ratings must attach to dinners within the same plan we're
+				// writing the retrospective for.
+				var dinnerWeek int64
+				if err := tx.QueryRow(ctx, `SELECT week_id FROM week_dinners WHERE id = $1`, r.DinnerID).Scan(&dinnerWeek); err != nil {
+					return "", err
+				}
+				if dinnerWeek != in.WeekID {
+					return "", fmt.Errorf("rating dinner_id=%d belongs to plan %d, not %d", r.DinnerID, dinnerWeek, in.WeekID)
+				}
 				if _, err := tx.Exec(ctx,
 					`INSERT INTO dish_ratings (week_dinner_id, rating, notes)
 					 VALUES ($1, $2, $3)

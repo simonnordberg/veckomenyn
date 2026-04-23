@@ -109,6 +109,7 @@ func (a *Agent) Run(
 	// second system block so the cacheable first block (prompt + tools) stays
 	// stable as the setting flips between turns.
 	langBlock := languageBlock(ctx, a.db, a.log)
+	planBlock := currentPlanBlock(ctx, a.db, a.log)
 
 	for i := 0; i < a.cfg.MaxIters; i++ {
 		systemBlocks := []anthropic.TextBlockParam{{
@@ -117,6 +118,9 @@ func (a *Agent) Run(
 		}}
 		if langBlock.Text != "" {
 			systemBlocks = append(systemBlocks, langBlock)
+		}
+		if planBlock.Text != "" {
+			systemBlocks = append(systemBlocks, planBlock)
 		}
 		params := anthropic.MessageNewParams{
 			Model:     model,
@@ -234,6 +238,36 @@ Write all user-facing output in English. Do not translate existing content; leav
 	default:
 		return anthropic.TextBlockParam{}
 	}
+	return anthropic.TextBlockParam{Text: text}
+}
+
+// currentPlanBlock injects a short fact sheet about the plan this chat is
+// bound to. The model uses it to default all tool calls to that plan without
+// having to ask the user which plan they mean. Empty when no plan is in
+// scope (e.g. a general /chat request with no plan context).
+func currentPlanBlock(ctx context.Context, db *pgxpool.Pool, log *slog.Logger) anthropic.TextBlockParam {
+	id := WeekIDFrom(ctx)
+	if id == 0 {
+		return anthropic.TextBlockParam{}
+	}
+	var iso, start, end, status string
+	var dinnerCount int
+	err := db.QueryRow(ctx, `
+		SELECT w.iso_week, w.start_date::text, w.end_date::text, w.status,
+		       COALESCE((SELECT COUNT(*) FROM week_dinners wd WHERE wd.week_id = w.id), 0)
+		FROM weeks w WHERE w.id = $1`, id).Scan(&iso, &start, &end, &status, &dinnerCount)
+	if err != nil {
+		log.Warn("current plan block: lookup failed", "week_id", id, "err", err)
+		return anthropic.TextBlockParam{}
+	}
+	text := fmt.Sprintf(`<current-plan>
+  id: %d
+  iso_week: %s
+  dates: %s → %s
+  status: %s
+  dinners: %d
+</current-plan>
+This chat is tied to the plan above. Assume every user request refers to it. When calling week-scoped tools (add_dinner, update_week, update_dinner, delete_dinner, add_exception, record_retrospective, get_week), omit week_id or pass id=%d; any other value will be refused. If the user wants to edit a different plan, tell them to open it and try there.`, id, iso, start, end, status, dinnerCount, id)
 	return anthropic.TextBlockParam{Text: text}
 }
 
