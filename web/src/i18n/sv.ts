@@ -150,7 +150,7 @@ export const sv: Record<string, string> = {
   "lifecycle.current": "Aktuell status",
   "lifecycle.build_cart": "Bygg kundvagn",
   "lifecycle.build_cart_prompt":
-    "Bygg Willys-kundvagnen för veckan som löper från {start} till {end}. Följ metoden i systemprompten: börja med willys_cart_clear, aggregera sedan alla ingredienser tvärs över ALLA middagar (visa listan), välj en produkt per ingrediens, skicka sedan hela listan i ett enda willys_cart_add_many-anrop. Verifiera med willys_cart_get på slutet. När du är klar, sammanfatta vad du la till och markera veckan som cart_built.",
+    "Bygg Willys-kundvagnen för planen som löper från {start} till {end}. Följ metoden i systemprompten: börja med willys_cart_get och lista vad som redan ligger i kundvagnen så jag kan bekräfta. Inkorporera befintliga varor i planen (rensa inte om jag inte säger 'rensa' eller 'reset'). Aggregera ingredienser tvärs över ALLA middagar (visa listan), dra ifrån det som redan finns i vagnen, välj en produkt per saknad ingrediens och skicka sedan deltat i ett enda willys_cart_add_many-anrop. Verifiera med willys_cart_get på slutet. När du är klar, sammanfatta vad du la till och markera planen som cart_built.",
   "lifecycle.mark_cart_built": "Markera kundvagn klar",
   "lifecycle.mark_ordered": "Markera som beställd",
   "lifecycle.record_retrospective": "Dokumentera återblick",

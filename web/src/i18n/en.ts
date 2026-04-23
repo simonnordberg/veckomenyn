@@ -149,7 +149,7 @@ export const en: Record<string, string> = {
   "lifecycle.current": "Current status",
   "lifecycle.build_cart": "Build cart",
   "lifecycle.build_cart_prompt":
-    "Build the Willys cart for the week running {start} through {end}. Follow the cart-building method in the system prompt: first willys_cart_clear, then aggregate ingredients across ALL dinners (show the list), pick one product per ingredient, then one willys_cart_add_many with the whole list. Verify with willys_cart_get at the end. When you're done, summarise what you added and mark the week as cart_built.",
+    "Build the Willys cart for the plan running {start} through {end}. Follow the cart-building method in the system prompt: start with willys_cart_get and list what's already in the cart so I can confirm; incorporate those items into the plan (don't clear unless I say 'reset'). Aggregate ingredients across ALL dinners (show the list), subtract what's already in the cart, pick one product per missing ingredient, then one willys_cart_add_many with the delta. Verify with willys_cart_get at the end. When you're done, summarise what you added and mark the plan as cart_built.",
   "lifecycle.mark_cart_built": "Mark cart as built",
   "lifecycle.mark_ordered": "Mark as ordered",
   "lifecycle.record_retrospective": "Record retrospective",

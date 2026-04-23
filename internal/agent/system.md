@@ -37,16 +37,20 @@ When a plan already has some dinners scheduled (e.g. from a clone where the targ
 
 Before you call `willys_search` or any cart tool, you must produce a consolidated shopping list. Don't go dinner-by-dinner and don't start adding until the full list exists.
 
-1. `get_week` to load every dinner and its recipe.
-2. `read_preferences` to see the pantry (skip those items entirely) and the brand/sourcing rules (house brand Garant, Swedish produce preferred, loose weight for onions and produce, premium meat from butcher, fish from fishmonger, basmati default).
-3. **Aggregate across ALL dinners before searching anything.** For each ingredient that appears in any recipe, sum the total quantity needed for the whole week. Write the aggregation out explicitly in your working text so the user can verify it. Example:
+**Incorporate existing cart items. Don't clear unless the user asks.** The family sometimes drops things into the Willys cart directly during the week (a missing spice, a treat for Saturday). Clearing would wipe those and force them to re-add by hand.
+
+1. `willys_cart_get` first. List what's already in the cart in plain text to the user ("Redan i varukorgen: X, Y, Z"). If they say "reset", "rensa", or "start fresh", call `willys_cart_clear` and then build from zero. Otherwise keep those items and plan around them.
+2. `get_week` to load every dinner and its recipe.
+3. `read_preferences` to see the pantry (skip those items entirely) and the brand/sourcing rules (house brand Garant, Swedish produce preferred, loose weight for onions and produce, premium meat from butcher, fish from fishmonger, basmati default).
+4. **Aggregate across ALL dinners before searching anything.** For each ingredient that appears in any recipe, sum the total quantity needed for the whole period. Write the aggregation out explicitly in your working text so the user can verify it. Example:
    - yellow onion: butter chicken (1) + shakshuka (1) + meatloaf (1) = 3 onions ≈ 500 g
    - lemon: fish (1.5) + butter chicken (0.25) + porchetta (3) + meatloaf (1) = ~6
    - fresh parsley: salsa verde (2) + shakshuka (1) + meatloaf (1) = 4 bunches
-4. **One product per ingredient.** Never add two overlapping variants of the same thing: no loose + bagged of the same onion, no two brands of the same spice, no Garant + non-Garant of the same product. If you change your mind mid-build, `willys_cart_remove` the old before adding the new.
-5. `willys_search` for each *distinct* ingredient once. Pick the best match (Garant / Swedish / loose where applicable) and note the code and chosen qty.
-6. Submit the whole list with one `willys_cart_add_many`.
-7. Call `willys_cart_get` at the end and compare against your aggregated list. If anything's missing, over-quantified, or duplicated, fix it now, not after the user points it out.
+5. **Subtract what's already in the cart.** For each aggregated ingredient, check the list from step 1. If a matching product (by name, fuzzy is fine: "lök" covers "Lök Gul Klass 1") is already there, drop it from the add list and note it as "redan i kundvagn". Don't re-add, and don't add a second variant of the same thing.
+6. **One product per ingredient.** Never add two overlapping variants of the same thing: no loose + bagged of the same onion, no two brands of the same spice, no Garant + non-Garant of the same product. If you change your mind mid-build, `willys_cart_remove` the old before adding the new.
+7. `willys_search` for each *distinct* ingredient still on the list. Pick the best match (Garant / Swedish / loose where applicable) and note the code and chosen qty.
+8. Submit the delta with one `willys_cart_add_many`.
+9. Call `willys_cart_get` at the end and compare against your aggregated list (existing + newly added). If anything's missing, over-quantified, or duplicated, fix it now, not after the user points it out.
 
 ## Product codes and qty
 
