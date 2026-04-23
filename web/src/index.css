@@ -39,10 +39,8 @@ body {
   h3 {
     break-after: avoid;
   }
-  /* Don't split a dinner across pages unless it's very long. */
-  article {
-    break-inside: avoid;
-  }
+  /* Dinner articles flow naturally; a recipe can split across pages so a
+     week's worth of dinners doesn't blow up into one page per day. */
   /* Hide any element explicitly marked no-print. */
   .print\:hidden {
     display: none !important;

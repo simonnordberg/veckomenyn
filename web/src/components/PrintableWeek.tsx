@@ -119,7 +119,7 @@ export function PrintableWeek({ id }: Props) {
 
       <section className="flex flex-col gap-8">
         {week.dinners.map((d) => (
-          <article key={d.id} className="break-inside-avoid">
+          <article key={d.id}>
             <header className="mb-2 border-b border-stone-300 pb-1">
               <div className="font-mono text-xs uppercase tracking-wide text-stone-500 tabular-nums">
                 {d.day_date} · {formatWeekday(d.day_date)}
