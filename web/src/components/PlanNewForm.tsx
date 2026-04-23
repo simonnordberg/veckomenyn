@@ -6,11 +6,12 @@ import { EditableDate } from "./Editable";
 type Props = {
   onSubmit: (prompt: string) => void;
   busy: boolean;
+  onCancel?: () => void;
 };
 
 const DEFAULT_DINNERS = 7;
 
-export function PlanNewForm({ onSubmit, busy }: Props) {
+export function PlanNewForm({ onSubmit, busy, onCancel }: Props) {
   useLang();
   const [startDate, setStartDate] = useState(() => addDays(today(), 1));
   const [dinners, setDinners] = useState(DEFAULT_DINNERS);
@@ -74,13 +75,25 @@ export function PlanNewForm({ onSubmit, busy }: Props) {
             className="w-full resize-none rounded-md border border-stone-300 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-stone-500 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 dark:placeholder:text-stone-500"
           />
         </Field>
-        <button
-          type="submit"
-          disabled={busy}
-          className="mt-2 self-start rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50 shadow-sm hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
-        >
-          {busy ? t("plan.submitting") : t("plan.submit")}
-        </button>
+        <div className="mt-2 flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded-md bg-stone-900 px-4 py-2 text-sm font-medium text-stone-50 shadow-sm hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+          >
+            {busy ? t("plan.submitting") : t("plan.submit")}
+          </button>
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={busy}
+              className="rounded-md px-3 py-2 text-sm text-stone-600 hover:text-stone-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-stone-400 dark:hover:text-stone-100"
+            >
+              {t("plan.cancel")}
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );

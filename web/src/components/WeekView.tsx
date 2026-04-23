@@ -364,7 +364,7 @@ function WeekHeader({
         </div>
         <div className="flex shrink-0 gap-2">
           <a
-            href={`?print=${encodeURIComponent(week.iso_week)}`}
+            href={`/weeks/${encodeURIComponent(week.iso_week)}/print`}
             target="_blank"
             rel="noreferrer"
             className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"

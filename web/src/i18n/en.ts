@@ -18,6 +18,7 @@ export const en: Record<string, string> = {
   "plan.notes_placeholder": "Noah away Thu–Sun. Extra bake for work fika Friday.",
   "plan.submit": "Plan the week",
   "plan.submitting": "Planning…",
+  "plan.cancel": "Cancel",
   "plan.prompt": "Plan {dinners} dinners, starting {start} and running through {end}.",
 
   // Week view
@@ -126,6 +127,8 @@ export const en: Record<string, string> = {
   "sidebar.current": "Current week",
   "sidebar.empty": "No weeks yet.",
   "sidebar.dinners_short": "dinners",
+  "sidebar.new_week": "New week",
+  "sidebar.new_week_title": "Plan a new week",
 
   // Lifecycle
   "lifecycle.current": "Current status",

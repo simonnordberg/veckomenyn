@@ -20,33 +20,39 @@ import {
   type WeekDetail,
   type WeekPatch,
 } from "./lib/api";
+import { goBack, navigate, type Route, useRoute } from "./lib/route";
 import { setTheme, useTheme } from "./lib/theme";
 
 type Status = "loading" | "empty" | "ready" | "error";
 
 export function App() {
-  // Print mode uses a completely separate tree with no sidebar/chat/topbar.
-  const printISO =
-    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("print") : null;
-  if (printISO) return <PrintableWeek iso={printISO} />;
-  return <Main />;
+  const route = useRoute();
+  // Print mode renders a completely separate tree with no sidebar/chat/topbar.
+  if (route.kind === "print") return <PrintableWeek iso={route.iso} />;
+  return <Main route={route} />;
 }
 
-function Main() {
+function Main({ route }: { route: Route }) {
   const [status, setStatus] = useState<Status>("loading");
   const [week, setWeek] = useState<WeekDetail | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
 
   const [chatOpen, setChatOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [chatEntries, setChatEntries] = useState<ChatEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [conversationID, setConversationID] = useState<number | null>(null);
   const [activeDay, setActiveDay] = useState<string | null>(null);
-  const [selectedISO, setSelectedISO] = useState<string | null>(null); // null = current/latest
   const [sidebarRefresh, setSidebarRefresh] = useState(0);
+  const [loadKey, setLoadKey] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  // Set when the user submits the plan-new form; the next data load uses
+  // this to resolve and navigate to the freshly created week.
+  const planSubmittedRef = useRef(false);
+
+  const planMode = route.kind === "new";
+  const settingsOpen = route.kind === "settings";
+  const preferencesOpen = route.kind === "preferences";
+  const selectedISO = route.kind === "week" ? route.iso : (week?.iso_week ?? null);
 
   useLang(); // subscribe root to language changes
 
@@ -59,22 +65,84 @@ function Main() {
       });
   }, []);
 
-  const refreshWeek = useCallback(async () => {
-    try {
-      const fetched = selectedISO ? await getWeek(selectedISO) : await getCurrentWeek();
-      if (fetched) {
-        setWeek(fetched);
-        setStatus("ready");
-        if (selectedISO === null) setSelectedISO(fetched.iso_week);
-      } else {
-        setStatus("empty");
+  const bumpLoad = useCallback(() => setLoadKey((k) => k + 1), []);
+
+  // Route-driven data loader. Runs on route changes and whenever bumpLoad()
+  // is called (e.g. after an agent mutation). Keeps the URL, loaded week,
+  // and sidebar in sync.
+  const routeKey = routeLoadKey(route);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        // After the user submits the plan form, the first load resolves to
+        // the newly created week and pins its canonical URL.
+        if (planSubmittedRef.current) {
+          planSubmittedRef.current = false;
+          const fetched = await getCurrentWeek();
+          if (cancelled) return;
+          if (fetched) {
+            setWeek(fetched);
+            setStatus("ready");
+            navigate({ kind: "week", iso: fetched.iso_week }, { replace: true });
+          } else {
+            setStatus("empty");
+          }
+          setSidebarRefresh((k) => k + 1);
+          return;
+        }
+
+        if (route.kind === "new") {
+          // Plan form owns the main area. If nothing is loaded yet (fresh
+          // bookmark), fetch a week in the background so cancel has a real
+          // fallback; otherwise leave state alone so cancel snaps back.
+          if (!week) {
+            const fetched = await getCurrentWeek();
+            if (cancelled) return;
+            if (fetched) {
+              setWeek(fetched);
+              setStatus("ready");
+            }
+          }
+          return;
+        }
+
+        let fetched: WeekDetail | null;
+        if (route.kind === "week") {
+          fetched = await getWeek(route.iso);
+        } else if (route.kind === "settings" || route.kind === "preferences") {
+          // Modals overlay the most recently loaded week. If nothing is
+          // loaded yet (fresh bookmark), fall back to the current week.
+          fetched = week?.iso_week ? await getWeek(week.iso_week) : await getCurrentWeek();
+        } else {
+          // kind === "current" (fallback landing route): resolve via the
+          // backend and pin the URL to the specific week.
+          fetched = await getCurrentWeek();
+          if (fetched) {
+            navigate({ kind: "week", iso: fetched.iso_week }, { replace: true });
+          }
+        }
+        if (cancelled) return;
+        if (fetched) {
+          setWeek(fetched);
+          setStatus("ready");
+        } else {
+          setStatus("empty");
+        }
+        setSidebarRefresh((k) => k + 1);
+      } catch (err) {
+        if (cancelled) return;
+        setErrorText(err instanceof Error ? err.message : String(err));
+        setStatus("error");
       }
-      setSidebarRefresh((k) => k + 1);
-    } catch (err) {
-      setErrorText(err instanceof Error ? err.message : String(err));
-      setStatus("error");
-    }
-  }, [selectedISO]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // routeKey captures the parts of route we care about; week?.iso_week
+    // lets the settings/preferences branch refetch the underlying week
+    // when it loads for the first time.
+  }, [routeKey, loadKey, week?.iso_week]);
 
   // When the active week changes, rehydrate the chat drawer from its
   // stored conversation so you can resume where you left off.
@@ -113,10 +181,6 @@ function Main() {
     };
   }, [week?.id]);
 
-  useEffect(() => {
-    void refreshWeek();
-  }, [refreshWeek]);
-
   const assistantIndex = useRef({ current: -1 });
   const toolsByID = useRef(new Map<string, number>());
 
@@ -144,34 +208,44 @@ function Main() {
 
       if (ev.type === "tool_result" && ev.tool && MUTATING_TOOLS.has(ev.tool)) {
         // Refetch to pick up the new rows — this is what makes the menu feel live.
-        void refreshWeek();
+        bumpLoad();
       }
     },
-    [refreshWeek],
+    [bumpLoad],
   );
 
   const send = useCallback(
-    (message: string) => {
+    (message: string, opts?: { fresh?: boolean }) => {
       if (busy) return;
+      const fresh = opts?.fresh ?? false;
       const controller = new AbortController();
       abortRef.current = controller;
       setBusy(true);
       setChatOpen(true);
       assistantIndex.current = { current: -1 };
       toolsByID.current = new Map();
-      setChatEntries((prev) => [...prev, { kind: "user", text: message }]);
+      if (fresh) {
+        // Planning a brand-new week: drop any prior conversation so the agent
+        // doesn't carry over context from another week, and flag the post-run
+        // load so it pins the URL to the new week.
+        planSubmittedRef.current = true;
+        setConversationID(null);
+        setChatEntries([{ kind: "user", text: message }]);
+      } else {
+        setChatEntries((prev) => [...prev, { kind: "user", text: message }]);
+      }
 
       (async () => {
         try {
           await streamChat(
             {
-              conversation_id: conversationID ?? undefined,
-              week_id: week?.id,
+              conversation_id: fresh ? undefined : (conversationID ?? undefined),
+              week_id: fresh ? undefined : week?.id,
               message,
             },
             {
               onMeta: ({ conversation_id }) => {
-                if (conversationID == null) setConversationID(conversation_id);
+                if (fresh || conversationID == null) setConversationID(conversation_id);
               },
               onEvent: handleAgentEvent,
             },
@@ -190,11 +264,11 @@ function Main() {
           abortRef.current = null;
           setBusy(false);
           setActiveDay(null);
-          void refreshWeek();
+          bumpLoad();
         }
       })();
     },
-    [busy, conversationID, handleAgentEvent, refreshWeek],
+    [busy, conversationID, week?.id, handleAgentEvent, bumpLoad],
   );
 
   const cancel = useCallback(() => {
@@ -227,33 +301,47 @@ function Main() {
       <TopBar
         chatOpen={chatOpen}
         onToggleChat={() => setChatOpen((o) => !o)}
-        onOpenSettings={() => setSettingsOpen(true)}
-        onOpenPreferences={() => setPreferencesOpen(true)}
-        onRefresh={() => void refreshWeek()}
+        onOpenSettings={() => navigate({ kind: "settings" })}
+        onOpenPreferences={() => navigate({ kind: "preferences" })}
+        onRefresh={bumpLoad}
         busy={busy}
         onCancel={cancel}
       />
       <div className="flex flex-1 overflow-hidden">
         <WeeksSidebar
           selectedISO={selectedISO}
-          onSelect={setSelectedISO}
+          onSelect={(iso) => navigate({ kind: "week", iso })}
           refreshKey={sidebarRefresh}
+          onPlanNew={() => navigate({ kind: "new" })}
+          planNewDisabled={busy || planMode}
         />
         <main className="flex-1 overflow-y-auto bg-stone-50 dark:bg-stone-950">
-          {status === "loading" && <LoadingState />}
-          {status === "error" && (
-            <div className="mx-auto mt-12 max-w-xl rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-              {errorText}
-            </div>
-          )}
-          {status === "empty" && <PlanNewForm onSubmit={send} busy={busy} />}
-          {status === "ready" && week && (
-            <WeekView
-              week={week}
-              activeDayDate={activeDay}
-              onAction={send}
-              onPatch={patchCurrentWeek}
+          {planMode ? (
+            <PlanNewForm
+              onSubmit={(p) => send(p, { fresh: true })}
+              busy={busy}
+              onCancel={week ? () => goBack({ kind: "week", iso: week.iso_week }) : undefined}
             />
+          ) : (
+            <>
+              {status === "loading" && <LoadingState />}
+              {status === "error" && (
+                <div className="mx-auto mt-12 max-w-xl rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+                  {errorText}
+                </div>
+              )}
+              {status === "empty" && (
+                <PlanNewForm onSubmit={(p) => send(p, { fresh: true })} busy={busy} />
+              )}
+              {status === "ready" && week && (
+                <WeekView
+                  week={week}
+                  activeDayDate={activeDay}
+                  onAction={send}
+                  onPatch={patchCurrentWeek}
+                />
+              )}
+            </>
           )}
         </main>
         <ChatDrawer
@@ -265,10 +353,22 @@ function Main() {
           onClear={week ? clearChat : undefined}
         />
       </div>
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
-      <PreferencesModal open={preferencesOpen} onClose={() => setPreferencesOpen(false)} />
+      <SettingsModal open={settingsOpen} onClose={() => goBack()} />
+      <PreferencesModal open={preferencesOpen} onClose={() => goBack()} />
     </div>
   );
+}
+
+// routeLoadKey produces a stable string representing the parts of the route
+// that should re-trigger a data load.
+function routeLoadKey(route: Route): string {
+  switch (route.kind) {
+    case "week":
+    case "print":
+      return `${route.kind}:${route.iso}`;
+    default:
+      return route.kind;
+  }
 }
 
 function TopBar({

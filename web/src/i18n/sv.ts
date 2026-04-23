@@ -18,6 +18,7 @@ export const sv: Record<string, string> = {
   "plan.notes_placeholder": "Noah borta tor–sön. Extra bak till fredagsfika på jobbet.",
   "plan.submit": "Planera veckan",
   "plan.submitting": "Planerar…",
+  "plan.cancel": "Avbryt",
   "plan.prompt": "Planera {dinners} middagar, från {start} till {end}.",
 
   // Week view
@@ -128,6 +129,8 @@ export const sv: Record<string, string> = {
   "sidebar.current": "Aktuell vecka",
   "sidebar.empty": "Inga veckor ännu.",
   "sidebar.dinners_short": "middagar",
+  "sidebar.new_week": "Ny vecka",
+  "sidebar.new_week_title": "Planera en ny vecka",
 
   // Lifecycle
   "lifecycle.current": "Aktuell status",

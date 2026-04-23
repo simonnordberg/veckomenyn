@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -93,7 +94,9 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleStatic serves the embedded SPA. If the frontend hasn't been built
-// (only .gitkeep is present), returns a placeholder page.
+// (only .gitkeep is present), returns a placeholder page. For unknown paths
+// that aren't real assets, falls back to index.html so client-side routes
+// (e.g. /weeks/2026-W17) survive a reload or direct visit.
 func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
 	dist, err := fs.Sub(web.DistFS, "dist")
 	if err != nil {
@@ -104,6 +107,25 @@ func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
 	if _, err := fs.Stat(dist, "index.html"); err != nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, _ = w.Write([]byte(placeholderHTML))
+		return
+	}
+
+	// Strip the leading slash to match the embedded FS layout, then check
+	// whether the requested file exists. If not (or if it's a directory),
+	// serve index.html so the client-side router owns the URL.
+	clean := strings.TrimPrefix(r.URL.Path, "/")
+	if clean == "" {
+		clean = "index.html"
+	}
+	if info, err := fs.Stat(dist, clean); err != nil || info.IsDir() {
+		data, readErr := fs.ReadFile(dist, "index.html")
+		if readErr != nil {
+			http.Error(w, "index not found", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		_, _ = w.Write(data)
 		return
 	}
 
