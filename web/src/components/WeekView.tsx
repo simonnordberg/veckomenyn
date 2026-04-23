@@ -25,7 +25,9 @@ type Props = {
 export function WeekView({ week, activeDayDate, onAction, onPatch, onRefetch }: Props) {
   useLang();
   const dinners = useMemo(() => groupByDay(week.dinners), [week.dinners]);
-  const hasPastDinners = useMemo(() => dinners.some((d) => isPastDay(d.day_date)), [dinners]);
+  // Rating & retrospective live on weeks you've actually cooked through.
+  // Hiding them while planning keeps the card tidy and reflects the lifecycle.
+  const rateable = week.status === "ordered" || week.status === "archived";
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-8">
@@ -57,7 +59,7 @@ export function WeekView({ week, activeDayDate, onAction, onPatch, onRefetch }: 
               dinner={d}
               dimmed={activeDayDate !== null && activeDayDate !== d.day_date}
               active={activeDayDate === d.day_date}
-              past={isPastDay(d.day_date)}
+              rateable={rateable}
               onAction={onAction}
               onRatingChanged={onRefetch}
             />
@@ -66,7 +68,7 @@ export function WeekView({ week, activeDayDate, onAction, onPatch, onRefetch }: 
       </section>
       {week.cart_items.length > 0 && <CartSection items={week.cart_items} />}
       <Lifecycle week={week} onAction={onAction} onPatch={onPatch} />
-      {hasPastDinners && <WeekRetrospective week={week} />}
+      {rateable && <WeekRetrospective week={week} />}
     </div>
   );
 }
@@ -607,27 +609,18 @@ function ratingSelectedClass(r: DinnerRating): string {
   }
 }
 
-function isPastDay(day: string): boolean {
-  return day < todayISO();
-}
-
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 function DinnerCard({
   dinner,
   dimmed,
   active,
-  past,
+  rateable,
   onAction,
   onRatingChanged,
 }: {
   dinner: Dinner;
   dimmed: boolean;
   active: boolean;
-  past: boolean;
+  rateable: boolean;
   onAction: (a: string) => void;
   onRatingChanged: () => void;
 }) {
@@ -781,7 +774,7 @@ function DinnerCard({
           />
         </details>
       )}
-      {past && (
+      {rateable && (
         <div className="px-4 pb-3">
           <RatingControl dinner={dinner} onChanged={onRatingChanged} />
         </div>
