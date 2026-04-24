@@ -31,7 +31,9 @@ open http://localhost:8080
 
 Podman is the default engine; `docker compose up -d` works the same way. The compose file is plain OCI.
 
-Open Settings. Add an Anthropic API key and store credentials. Both encrypt at rest with AES-256-GCM when `MASTER_KEY` is set, and the API masks them with a per-process sentinel on read.
+> **Do not expose port 8080 to the public internet.** There is no authentication. Anyone who can reach the port can read your preferences, order history, and stored credentials, and can spend your Anthropic balance. Run it on a trusted LAN or behind Tailscale / VPN. See [Threat model](#threat-model).
+
+Open Settings. Add an Anthropic API key and store credentials. Both encrypt at rest with AES-256-GCM using `MASTER_KEY`, and the API masks them with a per-process sentinel on read.
 
 Seed starter preferences (optional):
 
@@ -87,7 +89,7 @@ make lint                 # golangci-lint + biome
 
 | Var | Purpose |
 |---|---|
-| `MASTER_KEY` | 32-byte base64 AES key. Encrypts provider secrets in the DB. Generate with `openssl rand -base64 32`. Without it, secrets live in cleartext and the server logs a warning at boot. |
+| `MASTER_KEY` | 32-byte base64 AES key. Encrypts provider secrets (API keys, store credentials, session cookies) in the DB. Generate with `openssl rand -base64 32`. Required for any real use; if unset the server boots in cleartext mode with a warning. |
 | `DATABASE_URL` | Postgres DSN. Set automatically by compose. |
 | `HTTP_ADDR` | Listen address. Defaults to `:8080`. |
 | `HOST_PORT` | Host port mapped to the container's 8080. Defaults to 8080. |
@@ -113,7 +115,7 @@ Override `SCHEDULE` or `BACKUP_KEEP_*` in `docker-compose.yml` to change retenti
 
 ## Threat model
 
-Single-household LAN deployment. No user accounts, no auth. The network boundary (Tailscale, home VPN, firewall) is what restricts access. Exposing it to the public internet without auth in front is outside scope.
+Single-household LAN deployment. No user accounts, no auth. The network boundary (Tailscale, home VPN, firewall) is what restricts access. Exposing it to the public internet without auth in front is outside scope. See [SECURITY.md](SECURITY.md) for the full picture.
 
 ## Contributing
 
