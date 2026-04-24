@@ -229,7 +229,12 @@ func (a *Agent) Run(
 // with cache_control=ephemeral. Inside the tool-use loop this caches the
 // growing conversation prefix so later iterations read the earlier ones from
 // cache instead of re-reading the whole history on every pass.
+//
+// Any previously-set message-level breakpoints are cleared first so the
+// breakpoint count doesn't grow with iterations (the API caps it at 4
+// across the whole request, and the system prompt already uses one).
 func setRollingCacheBreakpoint(msgs []anthropic.MessageParam) {
+	clearMessageCacheBreakpoints(msgs)
 	if len(msgs) == 0 {
 		return
 	}
@@ -243,6 +248,22 @@ func setRollingCacheBreakpoint(msgs []anthropic.MessageParam) {
 		block.OfToolResult.CacheControl = anthropic.NewCacheControlEphemeralParam()
 	case block.OfText != nil:
 		block.OfText.CacheControl = anthropic.NewCacheControlEphemeralParam()
+	}
+}
+
+func clearMessageCacheBreakpoints(msgs []anthropic.MessageParam) {
+	var zero anthropic.CacheControlEphemeralParam
+	for i := range msgs {
+		content := msgs[i].Content
+		for j := range content {
+			b := &content[j]
+			if b.OfToolResult != nil {
+				b.OfToolResult.CacheControl = zero
+			}
+			if b.OfText != nil {
+				b.OfText.CacheControl = zero
+			}
+		}
 	}
 }
 

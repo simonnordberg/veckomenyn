@@ -74,3 +74,50 @@ func TestSetRollingCacheBreakpoint_IdempotentOnRepeatCalls(t *testing.T) {
 		t.Fatal("expected cache_control=ephemeral after repeated calls")
 	}
 }
+
+// As the agent loop iterates, the rolling breakpoint moves to the new
+// final block. Old breakpoints must be cleared so we don't accumulate
+// more than the 4-breakpoint API cap over many tool-use iterations.
+func TestSetRollingCacheBreakpoint_ClearsPreviousBreakpointsOnAdvance(t *testing.T) {
+	msgs := []anthropic.MessageParam{
+		anthropic.NewUserMessage(anthropic.NewTextBlock("hello")),
+	}
+	setRollingCacheBreakpoint(msgs)
+
+	// Loop advances: append another message (simulating assistant + tool_result).
+	msgs = append(msgs,
+		anthropic.NewUserMessage(anthropic.NewToolResultBlock("tool-1", "done", false)),
+	)
+	setRollingCacheBreakpoint(msgs)
+
+	if ephemeralOnText(msgs[0].Content[0]) {
+		t.Error("previous breakpoint on the user text block should have been cleared")
+	}
+	if !ephemeralOnToolResult(msgs[1].Content[0]) {
+		t.Fatal("expected cache_control=ephemeral on the new final tool_result block")
+	}
+}
+
+// A long agent run would blow past the 4-breakpoint cap if each iteration
+// left a trail. After many iterations only one message-level breakpoint
+// must remain (the rolling one on the final block).
+func TestSetRollingCacheBreakpoint_NeverExceedsOneMessageLevelBreakpoint(t *testing.T) {
+	var msgs []anthropic.MessageParam
+	for i := 0; i < 10; i++ {
+		msgs = append(msgs,
+			anthropic.NewUserMessage(anthropic.NewToolResultBlock("tool", "ok", false)),
+		)
+		setRollingCacheBreakpoint(msgs)
+	}
+	count := 0
+	for _, m := range msgs {
+		for _, b := range m.Content {
+			if ephemeralOnText(b) || ephemeralOnToolResult(b) {
+				count++
+			}
+		}
+	}
+	if count != 1 {
+		t.Fatalf("expected exactly 1 message-level breakpoint after 10 iterations, got %d", count)
+	}
+}
