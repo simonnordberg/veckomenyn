@@ -66,3 +66,14 @@ func TestParsePositiveID(t *testing.T) {
 	runCase("1.5", false, 0)
 	runCase("99999999999999999999", false, 0) // overflow
 }
+
+func TestNoSniffMiddleware(t *testing.T) {
+	h := noSniff(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	if got := w.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Fatalf("expected X-Content-Type-Options=nosniff, got %q", got)
+	}
+}

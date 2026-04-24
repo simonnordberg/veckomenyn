@@ -50,6 +50,7 @@ func (s *Server) routes() {
 	s.router.Use(middleware.RequestID)
 	s.router.Use(middleware.RealIP)
 	s.router.Use(middleware.Recoverer)
+	s.router.Use(noSniff)
 	// Compression must not be applied to SSE, it breaks the event stream.
 	// Chi's compress middleware auto-skips text/event-stream, but leaving it
 	// off the /api/chat route entirely is safer.
@@ -146,6 +147,17 @@ func (s *Server) Start() error {
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.http.Shutdown(ctx)
+}
+
+// noSniff tells the browser to trust our Content-Type headers rather than
+// guessing from the body. Cheap defence against a future bug that serves
+// HTML under an API route, or serves unexpected bytes out of the embedded
+// SPA handler.
+func noSniff(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, body any) {
