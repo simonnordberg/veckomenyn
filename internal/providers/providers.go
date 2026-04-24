@@ -176,6 +176,26 @@ func New(pool *pgxpool.Pool, masterKey []byte) (*Store, error) {
 // HasEncryption reports whether secret fields are being encrypted at rest.
 func (s *Store) HasEncryption() bool { return s.crypt != nil }
 
+// EncryptString wraps plaintext in the standard enc:v1: envelope. When
+// encryption is disabled (no MASTER_KEY), returns the input unchanged so
+// callers can persist it directly. Values already wrapped pass through.
+func (s *Store) EncryptString(plain string) (string, error) {
+	if s.crypt == nil || isEncrypted(plain) {
+		return plain, nil
+	}
+	return s.crypt.encrypt(plain)
+}
+
+// DecryptString unwraps a value previously returned by EncryptString.
+// Accepts plaintext (no enc:v1: prefix) and returns it unchanged so rows
+// written before MASTER_KEY was configured keep working after rollout.
+func (s *Store) DecryptString(v string) (string, error) {
+	if s.crypt == nil || !isEncrypted(v) {
+		return v, nil
+	}
+	return s.crypt.decrypt(v)
+}
+
 var ErrNotFound = errors.New("provider not found")
 
 func (s *Store) List(ctx context.Context) ([]Provider, error) {

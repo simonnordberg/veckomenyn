@@ -29,7 +29,7 @@ type WillysProvider struct {
 
 func NewWillys(pool *pgxpool.Pool, prov *providers.Store, log *slog.Logger) *WillysProvider {
 	return &WillysProvider{
-		client:    willys.NewClientWithStore(NewDBSessionStore(pool)),
+		client:    willys.NewClientWithStore(NewDBSessionStore(pool, prov)),
 		providers: prov,
 		log:       log,
 	}
