@@ -75,15 +75,14 @@ func registerTools(db *pgxpool.Pool, shop shopping.Provider, log *slog.Logger) [
 		tools = append(tools,
 			shopSearchTool(shop),
 			shopCartGetTool(shop),
-			shopCartAddTool(shop, db),
-			shopCartAddManyTool(shop, db),
-			shopCartRemoveTool(shop, db),
-			shopCartClearTool(shop, db),
+			shopCartAddTool(shop, db, log),
+			shopCartAddManyTool(shop, db, log),
+			shopCartRemoveTool(shop, db, log),
+			shopCartClearTool(shop, db, log),
 			shopOrdersRecentTool(shop),
 			shopOrderDetailTool(shop),
 		)
 	}
-	_ = log
 	return tools
 }
 
@@ -1071,7 +1070,7 @@ func shopCartGetTool(shop shopping.Provider) Tool {
 	)
 }
 
-func shopCartAddTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
+func shopCartAddTool(shop shopping.Provider, db *pgxpool.Pool, log *slog.Logger) Tool {
 	return newTool(
 		"willys_cart_add",
 		"Add a product to the Willys cart by code (the value returned by willys_search). qty defaults to 1. When the user is planning a specific week (visible in chat context), pass reason so the line is saved to the week's shopping list. Returns the full updated cart.",
@@ -1100,17 +1099,21 @@ func shopCartAddTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 			}
 			if weekID := WeekIDFrom(ctx); weekID > 0 {
 				snapshot := snapshotLine(cart, in.Code)
-				_, _ = db.Exec(ctx, `
+				if _, err := db.Exec(ctx, `
 					INSERT INTO cart_items (week_id, product_code, qty, reason_md, committed, product_snapshot_json)
 					VALUES ($1, $2, $3, $4, false, $5::jsonb)`,
-					weekID, in.Code, qty, in.Reason, snapshot)
+					weekID, in.Code, qty, in.Reason, snapshot); err != nil {
+					// Upstream cart already updated; don't fail the tool call,
+					// but make the local mirror drift visible in logs.
+					log.Warn("cart_items insert failed", "week_id", weekID, "code", in.Code, "err", err)
+				}
 			}
 			return fmt.Sprintf("added; cart now:\n%s", formatCart(cart)), nil
 		},
 	)
 }
 
-func shopCartAddManyTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
+func shopCartAddManyTool(shop shopping.Provider, db *pgxpool.Pool, log *slog.Logger) Tool {
 	return newTool(
 		"willys_cart_add_many",
 		"Add many products to the Willys cart in one call. Prefer this over looping willys_cart_add. One iteration fits a full week's shop (40-60 items). Give each item a short reason line; when the chat is about a specific week, every reason gets saved to that week's shopping list alongside the product.",
@@ -1171,10 +1174,12 @@ func shopCartAddManyTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 			}
 			for _, r := range toRecord {
 				snapshot := snapshotLine(cart, r.code)
-				_, _ = db.Exec(ctx, `
+				if _, err := db.Exec(ctx, `
 					INSERT INTO cart_items (week_id, product_code, qty, reason_md, committed, product_snapshot_json)
 					VALUES ($1, $2, $3, $4, false, $5::jsonb)`,
-					weekID, r.code, r.qty, r.reason, snapshot)
+					weekID, r.code, r.qty, r.reason, snapshot); err != nil {
+					log.Warn("cart_items insert failed", "week_id", weekID, "code", r.code, "err", err)
+				}
 			}
 			var buf strings.Builder
 			fmt.Fprintf(&buf, "added %d/%d items\n", success, success+failure)
@@ -1192,7 +1197,7 @@ func shopCartAddManyTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 	)
 }
 
-func shopCartRemoveTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
+func shopCartRemoveTool(shop shopping.Provider, db *pgxpool.Pool, log *slog.Logger) Tool {
 	return newTool(
 		"willys_cart_remove",
 		"Remove a product from the Willys cart by code. Also drops matching rows from the week's shopping list when chat is in-week.",
@@ -1212,16 +1217,18 @@ func shopCartRemoveTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 				return "", err
 			}
 			if weekID := WeekIDFrom(ctx); weekID > 0 {
-				_, _ = db.Exec(ctx,
+				if _, err := db.Exec(ctx,
 					`DELETE FROM cart_items WHERE week_id = $1 AND product_code = $2`,
-					weekID, in.Code)
+					weekID, in.Code); err != nil {
+					log.Warn("cart_items delete failed", "week_id", weekID, "code", in.Code, "err", err)
+				}
 			}
 			return fmt.Sprintf("removed; cart now:\n%s", formatCart(cart)), nil
 		},
 	)
 }
 
-func shopCartClearTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
+func shopCartClearTool(shop shopping.Provider, db *pgxpool.Pool, log *slog.Logger) Tool {
 	return newTool(
 		"willys_cart_clear",
 		"Empty the Willys cart. Use when the user confirms they want a fresh start. Also clears the current week's shopping list when chat is in-week.",
@@ -1232,7 +1239,9 @@ func shopCartClearTool(shop shopping.Provider, db *pgxpool.Pool) Tool {
 				return "", err
 			}
 			if weekID := WeekIDFrom(ctx); weekID > 0 {
-				_, _ = db.Exec(ctx, `DELETE FROM cart_items WHERE week_id = $1`, weekID)
+				if _, err := db.Exec(ctx, `DELETE FROM cart_items WHERE week_id = $1`, weekID); err != nil {
+					log.Warn("cart_items clear failed", "week_id", weekID, "err", err)
+				}
 			}
 			return "cart cleared", nil
 		},
