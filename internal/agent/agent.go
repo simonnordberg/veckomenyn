@@ -17,6 +17,7 @@ import (
 	"github.com/simonnordberg/veckomenyn/internal/providers"
 	"github.com/simonnordberg/veckomenyn/internal/shopping"
 	"github.com/simonnordberg/veckomenyn/internal/store"
+	"github.com/simonnordberg/veckomenyn/internal/usage"
 )
 
 //go:embed system.md
@@ -38,6 +39,7 @@ type Agent struct {
 	log       *slog.Logger
 	tools     []Tool
 	toolDefs  []anthropic.ToolUnionParam
+	recorder  *usage.Recorder
 }
 
 func New(cfg Config, db *pgxpool.Pool, provStore *providers.Store, shop shopping.Provider, log *slog.Logger) *Agent {
@@ -49,6 +51,7 @@ func New(cfg Config, db *pgxpool.Pool, provStore *providers.Store, shop shopping
 		db:        db,
 		providers: provStore,
 		log:       log,
+		recorder:  usage.NewRecorder(db, log),
 	}
 	a.tools = registerTools(db, shop, log)
 	a.toolDefs = make([]anthropic.ToolUnionParam, 0, len(a.tools))
@@ -170,6 +173,10 @@ func (a *Agent) Run(
 			emit(Event{Type: "error", Result: err.Error(), IsError: true})
 			return msgs, fmt.Errorf("stream: %w", err)
 		}
+
+		// Record token usage for this model call. Must not affect the user
+		// flow if it fails (insert errors are logged inside the recorder).
+		a.recorder.Record(ctx, ConversationIDFrom(ctx), WeekIDFrom(ctx), string(model), resp.Usage)
 
 		msgs = append(msgs, resp.ToParam())
 

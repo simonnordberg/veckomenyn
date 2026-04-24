@@ -351,6 +351,53 @@ export async function deleteWeekConversations(weekID: number): Promise<void> {
   if (!r.ok) throw new Error(`delete week conversations: ${r.status}`);
 }
 
+// Usage (LLM cost tracking)
+
+export type UsageTotals = {
+  cost_usd: number;
+  input_tokens: number;
+  cache_creation_input_tokens: number;
+  cache_read_input_tokens: number;
+  output_tokens: number;
+  calls: number;
+};
+
+export type UsageDay = { date: string; cost_usd: number; calls: number };
+
+export type UsageModel = UsageTotals & { model: string };
+
+export type UsageWeek = {
+  week_id: number;
+  iso_week: string;
+  cost_usd: number;
+  calls: number;
+};
+
+export type UsageConversation = {
+  conversation_id: number;
+  title: string;
+  week_id?: number;
+  iso_week?: string;
+  cost_usd: number;
+  calls: number;
+  last_used_at: string;
+};
+
+export type UsageSummary = {
+  window_days: number;
+  total: UsageTotals;
+  by_day: UsageDay[];
+  by_model: UsageModel[];
+  by_week: UsageWeek[];
+  recent_conversations: UsageConversation[];
+};
+
+export async function getUsageSummary(): Promise<UsageSummary> {
+  const r = await fetch("/api/usage/summary");
+  if (!r.ok) throw new Error(`usage summary: ${r.status}`);
+  return (await r.json()) as UsageSummary;
+}
+
 export type StreamHandlers = {
   onMeta?: (m: ChatMeta) => void;
   onEvent?: (e: AgentEvent) => void;

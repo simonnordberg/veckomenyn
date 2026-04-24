@@ -10,7 +10,8 @@ export type Route =
   | { kind: "new" } //              /weeks/new
   | { kind: "print"; id: number } //        /weeks/:id/print
   | { kind: "settings" } //         /settings
-  | { kind: "preferences" }; //     /preferences
+  | { kind: "preferences" } //      /preferences
+  | { kind: "usage" }; //           /usage
 
 const ID_RE = /^\d+$/;
 
@@ -19,6 +20,7 @@ export function parseRoute(pathname: string): Route {
   if (pathname === "/weeks/new") return { kind: "new" };
   if (pathname === "/settings") return { kind: "settings" };
   if (pathname === "/preferences") return { kind: "preferences" };
+  if (pathname === "/usage") return { kind: "usage" };
 
   const parts = pathname.split("/").filter(Boolean);
   if (parts.length >= 2 && parts[0] === "weeks" && ID_RE.test(parts[1])) {
@@ -43,6 +45,8 @@ export function routeToPath(route: Route): string {
       return "/settings";
     case "preferences":
       return "/preferences";
+    case "usage":
+      return "/usage";
   }
 }
 

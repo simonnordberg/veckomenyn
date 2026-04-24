@@ -43,6 +43,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 		s.internalError(w, r, "request", err)
 		return
 	}
+	ctx = agent.WithConversationID(ctx, convID)
 
 	history, err := s.loadHistory(ctx, convID)
 	if err != nil {

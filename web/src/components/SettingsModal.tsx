@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { setLang, t, useLang } from "../i18n";
 import { getSettings, type HouseholdSettings, patchSettings } from "../lib/api";
+import { navigate } from "../lib/route";
 import { setTheme, type Theme, useTheme } from "../lib/theme";
 import { IntegrationsSection } from "./IntegrationsSection";
 
@@ -188,6 +189,18 @@ export function SettingsModal({ open, onClose }: Props) {
             </div>
           )}
           <IntegrationsSection />
+          <div className="mt-4 border-t border-stone-200 pt-3 dark:border-stone-800">
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                navigate({ kind: "usage" });
+              }}
+              className="text-xs font-medium text-stone-700 underline-offset-2 hover:underline dark:text-stone-300"
+            >
+              {t("usage.open")}
+            </button>
+          </div>
         </div>
       </div>
     </div>

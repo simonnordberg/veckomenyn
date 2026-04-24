@@ -89,6 +89,7 @@ func (s *Server) routes() {
 		r.Get("/preferences", s.handleListPreferences)
 		r.Put("/preferences/{category}", s.handlePutPreference)
 		r.Delete("/preferences/{category}", s.handleDeletePreference)
+		r.Get("/usage/summary", s.handleGetUsageSummary)
 	})
 
 	s.router.NotFound(s.handleStatic)

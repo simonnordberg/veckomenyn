@@ -12,7 +12,10 @@ import (
 
 type ctxKey int
 
-const weekIDKey ctxKey = 0
+const (
+	weekIDKey ctxKey = iota
+	conversationIDKey
+)
 
 // WithWeekID annotates ctx with the plan the agent is working on this
 // turn. Zero or negative values are treated as "no plan in scope."
@@ -26,6 +29,21 @@ func WithWeekID(ctx context.Context, id int64) context.Context {
 // WeekIDFrom returns the plan id set by WithWeekID, or 0 if none.
 func WeekIDFrom(ctx context.Context) int64 {
 	v, _ := ctx.Value(weekIDKey).(int64)
+	return v
+}
+
+// WithConversationID tags ctx with the chat conversation the agent is
+// running inside, so LLM usage rows can be attributed to a session.
+func WithConversationID(ctx context.Context, id int64) context.Context {
+	if id <= 0 {
+		return ctx
+	}
+	return context.WithValue(ctx, conversationIDKey, id)
+}
+
+// ConversationIDFrom returns the id set by WithConversationID, or 0.
+func ConversationIDFrom(ctx context.Context) int64 {
+	v, _ := ctx.Value(conversationIDKey).(int64)
 	return v
 }
 

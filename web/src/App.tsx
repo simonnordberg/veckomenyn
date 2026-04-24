@@ -5,6 +5,7 @@ import { PlanNewForm } from "./components/PlanNewForm";
 import { PreferencesModal } from "./components/PreferencesModal";
 import { PrintableWeek } from "./components/PrintableWeek";
 import { SettingsModal } from "./components/SettingsModal";
+import { UsageModal } from "./components/UsageModal";
 import { WeeksSidebar } from "./components/WeeksSidebar";
 import { WeekView } from "./components/WeekView";
 import { setLang, t, useLang } from "./i18n";
@@ -58,6 +59,7 @@ function Main({ route }: { route: Route }) {
   const planMode = route.kind === "new";
   const settingsOpen = route.kind === "settings";
   const preferencesOpen = route.kind === "preferences";
+  const usageOpen = route.kind === "usage";
   const selectedID = route.kind === "week" ? route.id : (week?.id ?? null);
 
   useLang(); // subscribe root to language changes
@@ -99,7 +101,11 @@ function Main({ route }: { route: Route }) {
         let fetched: WeekDetail | null;
         if (route.kind === "week") {
           fetched = await getWeekById(route.id);
-        } else if (route.kind === "settings" || route.kind === "preferences") {
+        } else if (
+          route.kind === "settings" ||
+          route.kind === "preferences" ||
+          route.kind === "usage"
+        ) {
           // Modals overlay the most recently loaded week. If nothing is
           // loaded yet (fresh bookmark), fall back to the current week.
           fetched = week?.id ? await getWeekById(week.id) : await getCurrentWeek();
@@ -404,6 +410,7 @@ function Main({ route }: { route: Route }) {
       </div>
       <SettingsModal open={settingsOpen} onClose={() => goBack()} />
       <PreferencesModal open={preferencesOpen} onClose={() => goBack()} />
+      <UsageModal open={usageOpen} onClose={() => goBack()} />
       <DuplicatePlanDialog
         source={duplicateSource}
         onCancel={() => setDuplicateSource(null)}
