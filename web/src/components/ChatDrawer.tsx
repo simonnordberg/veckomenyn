@@ -84,7 +84,7 @@ export function ChatDrawer({ open, onOpenChange, busy, entries, onSend, onClear 
             <Entry key={i} entry={e} />
           ))}
           {busy && entries.length > 0 && entries[entries.length - 1].kind !== "assistant" && (
-            <p className="text-xs text-stone-500 dark:text-stone-400">{t("chat.thinking")}</p>
+            <ThinkingIndicator />
           )}
         </div>
       </div>
@@ -182,6 +182,52 @@ function ToolEntry({
         )}
       </div>
     </details>
+  );
+}
+
+// ThinkingIndicator fills the silent gaps: after the user submits, and between
+// a tool_result and the next text/tool event. The existing condition upstream
+// hides it as soon as the model starts streaming text.
+function ThinkingIndicator() {
+  const phrases = [
+    t("chat.deliberating.pondering"),
+    t("chat.deliberating.simmering"),
+    t("chat.deliberating.tasting"),
+    t("chat.deliberating.chopping"),
+    t("chat.deliberating.plating"),
+    t("chat.deliberating.cookbook"),
+  ];
+  // Start on a random phrase so two back-to-back waits don't always open
+  // with the same word.
+  const [idx, setIdx] = useState(() => Math.floor(Math.random() * phrases.length));
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setIdx((i) => (i + 1) % phrases.length);
+    }, 2400);
+    return () => window.clearInterval(id);
+  }, [phrases.length]);
+
+  return (
+    <div
+      className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400"
+      aria-live="polite"
+    >
+      <span className="flex items-end gap-0.5" aria-hidden>
+        <Dot delay={0} />
+        <Dot delay={160} />
+        <Dot delay={320} />
+      </span>
+      <span className="italic">{phrases[idx]}…</span>
+    </div>
+  );
+}
+
+function Dot({ delay }: { delay: number }) {
+  return (
+    <span
+      className="inline-block h-1.5 w-1.5 animate-bounce rounded-full bg-stone-400 dark:bg-stone-500"
+      style={{ animationDelay: `${delay}ms`, animationDuration: "1s" }}
+    />
   );
 }
 
