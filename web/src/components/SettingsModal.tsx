@@ -192,10 +192,7 @@ export function SettingsModal({ open, onClose }: Props) {
           <div className="mt-4 border-t border-stone-200 pt-3 dark:border-stone-800">
             <button
               type="button"
-              onClick={() => {
-                onClose();
-                navigate({ kind: "usage" });
-              }}
+              onClick={() => navigate({ kind: "usage" })}
               className="text-xs font-medium text-stone-700 underline-offset-2 hover:underline dark:text-stone-300"
             >
               {t("usage.open")}
