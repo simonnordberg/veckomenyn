@@ -122,6 +122,10 @@ func (a *Agent) Run(
 		if planBlock.Text != "" {
 			systemBlocks = append(systemBlocks, planBlock)
 		}
+		// Cache the conversation prefix so the next iteration's tool loop
+		// reads it from cache instead of paying full input cost again.
+		setRollingCacheBreakpoint(msgs)
+
 		params := anthropic.MessageNewParams{
 			Model:     model,
 			MaxTokens: defaultMaxTok,
@@ -212,6 +216,27 @@ func (a *Agent) Run(
 
 	emit(Event{Type: "error", Result: "max iterations reached", IsError: true})
 	return msgs, fmt.Errorf("max iterations (%d) reached", a.cfg.MaxIters)
+}
+
+// setRollingCacheBreakpoint marks the final content block of the final message
+// with cache_control=ephemeral. Inside the tool-use loop this caches the
+// growing conversation prefix so later iterations read the earlier ones from
+// cache instead of re-reading the whole history on every pass.
+func setRollingCacheBreakpoint(msgs []anthropic.MessageParam) {
+	if len(msgs) == 0 {
+		return
+	}
+	lastMsg := &msgs[len(msgs)-1]
+	if len(lastMsg.Content) == 0 {
+		return
+	}
+	block := &lastMsg.Content[len(lastMsg.Content)-1]
+	switch {
+	case block.OfToolResult != nil:
+		block.OfToolResult.CacheControl = anthropic.NewCacheControlEphemeralParam()
+	case block.OfText != nil:
+		block.OfText.CacheControl = anthropic.NewCacheControlEphemeralParam()
+	}
 }
 
 // languageBlock returns a system-prompt fragment directing the model to write
