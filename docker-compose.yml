@@ -73,10 +73,10 @@ services:
     image: containrrr/watchtower:latest
     environment:
       # Pin the Docker Engine API version. Without this, the docker SDK
-      # negotiates a version that podman's docker-compat socket rejects
-      # ("client version 1.25 is too old, minimum 1.40"). 1.41 is
-      # supported by both Docker Engine and podman 4+.
-      DOCKER_API_VERSION: "1.41"
+      # negotiates a too-old version that modern daemons reject. 1.44
+      # satisfies modern Docker Engine (which now requires >=1.44) and
+      # is supported by podman 4.7+.
+      DOCKER_API_VERSION: "1.44"
       WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_TOKEN:-veckomenyn-internal}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
