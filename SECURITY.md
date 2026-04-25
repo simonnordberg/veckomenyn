@@ -16,7 +16,7 @@ Veckomenyn runs on a home LAN, for one household. No user accounts, no built-in 
 
 Inside that model:
 
-- Secrets encrypt at rest. With `MASTER_KEY` set, API keys and store credentials live AES-256-GCM wrapped in the `providers` table.
+- Secrets encrypt at rest. The app generates a 32-byte AES master key on first boot and persists it to the `system_secrets` table; API keys and store credentials live AES-256-GCM wrapped in `providers`. The key is in the same DB as the data it protects — losing the DB means losing both regardless, so they're correctly coupled. To manage the key externally (KMS, sealed secrets), set `MASTER_KEY=<base64-32-bytes>` in env; the app prefers env over DB and refuses to start if env disagrees with a previously-stored key.
 - Secrets don't leave the server. The REST layer replaces password fields with a random per-process sentinel. The UI echoes it back verbatim to mean "leave this alone."
 - `/api/chat` is rate-limited per IP. A misbehaving process can't run up the Anthropic bill.
 - Path parameters are bounds-checked. Request bodies are capped at 1 MiB.

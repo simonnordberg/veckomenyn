@@ -23,13 +23,11 @@ Shopping backends are pluggable. Willys.se ships today.
 ## Run it
 
 ```sh
-cp .env.example .env
-echo "MASTER_KEY=$(openssl rand -base64 32)" >> .env
 podman compose up -d
 open http://localhost:8080
 ```
 
-That pulls `ghcr.io/simonnordberg/veckomenyn:0.1` — the patch channel for the 0.1 line. Podman is the default engine; `docker compose up -d` works the same way. The compose file is plain OCI.
+That pulls `ghcr.io/simonnordberg/veckomenyn:0.1` — the patch channel for the 0.1 line. The app generates and persists its own AES master key on first boot, so there's no `.env` ritual to start. Podman is the default engine; `docker compose up -d` works the same way. The compose file is plain OCI.
 
 ### Upgrading
 
@@ -108,10 +106,12 @@ make lint                 # golangci-lint + biome
 
 | Var | Purpose |
 |---|---|
-| `MASTER_KEY` | 32-byte base64 AES key. Encrypts provider secrets (API keys, store credentials, session cookies) in the DB. Generate with `openssl rand -base64 32`. Required for any real use; if unset the server boots in cleartext mode with a warning. |
+| `MASTER_KEY` | 32-byte base64 AES key. Encrypts provider secrets in the DB. **Optional** — auto-generated and persisted on first boot. Set explicitly only if you want to manage the key externally (KMS, sealed secrets). Generate with `openssl rand -base64 32`. |
 | `DATABASE_URL` | Postgres DSN. Set automatically by compose. |
 | `HTTP_ADDR` | Listen address. Defaults to `:8080`. |
 | `HOST_PORT` | Host port mapped to the container's 8080. Defaults to 8080. |
+| `BACKUP_DIR` | Where pre-migration `pg_dump` snapshots are written. Set by compose to `/var/lib/veckomenyn/backups`. Empty disables snapshots. |
+| `PREMIGRATION_BACKUP_KEEP` | Number of pre-migration snapshots to retain. Defaults to 10. |
 
 Everything else, including the Anthropic model, lives in Settings.
 

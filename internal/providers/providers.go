@@ -173,12 +173,11 @@ func New(pool *pgxpool.Pool, masterKey []byte) (*Store, error) {
 	}, nil
 }
 
-// HasEncryption reports whether secret fields are being encrypted at rest.
-func (s *Store) HasEncryption() bool { return s.crypt != nil }
+// EncryptString wraps plaintext in the standard enc:v1: envelope. The crypt
+// field is non-nil in production (LoadOrGenerateMasterKey always returns a
+// key), but the nil branch is preserved so legacy plaintext rows from older
+// deployments still round-trip through the API without corruption.
 
-// EncryptString wraps plaintext in the standard enc:v1: envelope. When
-// encryption is disabled (no MASTER_KEY), returns the input unchanged so
-// callers can persist it directly. Values already wrapped pass through.
 func (s *Store) EncryptString(plain string) (string, error) {
 	if s.crypt == nil || isEncrypted(plain) {
 		return plain, nil

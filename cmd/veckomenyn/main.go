@@ -63,9 +63,9 @@ func main() {
 	}
 	defer db.Close()
 
-	masterKey, err := providers.ParseMasterKey(os.Getenv("MASTER_KEY"))
+	masterKey, err := providers.LoadOrGenerateMasterKey(ctx, db.Pool, os.Getenv("MASTER_KEY"), log)
 	if err != nil {
-		log.Error("invalid MASTER_KEY", "err", err)
+		log.Error("master key resolution failed", "err", err)
 		os.Exit(1)
 	}
 	provStore, err := providers.New(db.Pool, masterKey)
@@ -73,11 +73,7 @@ func main() {
 		log.Error("provider store init failed", "err", err)
 		os.Exit(1)
 	}
-	if provStore.HasEncryption() {
-		log.Info("provider secrets encrypted at rest")
-	} else {
-		log.Warn("MASTER_KEY not set; provider secrets stored in cleartext. Set a 32-byte base64 key to enable encryption.")
-	}
+	log.Info("provider secrets encrypted at rest")
 
 	willysShop := shopping.NewWillys(db.Pool, provStore, log)
 

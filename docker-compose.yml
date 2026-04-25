@@ -31,9 +31,10 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://veckomenyn:veckomenyn@db:5432/veckomenyn?sslmode=disable
-      # 32-byte AES key. Encrypts provider secrets at rest.
-      # Generate: openssl rand -base64 32
-      MASTER_KEY: ${MASTER_KEY}
+      # The app generates and persists its own AES master key on first
+      # boot. To bring your own (e.g. driven by an external KMS), set
+      # MASTER_KEY=<base64-32-bytes> in .env and uncomment below.
+      # MASTER_KEY: ${MASTER_KEY}
       # Pre-migration pg_dump lands in ./backups on the host so a bad
       # upgrade never costs you data — and you can list, copy, or rsync
       # the dumps without going into the container.
