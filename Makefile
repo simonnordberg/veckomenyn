@@ -1,9 +1,17 @@
 .PHONY: build build-server build-import build-import-week build-web dev test lint fmt verify install-hooks clean
 
+# Stamped into the main binary via -ldflags. CI overrides VERSION/COMMIT/BUILT_AT
+# from semver tags; local builds derive from git so the binary still reports
+# something useful at /api/version.
+VERSION  ?= $(shell git describe --tags --dirty --always 2>/dev/null || echo dev)
+COMMIT   ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
+BUILT_AT ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+LDFLAGS  := -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.builtAt=$(BUILT_AT)
+
 build: build-web build-server build-import build-import-week
 
 build-server: build-web
-	go build -o bin/veckomenyn ./cmd/veckomenyn
+	go build -ldflags "$(LDFLAGS)" -o bin/veckomenyn ./cmd/veckomenyn
 
 build-import:
 	go build -o bin/veckomenyn-import ./cmd/veckomenyn-import

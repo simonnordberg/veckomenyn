@@ -21,8 +21,16 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=web /app/web/dist ./web/dist
+# Build metadata stamped into the main binary via -ldflags. CI passes real
+# values from the release workflow; local builds fall back to the defaults
+# baked into main.go.
+ARG VERSION=dev
+ARG COMMIT=unknown
+ARG BUILT_AT=unknown
 ENV CGO_ENABLED=0
-RUN go build -trimpath -ldflags="-s -w" -o /out/veckomenyn ./cmd/veckomenyn && \
+RUN go build -trimpath \
+        -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.builtAt=${BUILT_AT}" \
+        -o /out/veckomenyn ./cmd/veckomenyn && \
     go build -trimpath -ldflags="-s -w" -o /out/veckomenyn-import ./cmd/veckomenyn-import && \
     go build -trimpath -ldflags="-s -w" -o /out/veckomenyn-import-week ./cmd/veckomenyn-import-week
 
