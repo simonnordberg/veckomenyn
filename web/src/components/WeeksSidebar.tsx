@@ -179,7 +179,7 @@ function VersionFooter() {
   // the string so users know they're not on a published tag.
   const isRelease = /^\d+\.\d+\.\d+$/.test(info.version);
   const label = isRelease ? `v${info.version}` : info.version;
-  const className = "block px-4 py-2 text-[10px] tabular-nums text-stone-400 dark:text-stone-600";
+  const className = "block px-4 py-2 text-xs tabular-nums text-stone-500 dark:text-stone-500";
   if (!isRelease) {
     return (
       <footer className={`border-t border-stone-200 dark:border-stone-800 ${className}`}>

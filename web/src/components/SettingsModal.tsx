@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { setLang, t, useLang } from "../i18n";
-import { getSettings, type HouseholdSettings, patchSettings } from "../lib/api";
+import {
+  getSettings,
+  getVersion,
+  type HouseholdSettings,
+  patchSettings,
+  type VersionInfo,
+} from "../lib/api";
 import { navigate } from "../lib/route";
 import { setTheme, type Theme, useTheme } from "../lib/theme";
 import { BackupsSection } from "./BackupsSection";
@@ -191,7 +197,7 @@ export function SettingsModal({ open, onClose }: Props) {
           )}
           <IntegrationsSection />
           <BackupsSection />
-          <div className="mt-4 border-t border-stone-200 pt-3 dark:border-stone-800">
+          <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3 dark:border-stone-800">
             <button
               type="button"
               onClick={() => navigate({ kind: "usage" })}
@@ -199,10 +205,53 @@ export function SettingsModal({ open, onClose }: Props) {
             >
               {t("usage.open")}
             </button>
+            <SettingsVersion />
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// SettingsVersion shows the running build at the bottom of Settings so
+// users have one obvious place to see "what version am I on" when
+// reporting issues or comparing against the update banner.
+function SettingsVersion() {
+  const [info, setInfo] = useState<VersionInfo | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getVersion()
+      .then((v) => {
+        if (!cancelled) setInfo(v);
+      })
+      .catch(() => {
+        /* hide on failure */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  if (!info) return null;
+  const isRelease = /^\d+\.\d+\.\d+$/.test(info.version);
+  const label = isRelease ? `v${info.version}` : info.version;
+  const className = "text-xs tabular-nums text-stone-500 dark:text-stone-400";
+  if (!isRelease) {
+    return (
+      <span className={className} title={info.commit}>
+        {label}
+      </span>
+    );
+  }
+  return (
+    <a
+      href={`https://github.com/simonnordberg/veckomenyn/releases/tag/v${info.version}`}
+      target="_blank"
+      rel="noreferrer"
+      className={`${className} underline-offset-2 hover:underline`}
+      title={info.commit}
+    >
+      {label}
+    </a>
   );
 }
 
