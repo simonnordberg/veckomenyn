@@ -398,6 +398,18 @@ export async function getUsageSummary(): Promise<UsageSummary> {
   return (await r.json()) as UsageSummary;
 }
 
+export type VersionInfo = {
+  version: string;
+  commit: string;
+  built_at: string;
+};
+
+export async function getVersion(): Promise<VersionInfo> {
+  const r = await fetch("/api/version");
+  if (!r.ok) throw new Error(`version: ${r.status}`);
+  return (await r.json()) as VersionInfo;
+}
+
 export type StreamHandlers = {
   onMeta?: (m: ChatMeta) => void;
   onEvent?: (e: AgentEvent) => void;

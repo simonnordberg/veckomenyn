@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { formatPeriod, t, useLang } from "../i18n";
-import { listWeeks, type WeekSummary } from "../lib/api";
+import { getVersion, listWeeks, type VersionInfo, type WeekSummary } from "../lib/api";
 
 type Props = {
   open: boolean;
@@ -153,7 +153,51 @@ export function WeeksSidebar({
           ))}
         </ul>
       </nav>
+      <VersionFooter />
     </aside>
+  );
+}
+
+function VersionFooter() {
+  const [info, setInfo] = useState<VersionInfo | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getVersion()
+      .then((v) => {
+        if (!cancelled) setInfo(v);
+      })
+      .catch(() => {
+        /* silently hide footer on failure */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  if (!info) return null;
+  // Stable releases get a link to the GitHub release notes; dev builds
+  // (version "dev" or a git-describe like "v0.1.0-3-gabc1234") just show
+  // the string so users know they're not on a published tag.
+  const isRelease = /^\d+\.\d+\.\d+$/.test(info.version);
+  const label = isRelease ? `v${info.version}` : info.version;
+  const className = "block px-4 py-2 text-[10px] tabular-nums text-stone-400 dark:text-stone-600";
+  if (!isRelease) {
+    return (
+      <footer className={`border-t border-stone-200 dark:border-stone-800 ${className}`}>
+        {label}
+      </footer>
+    );
+  }
+  return (
+    <footer className="border-t border-stone-200 dark:border-stone-800">
+      <a
+        href={`https://github.com/simonnordberg/veckomenyn/releases/tag/v${info.version}`}
+        target="_blank"
+        rel="noreferrer"
+        className={`${className} hover:text-stone-600 dark:hover:text-stone-400`}
+      >
+        {label}
+      </a>
+    </footer>
   );
 }
 
