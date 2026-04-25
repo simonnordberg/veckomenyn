@@ -18,14 +18,14 @@ services:
     restart: unless-stopped
 
   app:
-    # Pinned to the 0.1.x patch channel: get bug fixes, no surprise feature
-    # changes. Pin tighter (e.g. :0.1.3) for absolute stability, looser
+    # Pinned to the 0.2.x patch channel: get bug fixes, no surprise feature
+    # changes. Pin tighter (e.g. :0.2.3) for absolute stability, looser
     # (:0 for any 0.x, :latest for bleeding edge) for more updates. See
     # README "Upgrading" for the full channel matrix.
     #
     # Building from source? Add docker-compose.dev.yml as an override:
     #   podman compose -f docker-compose.yml -f docker-compose.dev.yml up
-    image: ghcr.io/simonnordberg/veckomenyn:0.1
+    image: ghcr.io/simonnordberg/veckomenyn:0.2
     depends_on:
       db:
         condition: service_healthy

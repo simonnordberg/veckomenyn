@@ -27,7 +27,7 @@ podman compose up -d
 open http://localhost:8080
 ```
 
-That pulls `ghcr.io/simonnordberg/veckomenyn:0.1` — the patch channel for the 0.1 line. The app generates and persists its own AES master key on first boot, so there's no `.env` ritual to start. Podman is the default engine; `docker compose up -d` works the same way. The compose file is plain OCI.
+That pulls `ghcr.io/simonnordberg/veckomenyn:0.2` — the patch channel for the 0.2 line. The app generates and persists its own AES master key on first boot, so there's no `.env` ritual to start. Podman is the default engine; `docker compose up -d` works the same way. The compose file is plain OCI.
 
 ### Upgrading
 
@@ -35,8 +35,8 @@ The image tag in `docker-compose.yml` is your update channel. Pick the disciplin
 
 | Tag | What you get | When to use |
 |---|---|---|
-| `:0.1.3` | Pinned exact version. Never moves. | Maximum stability. You bump manually. |
-| `:0.1` | Latest 0.1.x patch. | **Default.** Bug fixes only, no surprise feature changes. |
+| `:0.2.3` | Pinned exact version. Never moves. | Maximum stability. You bump manually. |
+| `:0.2` | Latest 0.2.x patch. | **Default.** Bug fixes only, no surprise feature changes. |
 | `:0` | Latest 0.x. | Patches + new features within 0.x. Breaking changes (1.0) require a deliberate bump. |
 | `:latest` | Whatever just shipped. | You like surprises. |
 
