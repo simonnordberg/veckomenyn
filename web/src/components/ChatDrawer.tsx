@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { t, useLang } from "../i18n";
-import type { AgentEvent } from "../lib/api";
+import { type AgentEvent, listProviders } from "../lib/api";
 import { Markdown } from "./Markdown";
 
 export type ChatEntry =
@@ -48,7 +48,12 @@ export function ChatDrawer({ open, onOpenChange, busy, entries, onSend, onClear 
       aria-label={t("chat.aria")}
     >
       <header className="flex items-center justify-between border-b border-stone-200 px-4 py-3 dark:border-stone-800">
-        <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100">{t("chat.title")}</h2>
+        <div className="flex items-baseline gap-2">
+          <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100">
+            {t("chat.title")}
+          </h2>
+          <ActiveModelChip open={open} />
+        </div>
         <div className="flex items-center gap-1">
           {onClear && entries.length > 0 && (
             <button
@@ -183,6 +188,50 @@ function ToolEntry({
       </div>
     </details>
   );
+}
+
+// ActiveModelChip shows the currently-configured Anthropic model in the
+// chat header so users see what they're paying for during use, not just at
+// config time. Refetches when the drawer opens so a Settings change is
+// reflected without a page reload.
+function ActiveModelChip({ open }: { open: boolean }) {
+  const [model, setModel] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    listProviders()
+      .then((env) => {
+        if (cancelled) return;
+        const anthropic = env.providers.find((p) => p.kind === "anthropic");
+        setModel(anthropic?.config?.model ?? null);
+      })
+      .catch(() => {
+        /* hide chip on error */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+  if (!model) return null;
+  return (
+    <span
+      className="rounded bg-stone-100 px-1.5 py-0.5 text-[11px] tabular-nums text-stone-500 dark:bg-stone-800 dark:text-stone-400"
+      title={model}
+    >
+      {shortModelName(model)}
+    </span>
+  );
+}
+
+// shortModelName renders a Claude model id as a human-friendly short name:
+// "claude-sonnet-4-6" -> "Sonnet 4.6". Generic enough that future Claude
+// model IDs work without a code change.
+function shortModelName(id: string): string {
+  const parts = id.replace(/^claude-/, "").split("-");
+  if (parts.length === 0) return id;
+  const name = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+  const version = parts.slice(1).join(".");
+  return version ? `${name} ${version}` : name;
 }
 
 // ThinkingIndicator fills the silent gaps: after the user submits, and between
