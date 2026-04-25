@@ -61,6 +61,31 @@ podman compose -f docker-compose.yml -f docker-compose.tailscale.yml up -d
 
 Drop the overlay and the base compose is the LAN deployment from [Quickstart](quickstart.md). Layer it back on for the tailnet path.
 
+## Auto-updates
+
+[Watchtower](https://github.com/containrrr/watchtower) polls GHCR daily and restarts the app when a newer image lands on your channel (`:0.3` by default). Add the `managed` profile to enable:
+
+```sh
+cd ~/veckomenyn
+docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile managed up -d
+```
+
+Or set `MANAGED=1` when running the installer to enable from the start:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/simonnordberg/veckomenyn/main/install.sh \
+  | TS_AUTHKEY=tskey-... MANAGED=1 sh
+```
+
+The Tailscale sidecar isn't labeled for Watchtower, so the tailnet connection survives every app update. Pre-migration `pg_dump` runs on every restart with pending migrations, so an automatic upgrade can't eat your data.
+
+To stop auto-updates, remove the Watchtower container:
+
+```sh
+cd ~/veckomenyn
+docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile managed rm -sf watchtower
+```
+
 ## Surviving reboots
 
 `restart: unless-stopped` in the compose file brings the containers back if they crash or if the engine restarts. What it can't do alone is bring everything back after a host reboot, because that depends on the engine itself starting at boot:
