@@ -43,7 +43,9 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	if err := preMigrationBackup(ctx, log, dsn, version); err != nil {
+	snapshotter := openSnapshotter(log, dsn)
+
+	if err := preMigrationBackup(ctx, log, snapshotter, dsn, version); err != nil {
 		log.Error("pre-migration snapshot failed; refusing to migrate",
 			"err", err,
 			"hint", "set VECKOMENYN_SKIP_PREMIGRATION_BACKUP=1 to bypass (dev only)")
@@ -79,9 +81,16 @@ func main() {
 
 	ag := agent.New(agent.Config{}, db.Pool, provStore, willysShop, log)
 
+	backupCfg := store.NewBackupConfigStore(db.Pool)
+	if snapshotter != nil && snapshotter.CanWrite() {
+		go backup.NewScheduler(snapshotter, backupCfg, version, log).Run(ctx)
+	}
+
 	srv := server.New(server.Config{
-		Addr:  addr,
-		Build: server.BuildInfo{Version: version, Commit: commit, BuiltAt: builtAt},
+		Addr:         addr,
+		Build:        server.BuildInfo{Version: version, Commit: commit, BuiltAt: builtAt},
+		Snapshotter:  snapshotter,
+		BackupConfig: backupCfg,
 	}, db, ag, provStore, log)
 
 	errCh := make(chan error, 1)
@@ -124,10 +133,33 @@ func envOrInt(key string, def int) int {
 	return n
 }
 
+// openSnapshotter resolves a Snapshotter from BACKUP_DIR. Returns nil when
+// disabled (env unset). Falls back to a read-only Snapshotter when pg_dump
+// isn't on PATH so dev hosts without the postgres client can still list
+// existing snapshots through the API.
+func openSnapshotter(log *slog.Logger, dsn string) *backup.Snapshotter {
+	dir := os.Getenv("BACKUP_DIR")
+	if dir == "" {
+		log.Warn("BACKUP_DIR not set; backup features disabled. Set BACKUP_DIR to a persistent path to enable.")
+		return nil
+	}
+	snap, err := backup.New(dsn, dir, log)
+	if err != nil {
+		log.Warn("pg_dump not available; backups read-only (existing dumps listable, no new snapshots)", "err", err)
+		ro, openErr := backup.Open(dir, log)
+		if openErr != nil {
+			log.Error("backup dir init failed", "err", openErr)
+			return nil
+		}
+		return ro
+	}
+	return snap
+}
+
 // preMigrationBackup takes a pg_dump if there are pending migrations and a
-// BACKUP_DIR is configured. Refuses to migrate on dump failure unless
+// snapshotter is available. Refuses to migrate on dump failure unless
 // VECKOMENYN_SKIP_PREMIGRATION_BACKUP=1 is set. Pruning is best-effort.
-func preMigrationBackup(ctx context.Context, log *slog.Logger, dsn, version string) error {
+func preMigrationBackup(ctx context.Context, log *slog.Logger, snap *backup.Snapshotter, dsn, version string) error {
 	pending, currentVer, err := store.PendingMigrations(ctx, dsn)
 	if err != nil {
 		return err
@@ -138,26 +170,15 @@ func preMigrationBackup(ctx context.Context, log *slog.Logger, dsn, version stri
 
 	log.Info("pending migrations detected", "count", pending, "from_version", currentVer)
 
-	dir := os.Getenv("BACKUP_DIR")
-	if dir == "" {
-		log.Warn("BACKUP_DIR not set; pre-migration snapshot disabled. Set BACKUP_DIR to a persistent path to enable safety snapshots.")
+	if snap == nil {
+		log.Warn("no snapshotter configured; pre-migration safety snapshot disabled.")
 		return nil
 	}
 
 	skip := os.Getenv("VECKOMENYN_SKIP_PREMIGRATION_BACKUP") == "1"
 	keep := envOrInt("PREMIGRATION_BACKUP_KEEP", 10)
 
-	snap, err := backup.New(dsn, dir, log)
-	if err != nil {
-		if skip {
-			log.Warn("snapshot init failed; skip flag set, proceeding", "err", err)
-			return nil
-		}
-		return err
-	}
-
-	label := version
-	if _, err := snap.Snapshot(ctx, backup.ReasonPreMigration, label); err != nil {
+	if _, err := snap.Snapshot(ctx, backup.ReasonPreMigration, version); err != nil {
 		if skip {
 			log.Warn("snapshot failed; skip flag set, proceeding", "err", err)
 			return nil

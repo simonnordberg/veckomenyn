@@ -16,14 +16,25 @@ import (
 	"github.com/go-chi/httprate"
 
 	"github.com/simonnordberg/veckomenyn/internal/agent"
+	"github.com/simonnordberg/veckomenyn/internal/backup"
 	"github.com/simonnordberg/veckomenyn/internal/providers"
 	"github.com/simonnordberg/veckomenyn/internal/store"
 	"github.com/simonnordberg/veckomenyn/web"
 )
 
 type Config struct {
-	Addr  string
-	Build BuildInfo
+	Addr         string
+	Build        BuildInfo
+	Snapshotter  *backup.Snapshotter
+	BackupConfig BackupConfigStore
+}
+
+// BackupConfigStore is the minimal surface server handlers need for the
+// nightly-backup toggle UI. Decoupled from internal/store so server tests
+// don't need a DB.
+type BackupConfigStore interface {
+	BackupConfig(ctx context.Context) (backup.Config, error)
+	UpdateBackupConfig(ctx context.Context, nightlyEnabled *bool, nightlyKeep *int) (backup.Config, error)
 }
 
 // BuildInfo is build metadata stamped into the binary via -ldflags. Surfaced
@@ -35,17 +46,28 @@ type BuildInfo struct {
 }
 
 type Server struct {
-	cfg       Config
-	db        *store.DB
-	log       *slog.Logger
-	agent     *agent.Agent
-	providers *providers.Store
-	router    *chi.Mux
-	http      *http.Server
+	cfg          Config
+	db           *store.DB
+	log          *slog.Logger
+	agent        *agent.Agent
+	providers    *providers.Store
+	snapshotter  *backup.Snapshotter
+	backupConfig BackupConfigStore
+	router       *chi.Mux
+	http         *http.Server
 }
 
 func New(cfg Config, db *store.DB, ag *agent.Agent, providers *providers.Store, log *slog.Logger) *Server {
-	s := &Server{cfg: cfg, db: db, agent: ag, providers: providers, log: log, router: chi.NewRouter()}
+	s := &Server{
+		cfg:          cfg,
+		db:           db,
+		agent:        ag,
+		providers:    providers,
+		snapshotter:  cfg.Snapshotter,
+		backupConfig: cfg.BackupConfig,
+		log:          log,
+		router:       chi.NewRouter(),
+	}
 	s.routes()
 	s.http = &http.Server{
 		Addr:              cfg.Addr,
@@ -100,6 +122,12 @@ func (s *Server) routes() {
 		r.Put("/preferences/{category}", s.handlePutPreference)
 		r.Delete("/preferences/{category}", s.handleDeletePreference)
 		r.Get("/usage/summary", s.handleGetUsageSummary)
+		r.Get("/backups", s.handleListBackups)
+		r.Post("/backups", s.handleCreateBackup)
+		r.Get("/backups/{filename}/download", s.handleDownloadBackup)
+		r.Delete("/backups/{filename}", s.handleDeleteBackup)
+		r.Get("/backup-config", s.handleGetBackupConfig)
+		r.Patch("/backup-config", s.handlePatchBackupConfig)
 	})
 
 	s.router.NotFound(s.handleStatic)
