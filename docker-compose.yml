@@ -27,6 +27,11 @@ services:
       # 32-byte AES key. Encrypts provider secrets at rest.
       # Generate: openssl rand -base64 32
       MASTER_KEY: ${MASTER_KEY}
+      # Pre-migration pg_dump lands here. The backups volume below survives
+      # container replacement so a bad upgrade never costs you data.
+      BACKUP_DIR: /var/lib/veckomenyn/backups
+    volumes:
+      - backups:/var/lib/veckomenyn/backups
     ports:
       # Override with HOST_PORT=8081 in .env if 8080 is taken.
       - "${HOST_PORT:-8080}:8080"
@@ -66,3 +71,4 @@ services:
 
 volumes:
   pgdata:
+  backups:

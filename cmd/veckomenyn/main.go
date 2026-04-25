@@ -5,12 +5,14 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
 
 	"github.com/simonnordberg/veckomenyn/internal/agent"
+	"github.com/simonnordberg/veckomenyn/internal/backup"
 	"github.com/simonnordberg/veckomenyn/internal/providers"
 	"github.com/simonnordberg/veckomenyn/internal/server"
 	"github.com/simonnordberg/veckomenyn/internal/shopping"
@@ -40,6 +42,13 @@ func main() {
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
+
+	if err := preMigrationBackup(ctx, log, dsn, version); err != nil {
+		log.Error("pre-migration snapshot failed; refusing to migrate",
+			"err", err,
+			"hint", "set VECKOMENYN_SKIP_PREMIGRATION_BACKUP=1 to bypass (dev only)")
+		os.Exit(1)
+	}
 
 	if err := store.Migrate(ctx, dsn); err != nil {
 		log.Error("migrate failed", "err", err)
@@ -105,4 +114,65 @@ func envOr(key, def string) string {
 		return v
 	}
 	return def
+}
+
+func envOrInt(key string, def int) int {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n <= 0 {
+		return def
+	}
+	return n
+}
+
+// preMigrationBackup takes a pg_dump if there are pending migrations and a
+// BACKUP_DIR is configured. Refuses to migrate on dump failure unless
+// VECKOMENYN_SKIP_PREMIGRATION_BACKUP=1 is set. Pruning is best-effort.
+func preMigrationBackup(ctx context.Context, log *slog.Logger, dsn, version string) error {
+	pending, currentVer, err := store.PendingMigrations(ctx, dsn)
+	if err != nil {
+		return err
+	}
+	if pending == 0 {
+		return nil
+	}
+
+	log.Info("pending migrations detected", "count", pending, "from_version", currentVer)
+
+	dir := os.Getenv("BACKUP_DIR")
+	if dir == "" {
+		log.Warn("BACKUP_DIR not set; pre-migration snapshot disabled. Set BACKUP_DIR to a persistent path to enable safety snapshots.")
+		return nil
+	}
+
+	skip := os.Getenv("VECKOMENYN_SKIP_PREMIGRATION_BACKUP") == "1"
+	keep := envOrInt("PREMIGRATION_BACKUP_KEEP", 10)
+
+	snap, err := backup.New(dsn, dir, log)
+	if err != nil {
+		if skip {
+			log.Warn("snapshot init failed; skip flag set, proceeding", "err", err)
+			return nil
+		}
+		return err
+	}
+
+	label := version
+	if _, err := snap.Snapshot(ctx, backup.ReasonPreMigration, label); err != nil {
+		if skip {
+			log.Warn("snapshot failed; skip flag set, proceeding", "err", err)
+			return nil
+		}
+		return err
+	}
+
+	if removed, err := snap.Prune(backup.ReasonPreMigration, keep); err != nil {
+		log.Warn("snapshot prune failed", "err", err)
+	} else if len(removed) > 0 {
+		log.Info("old snapshots pruned", "removed", len(removed), "keep", keep)
+	}
+	return nil
 }
