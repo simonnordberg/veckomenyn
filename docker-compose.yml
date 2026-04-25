@@ -2,7 +2,7 @@ name: veckomenyn
 
 services:
   db:
-    image: public.ecr.aws/docker/library/postgres:17-alpine
+    image: postgres:17-alpine
     environment:
       POSTGRES_USER: veckomenyn
       POSTGRES_PASSWORD: veckomenyn

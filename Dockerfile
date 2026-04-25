@@ -1,11 +1,12 @@
 # syntax=docker/dockerfile:1.7
 
-# Base images come from ECR Public (mirror of Docker Official Images) to
-# avoid Docker Hub's anonymous pull rate limit. `docker login docker.io`
-# works as a fallback if you ever need a tag that isn't mirrored here.
+# Base images come from Docker Hub. Anonymous limit (100 pulls / 6h / IP)
+# is plenty for our release cadence; ECR Public's 1 GB/hour anonymous
+# limit was tighter in practice and broke the release on busy GitHub
+# Actions runners.
 
 # ---- Web frontend ---------------------------------------------------------
-FROM public.ecr.aws/docker/library/node:24-alpine AS web
+FROM node:24-alpine AS web
 WORKDIR /app/web
 RUN corepack enable pnpm
 COPY web/package.json web/pnpm-lock.yaml ./
@@ -14,7 +15,7 @@ COPY web/ ./
 RUN pnpm build
 
 # ---- Go binaries ----------------------------------------------------------
-FROM public.ecr.aws/docker/library/golang:1.26-alpine AS go
+FROM golang:1.26-alpine AS go
 WORKDIR /app
 RUN apk add --no-cache ca-certificates
 COPY go.mod go.sum ./
@@ -35,7 +36,7 @@ RUN go build -trimpath \
     go build -trimpath -ldflags="-s -w" -o /out/veckomenyn-import-week ./cmd/veckomenyn-import-week
 
 # ---- Runtime --------------------------------------------------------------
-FROM public.ecr.aws/docker/library/alpine:3.23
+FROM alpine:3.23
 # postgresql17-client gives us pg_dump for the in-process pre-migration
 # snapshot. Pin major to match docker-compose.yml's db service — clients
 # newer than the server work, but the major must match what the data was
