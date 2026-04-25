@@ -279,4 +279,29 @@ export const sv: Record<string, string> = {
   "update.copy_command": "Kopiera uppgraderingskommando",
   "update.copied": "Kopierat",
   "update.dismiss": "Stäng",
+
+  "setup.welcome_title": "Välkommen till Veckomenyn",
+  "setup.welcome_body":
+    "Veckomenyn planerar veckans middagar och bygger inköpslistan. Två snabba steg och du är igång.",
+  "setup.lan_warning_title": "Kör på ditt hemnätverk",
+  "setup.lan_warning_body":
+    "Det finns ingen inloggning. Alla som når URL:en kan läsa dina data och förbruka ditt Anthropic-saldo. Kör på ett betrott LAN eller bakom Tailscale / VPN.",
+  "setup.next": "Fortsätt",
+  "setup.back": "Tillbaka",
+  "setup.skip": "Hoppa över",
+  "setup.finish": "Öppna Veckomenyn",
+  "setup.step": "Steg {n} av {total}",
+  "setup.api_key_title": "Lägg till din Anthropic-API-nyckel",
+  "setup.api_key_body":
+    "Veckomenyn använder Claude för menyplanering och kundvagn. Nyckeln krypteras i databasen med en huvudnyckel appen genererar åt dig.",
+  "setup.api_key_placeholder": "sk-ant-…",
+  "setup.api_key_help": "Hämta en nyckel på console.anthropic.com",
+  "setup.api_key_save": "Spara och fortsätt",
+  "setup.api_key_saving": "Sparar…",
+  "setup.seed_title": "Importera mallpreferenser",
+  "setup.seed_body":
+    "Valfritt. Läser in anonymiserade mallar för matlagningsstil, familjerutiner, inköpskällor och inköpsregler. Redigera senare under Preferenser. Hoppa över om du hellre börjar tomt.",
+  "setup.seed_button": "Importera preferenser",
+  "setup.seed_seeding": "Importerar…",
+  "setup.seed_done": "Importerade {n} filer",
 };

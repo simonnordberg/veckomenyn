@@ -49,7 +49,7 @@ RUN apk add --no-cache ca-certificates tzdata postgresql17-client && \
 COPY --from=go /out/veckomenyn /usr/local/bin/veckomenyn
 COPY --from=go /out/veckomenyn-import /usr/local/bin/veckomenyn-import
 COPY --from=go /out/veckomenyn-import-week /usr/local/bin/veckomenyn-import-week
-COPY --from=go /app/shared-data /usr/local/share/veckomenyn
+COPY --from=go /app/internal/seed/preferences /usr/local/share/veckomenyn/preferences
 USER veckomenyn
 EXPOSE 8080
 ENTRYPOINT ["veckomenyn"]

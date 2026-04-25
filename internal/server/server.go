@@ -103,6 +103,8 @@ func (s *Server) routes() {
 		r.Get("/health", s.handleHealth)
 		r.Get("/version", s.handleVersion)
 		r.Get("/updates", s.handleGetUpdates)
+		r.Get("/setup-status", s.handleGetSetupStatus)
+		r.Post("/preferences/seed", s.handleSeedPreferences)
 		r.With(chatLimiter).Post("/chat", s.handleChat)
 		r.Get("/conversations", s.handleListConversations)
 		r.Get("/conversations/{id}", s.handleGetConversation)

@@ -278,4 +278,29 @@ export const en: Record<string, string> = {
   "update.copy_command": "Copy upgrade command",
   "update.copied": "Copied",
   "update.dismiss": "Dismiss",
+
+  "setup.welcome_title": "Welcome to Veckomenyn",
+  "setup.welcome_body":
+    "Veckomenyn plans your week of dinners and builds the grocery cart. Two short steps and you're in.",
+  "setup.lan_warning_title": "Keep this on your home network",
+  "setup.lan_warning_body":
+    "There is no authentication. Anyone who can reach this URL can read your data and spend your Anthropic balance. Run on a trusted LAN or behind Tailscale / VPN.",
+  "setup.next": "Continue",
+  "setup.back": "Back",
+  "setup.skip": "Skip",
+  "setup.finish": "Open Veckomenyn",
+  "setup.step": "Step {n} of {total}",
+  "setup.api_key_title": "Add your Anthropic API key",
+  "setup.api_key_body":
+    "Veckomenyn uses Claude for menu planning and cart building. The key is encrypted at rest with a master key the app generates for you.",
+  "setup.api_key_placeholder": "sk-ant-…",
+  "setup.api_key_help": "Get a key at console.anthropic.com",
+  "setup.api_key_save": "Save and continue",
+  "setup.api_key_saving": "Saving…",
+  "setup.seed_title": "Seed starter preferences",
+  "setup.seed_body":
+    "Optional. Loads anonymised templates for cooking style, family routines, sourcing, and shopping rules. Edit them later under Preferences. Skip if you'd rather start blank.",
+  "setup.seed_button": "Seed preferences",
+  "setup.seed_seeding": "Seeding…",
+  "setup.seed_done": "Seeded {n} files",
 };

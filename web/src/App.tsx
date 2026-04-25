@@ -5,6 +5,7 @@ import { PlanNewForm } from "./components/PlanNewForm";
 import { PreferencesModal } from "./components/PreferencesModal";
 import { PrintableWeek } from "./components/PrintableWeek";
 import { SettingsModal } from "./components/SettingsModal";
+import { SetupWizard } from "./components/SetupWizard";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { UsageModal } from "./components/UsageModal";
 import { WeeksSidebar } from "./components/WeeksSidebar";
@@ -18,6 +19,7 @@ import {
   deleteWeekConversations,
   getCurrentWeek,
   getSettings,
+  getSetupStatus,
   getWeekById,
   getWeekConversation,
   MUTATING_TOOLS,
@@ -35,9 +37,66 @@ type Status = "loading" | "empty" | "ready" | "error";
 
 export function App() {
   const route = useRoute();
+  // setupComplete is null while we're checking, true once verified, false
+  // when the wizard needs to run. Cached in localStorage so subsequent
+  // loads don't pay a /api/setup-status round-trip on the critical path.
+  const [setupComplete, setSetupComplete] = useState<boolean | null>(() =>
+    window.localStorage.getItem("veckomenyn.setup_complete") === "1" ? true : null,
+  );
+
+  useEffect(() => {
+    if (setupComplete) return;
+    let cancelled = false;
+    getSetupStatus()
+      .then((s) => {
+        if (cancelled) return;
+        if (s.setup_complete) {
+          window.localStorage.setItem("veckomenyn.setup_complete", "1");
+          setSetupComplete(true);
+        } else {
+          setSetupComplete(false);
+          if (route.kind !== "setup") navigate({ kind: "setup" }, { replace: true });
+        }
+      })
+      .catch(() => {
+        // On error, don't trap users in the wizard — assume complete.
+        if (!cancelled) setSetupComplete(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [setupComplete, route.kind]);
+
+  // If a returning (already-complete) user hits /setup directly, bounce
+  // them back to the home route so the wizard isn't a one-way gate.
+  useEffect(() => {
+    if (setupComplete && route.kind === "setup") {
+      navigate({ kind: "current" }, { replace: true });
+    }
+  }, [setupComplete, route.kind]);
+
   // Print mode renders a completely separate tree with no sidebar/chat/topbar.
   if (route.kind === "print") return <PrintableWeek id={route.id} />;
+  if (setupComplete === false) {
+    return (
+      <SetupWizard
+        onComplete={() => {
+          window.localStorage.setItem("veckomenyn.setup_complete", "1");
+          setSetupComplete(true);
+        }}
+      />
+    );
+  }
+  if (setupComplete === null) return <BootstrapSplash />;
   return <Main route={route} />;
+}
+
+function BootstrapSplash() {
+  return (
+    <div className="flex h-full items-center justify-center bg-stone-50 dark:bg-stone-950">
+      <div className="h-8 w-8 animate-pulse rounded-full bg-stone-300 dark:bg-stone-700" />
+    </div>
+  );
 }
 
 function Main({ route }: { route: Route }) {

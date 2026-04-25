@@ -94,7 +94,7 @@ internal/
   store/            pgxpool + goose migration runner.
   migrations/       Embedded SQL migrations.
 web/                React 19, TypeScript, Tailwind v4, Biome, Vite.
-shared-data/        Template preferences shipped for new installs.
+internal/seed/      Template preferences embedded for first-run seeding and `veckomenyn-import`.
 ```
 
 The Go binary embeds the Vite bundle via `//go:embed`.

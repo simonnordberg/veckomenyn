@@ -423,6 +423,25 @@ export async function getUpdates(): Promise<UpdateStatus> {
   return (await r.json()) as UpdateStatus;
 }
 
+export type SetupStatus = {
+  setup_complete: boolean;
+  has_anthropic_key: boolean;
+  has_preferences: boolean;
+  has_family_members: boolean;
+};
+
+export async function getSetupStatus(): Promise<SetupStatus> {
+  const r = await fetch("/api/setup-status");
+  if (!r.ok) throw new Error(`setup-status: ${r.status}`);
+  return (await r.json()) as SetupStatus;
+}
+
+export async function seedPreferences(): Promise<{ seeded: number }> {
+  const r = await fetch("/api/preferences/seed", { method: "POST" });
+  if (!r.ok) throw new Error(await r.text());
+  return (await r.json()) as { seeded: number };
+}
+
 export type BackupReason = "pre-migration" | "manual" | "nightly" | "";
 
 export type Backup = {
