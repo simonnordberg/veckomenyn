@@ -40,16 +40,15 @@ FROM public.ecr.aws/docker/library/alpine:3.23
 # snapshot. Pin major to match docker-compose.yml's db service — clients
 # newer than the server work, but the major must match what the data was
 # written by. See CONTRIBUTING.md "release checklist".
-# UID/GID pinned to 1000 so bind-mounted host directories (./backups) have a
-# predictable owner. Users who hit permission errors can `chown -R 1000:1000`
-# on the host path.
-RUN apk add --no-cache ca-certificates tzdata postgresql17-client && \
-    addgroup -S -g 1000 veckomenyn && \
-    adduser -S -u 1000 -G veckomenyn veckomenyn
+RUN apk add --no-cache ca-certificates tzdata postgresql17-client
 COPY --from=go /out/veckomenyn /usr/local/bin/veckomenyn
 COPY --from=go /out/veckomenyn-import /usr/local/bin/veckomenyn-import
 COPY --from=go /out/veckomenyn-import-week /usr/local/bin/veckomenyn-import-week
 COPY --from=go /app/internal/seed/preferences /usr/local/share/veckomenyn/preferences
-USER veckomenyn
+# Runs as root in-container by default. For rootless podman that's the
+# host user (no privilege escalation). For docker rootful it lets the
+# pre-migration pg_dump write into the bind-mounted ./backups dir
+# without UID-mapping gymnastics. Override with --user if you have
+# specific isolation needs.
 EXPOSE 8080
 ENTRYPOINT ["veckomenyn"]
