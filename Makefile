@@ -1,4 +1,4 @@
-.PHONY: build build-server build-import build-import-week build-web dev test lint fmt verify install-hooks clean
+.PHONY: build build-server build-import build-import-week build-web dev test lint fmt verify install-hooks clean release release-minor release-major
 
 # Stamped into the main binary via -ldflags. CI overrides VERSION/COMMIT/BUILT_AT
 # from semver tags; local builds derive from git so the binary still reports
@@ -57,3 +57,19 @@ install-hooks:
 
 clean:
 	rm -rf bin web/dist/assets web/dist/index.html web/*.tsbuildinfo
+
+# Bump version (default patch), sync compose+docs, commit, tag.
+# Next version is computed from the latest git tag — no need to remember
+# what's current. Does not push; push instructions are printed at the end.
+#
+#   make release         # 0.2.1 -> 0.2.2
+#   make release-minor   # 0.2.1 -> 0.3.0
+#   make release-major   # 0.2.1 -> 1.0.0
+release:
+	bash scripts/release.sh patch
+
+release-minor:
+	bash scripts/release.sh minor
+
+release-major:
+	bash scripts/release.sh major
