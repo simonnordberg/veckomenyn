@@ -42,7 +42,9 @@ services:
     volumes:
       # Bind mount, NOT a named volume: survives `docker compose down -v`
       # so wiping the DB never wipes the snapshots that could restore it.
-      - ./backups:/var/lib/veckomenyn/backups
+      # The :Z suffix relabels the dir for SELinux-enforcing hosts (Fedora,
+      # RHEL); it's a no-op everywhere else.
+      - ./backups:/var/lib/veckomenyn/backups:Z
     ports:
       # Override with HOST_PORT=8081 in .env if 8080 is taken.
       - "${HOST_PORT:-8080}:8080"
