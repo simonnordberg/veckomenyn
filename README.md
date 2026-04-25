@@ -125,6 +125,8 @@ Everything else, including the Anthropic model, lives in Settings.
 
 **Pre-migration snapshots are automatic.** Before applying any pending migration, the app runs `pg_dump --format=custom` into `./backups/` on the host. A bad migration can't eat your data — there's always a snapshot from the previous version sitting next to it. The last 10 are retained (override with `PREMIGRATION_BACKUP_KEEP`). Files are named `{timestamp}_pre-migration_{version}.dump` and are bind-mounted from the host, so `docker compose down -v` (which wipes the DB) leaves them untouched.
 
+**Manual and nightly backups live in the app.** Open Settings → Backups to take a snapshot now, toggle on a nightly automatic backup, list every dump, download any of them with one click, or delete the ones you don't need.
+
 Restore from any snapshot:
 
 ```sh
@@ -133,14 +135,6 @@ podman compose exec -T db pg_restore \
   -U veckomenyn -d veckomenyn \
   < backups/20260425T100000Z_pre-migration_0.1.0.dump
 ```
-
-**Scheduled nightly backups (optional)** add a sidecar with daily/weekly/monthly rotation (14/8/6):
-
-```sh
-podman compose --profile backup up -d
-```
-
-That sidecar is [prodrigestivill/postgres-backup-local](https://github.com/prodrigestivill/docker-postgres-backup-local) and writes to the same `./backups/` directory in its own subfolders. Override `SCHEDULE` or `BACKUP_KEEP_*` in `docker-compose.yml` to change retention.
 
 ## Threat model
 

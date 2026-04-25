@@ -65,37 +65,5 @@ services:
     command: ["--label-enable", "--cleanup", "--interval", "86400"]
     restart: unless-stopped
 
-  # Nightly pg_dump to ./backups on the host. Rotation: 14 daily,
-  # 8 weekly, 6 monthly. Override SCHEDULE and BACKUP_KEEP_* if you
-  # want different retention.
-  #
-  # Gated behind the `backup` profile so plain `podman compose up -d`
-  # (or `docker compose up -d`) doesn't pull it. Start with
-  # `podman compose --profile backup up -d` when you want backups running.
-  #
-  # The image lives on Docker Hub (no ECR Public mirror). If you hit
-  # the anonymous rate limit pulling it, `podman login docker.io`
-  # (or `docker login docker.io`) is a one-time fix.
-  backup:
-    image: prodrigestivill/postgres-backup-local:17
-    profiles: [backup]
-    environment:
-      POSTGRES_HOST: db
-      POSTGRES_DB: veckomenyn
-      POSTGRES_USER: veckomenyn
-      POSTGRES_PASSWORD: veckomenyn
-      POSTGRES_EXTRA_OPTS: "--clean --if-exists --no-owner --no-privileges"
-      SCHEDULE: "@daily"
-      BACKUP_KEEP_DAYS: 14
-      BACKUP_KEEP_WEEKS: 8
-      BACKUP_KEEP_MONTHS: 6
-      HEALTHCHECK_PORT: "8080"
-    volumes:
-      - ./backups:/backups
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
 volumes:
   pgdata:
