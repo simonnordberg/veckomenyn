@@ -1,0 +1,14 @@
+# Override for contributors: build from source instead of pulling the
+# published image. Layered on top of docker-compose.yml.
+#
+# Usage:
+#   podman compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# Plain `make dev` runs the binary directly against the db container and is
+# faster for inner-loop development. This override exists so end-to-end
+# checks against the actual container image are one command away.
+
+services:
+  app:
+    build: .

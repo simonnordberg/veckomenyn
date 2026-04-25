@@ -29,7 +29,26 @@ podman compose up -d
 open http://localhost:8080
 ```
 
-Podman is the default engine; `docker compose up -d` works the same way. The compose file is plain OCI.
+That pulls `ghcr.io/simonnordberg/veckomenyn:0.1` — the patch channel for the 0.1 line. Podman is the default engine; `docker compose up -d` works the same way. The compose file is plain OCI.
+
+### Upgrading
+
+The image tag in `docker-compose.yml` is your update channel. Pick the discipline you want:
+
+| Tag | What you get | When to use |
+|---|---|---|
+| `:0.1.3` | Pinned exact version. Never moves. | Maximum stability. You bump manually. |
+| `:0.1` | Latest 0.1.x patch. | **Default.** Bug fixes only, no surprise feature changes. |
+| `:0` | Latest 0.x. | Patches + new features within 0.x. Breaking changes (1.0) require a deliberate bump. |
+| `:latest` | Whatever just shipped. | You like surprises. |
+
+To upgrade on your channel:
+
+```sh
+podman compose pull && podman compose up -d
+```
+
+Pre-migration snapshots are automatic — see [Backups](#backups). Watch [GitHub Releases](https://github.com/simonnordberg/veckomenyn/releases) for breaking-change notes.
 
 > **Do not expose port 8080 to the public internet.** There is no authentication. Anyone who can reach the port can read your preferences, order history, and stored credentials, and can spend your Anthropic balance. Run it on a trusted LAN or behind Tailscale / VPN. See [Threat model](#threat-model).
 

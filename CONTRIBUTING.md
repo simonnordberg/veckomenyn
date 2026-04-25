@@ -15,6 +15,12 @@ make dev
 
 `go.mod` pins the Go toolchain. `web/` uses pnpm.
 
+To exercise the full container image (the one users actually run), layer the dev override on top of the production compose so it builds from source instead of pulling:
+
+```sh
+podman compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
 ## Before the PR
 
 ```sh
