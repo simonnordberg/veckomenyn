@@ -290,6 +290,7 @@ export const en: Record<string, string> = {
   "update.applying": "Updating…",
   "update.waiting": "Waiting for new version…",
   "update.apply_timeout": "Update did not finish in time. Check your container's logs.",
+  "update.success": "Updated from v{from} to v{to}.",
   "update.section_title": "Updates",
   "update.section_subtitle":
     "The Update now button in the banner is always available when an update is published. Toggle this on to also apply updates automatically once a day.",

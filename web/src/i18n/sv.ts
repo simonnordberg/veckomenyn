@@ -291,6 +291,7 @@ export const sv: Record<string, string> = {
   "update.applying": "Uppdaterar…",
   "update.waiting": "Väntar på ny version…",
   "update.apply_timeout": "Uppdateringen blev inte klar i tid. Kolla loggarna för containern.",
+  "update.success": "Uppdaterad från v{from} till v{to}.",
   "update.section_title": "Uppdateringar",
   "update.section_subtitle":
     'Knappen "Uppdatera nu" i bannern fungerar alltid när en uppdatering finns. Slå på denna för att även köra uppdateringar automatiskt en gång per dygn.',
