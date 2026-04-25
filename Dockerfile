@@ -36,7 +36,11 @@ RUN go build -trimpath \
 
 # ---- Runtime --------------------------------------------------------------
 FROM public.ecr.aws/docker/library/alpine:3.23
-RUN apk add --no-cache ca-certificates tzdata && \
+# postgresql17-client gives us pg_dump for the in-process pre-migration
+# snapshot. Pin major to match docker-compose.yml's db service — clients
+# newer than the server work, but the major must match what the data was
+# written by. See CONTRIBUTING.md "release checklist".
+RUN apk add --no-cache ca-certificates tzdata postgresql17-client && \
     addgroup -S veckomenyn && adduser -S veckomenyn -G veckomenyn
 COPY --from=go /out/veckomenyn /usr/local/bin/veckomenyn
 COPY --from=go /out/veckomenyn-import /usr/local/bin/veckomenyn-import
