@@ -46,6 +46,23 @@ services:
     ports:
       # Override with HOST_PORT=8081 in .env if 8080 is taken.
       - "${HOST_PORT:-8080}:8080"
+    labels:
+      # Opt-in to Watchtower auto-updates when the `managed` profile is on.
+      # Without the label, Watchtower (if running for any reason) ignores us.
+      com.centurylinklabs.watchtower.enable: "true"
+    restart: unless-stopped
+
+  # Auto-update sidecar. Enabled with `--profile managed`. Polls GHCR daily
+  # and restarts the app when a newer image lands on whatever tag the app
+  # service references (e.g. :0.1 picks up patches automatically). Pre-
+  # migration snapshots run on every restart, so the upgrade is safety-
+  # netted by pg_dump regardless of how it was triggered.
+  watchtower:
+    image: containrrr/watchtower:latest
+    profiles: [managed]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: ["--label-enable", "--cleanup", "--interval", "86400"]
     restart: unless-stopped
 
   # Nightly pg_dump to ./backups on the host. Rotation: 14 daily,

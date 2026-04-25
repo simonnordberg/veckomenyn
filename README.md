@@ -46,7 +46,13 @@ To upgrade on your channel:
 podman compose pull && podman compose up -d
 ```
 
-Pre-migration snapshots are automatic — see [Backups](#backups). Watch [GitHub Releases](https://github.com/simonnordberg/veckomenyn/releases) for breaking-change notes.
+Or let it self-update — `--profile managed` adds a [Watchtower](https://github.com/containrrr/watchtower) sidecar that polls GHCR daily and restarts the app when a newer image arrives on your channel:
+
+```sh
+podman compose --profile managed up -d
+```
+
+Pre-migration snapshots are automatic regardless of how the upgrade is triggered — see [Backups](#backups). Watch [GitHub Releases](https://github.com/simonnordberg/veckomenyn/releases) for breaking-change notes.
 
 > **Do not expose port 8080 to the public internet.** There is no authentication. Anyone who can reach the port can read your preferences, order history, and stored credentials, and can spend your Anthropic balance. Run it on a trusted LAN or behind Tailscale / VPN. See [Threat model](#threat-model).
 
