@@ -212,13 +212,19 @@ func (s *Server) handleApplyUpdate(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "update trigger not configured", http.StatusServiceUnavailable)
 		return
 	}
-	if err := s.updateTrigger.Fire(r.Context()); err != nil {
-		s.internalError(w, r, "fire update trigger", err)
-		return
-	}
-	// 202 because the trigger returned but the actual recreate happens
-	// asynchronously and our process is about to die. Caller polls
-	// /api/version until the new version reports back.
+	// Fire async: Watchtower's /v1/update runs the pull+recreate before
+	// responding, which routinely outlives any reasonable handler
+	// timeout. The frontend polls /api/version to detect completion.
+	// Background context so the goroutine outlives this request.
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		if err := s.updateTrigger.Fire(ctx); err != nil {
+			s.log.Error("update trigger failed", "err", err)
+		} else {
+			s.log.Info("update trigger fired")
+		}
+	}()
 	w.WriteHeader(http.StatusAccepted)
 }
 

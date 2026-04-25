@@ -27,7 +27,12 @@ func NewTrigger(url, token string) *Trigger {
 	return &Trigger{
 		url:        url,
 		token:      token,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
+		// Watchtower's /v1/update is synchronous: it doesn't return
+		// until the pull + recreate finishes. Multi-arch pulls on a
+		// slow link can easily run 30+ seconds. Generous timeout, but
+		// callers should still spawn this in a goroutine so a slow
+		// Watchtower doesn't block the HTTP handler.
+		httpClient: &http.Client{Timeout: 5 * time.Minute},
 	}
 }
 
