@@ -31,10 +31,23 @@ if command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; 
 elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
   COMPOSE="docker compose"
 else
-  err "Neither podman nor docker is installed (with the compose plugin)."
-  err "Install one and re-run:"
-  err "  podman: https://podman.io/getting-started/installation"
-  err "  docker: https://docs.docker.com/engine/install/"
+  err "Neither podman nor docker (with the compose plugin) is installed."
+  err ""
+  err "Install podman, then re-run this script:"
+  if [ -r /etc/os-release ]; then
+    . /etc/os-release
+    case "${ID:-}${ID_LIKE:-}" in
+      *ubuntu*|*debian*) err "  sudo apt update && sudo apt install -y podman podman-compose" ;;
+      *fedora*|*rhel*|*centos*) err "  sudo dnf install -y podman podman-compose" ;;
+      *arch*)              err "  sudo pacman -S --needed podman podman-compose" ;;
+      *alpine*)            err "  sudo apk add podman podman-compose" ;;
+      *)                   err "  https://podman.io/getting-started/installation" ;;
+    esac
+  else
+    err "  https://podman.io/getting-started/installation"
+  fi
+  err ""
+  err "Or install docker (https://docs.docker.com/engine/install/) — both work."
   exit 1
 fi
 
