@@ -98,20 +98,24 @@ Everything else, including the Anthropic model, lives in Settings.
 
 ## Backups
 
-Opt-in. A sidecar dumps Postgres nightly to `./backups/` on the host, with 14 daily / 8 weekly / 6 monthly rotation:
+**Pre-migration snapshots are automatic.** Before applying any pending migration, the app runs `pg_dump --format=custom` into `./backups/` on the host. A bad migration can't eat your data — there's always a snapshot from the previous version sitting next to it. The last 10 are retained (override with `PREMIGRATION_BACKUP_KEEP`). Files are named `{timestamp}_pre-migration_{version}.dump` and are bind-mounted from the host, so `docker compose down -v` (which wipes the DB) leaves them untouched.
+
+Restore from any snapshot:
+
+```sh
+podman compose exec -T db pg_restore \
+  --clean --if-exists --no-owner --no-privileges \
+  -U veckomenyn -d veckomenyn \
+  < backups/20260425T100000Z_pre-migration_0.1.0.dump
+```
+
+**Scheduled nightly backups (optional)** add a sidecar with daily/weekly/monthly rotation (14/8/6):
 
 ```sh
 podman compose --profile backup up -d
 ```
 
-Dumps use `--clean --if-exists --no-owner --no-privileges`, so restoring into a fresh database is one command:
-
-```sh
-gzip -dc backups/daily/veckomenyn-YYYY-MM-DD.sql.gz \
-  | podman compose exec -T db psql -U veckomenyn -d veckomenyn
-```
-
-Override `SCHEDULE` or `BACKUP_KEEP_*` in `docker-compose.yml` to change retention. The sidecar is [prodrigestivill/postgres-backup-local](https://github.com/prodrigestivill/docker-postgres-backup-local).
+That sidecar is [prodrigestivill/postgres-backup-local](https://github.com/prodrigestivill/docker-postgres-backup-local) and writes to the same `./backups/` directory in its own subfolders. Override `SCHEDULE` or `BACKUP_KEEP_*` in `docker-compose.yml` to change retention.
 
 ## Threat model
 

@@ -32,6 +32,8 @@ services:
       # the dumps without going into the container.
       BACKUP_DIR: /var/lib/veckomenyn/backups
     volumes:
+      # Bind mount, NOT a named volume: survives `docker compose down -v`
+      # so wiping the DB never wipes the snapshots that could restore it.
       - ./backups:/var/lib/veckomenyn/backups
     ports:
       # Override with HOST_PORT=8081 in .env if 8080 is taken.
