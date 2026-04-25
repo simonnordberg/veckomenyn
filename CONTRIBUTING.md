@@ -52,7 +52,7 @@ Dependencies cost. If a helper does the job, write the helper.
 Users on `:0.1` (patch channel) and `:0` (minor channel) get whatever you tag. Hold the line on what each means or the auto-update story breaks.
 
 - **Patch** (0.x.y): bug fixes, doc updates, perf wins. Migrations must be additive — new tables, new nullable columns, new indexes. No renames, no drops, no required-NOT-NULL on existing columns without a default.
-- **Minor** (0.x.0): new features, additive schema changes. Same migration rules as patch. **Bump the image tag in `docker-compose.yml` and the example versions in the README upgrade-channel table to match the new minor** so new clones default to the current line.
+- **Minor** (0.x.0): new features, additive schema changes. Same migration rules as patch. **Bump the image tag in `docker-compose.yml` and the example versions in the README upgrade-channel table to match the new minor** so new clones default to the current line. The release workflow refuses to publish a tag whose minor doesn't match the compose pin, so forgetting fails fast.
 - **Major** (X.0.0): anything goes. Document the migration path in release notes. If the upgrade requires a manual step, gate the boot path so the binary refuses to start without the user's explicit acknowledgement (env var) — never silently apply destructive changes.
 
 Audit older snapshots before any column-shape change. Pre-migration snapshots are restored against a freshly-migrated schema; if your migration drops or renames a column an older snapshot referenced, restore from that snapshot will fail. When in doubt, stage the change across two minor releases (add new column, dual-write, deprecate old).
