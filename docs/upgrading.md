@@ -4,8 +4,8 @@ The image tag in your `docker-compose.yml` is your update channel. Pick the disc
 
 | Tag | What you get | When to use |
 |---|---|---|
-| `:0.2.3` | Pinned exact version. Never moves. | Maximum stability. You bump manually. |
-| `:0.2` | Latest 0.2.x patch. | **Default.** Bug fixes only, no surprise feature changes. |
+| `:0.3.0` | Pinned exact version. Never moves. | Maximum stability. You bump manually. |
+| `:0.3` | Latest 0.3.x patch. | **Default.** Bug fixes only, no surprise feature changes. |
 | `:0` | Latest 0.x. | Patches + new features within 0.x. Breaking changes (1.0) require a deliberate bump. |
 | `:latest` | Whatever just shipped. | You like surprises. |
 

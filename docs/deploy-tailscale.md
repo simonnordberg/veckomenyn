@@ -70,7 +70,7 @@ podman compose -f docker-compose.yml -f docker-compose.tailscale.yml pull
 podman compose -f docker-compose.yml -f docker-compose.tailscale.yml up -d
 ```
 
-The `:0.2` tag in the compose file pins to the patch channel — see [Upgrading](upgrading.md) for choosing a different cadence and for the in-app update banner. Pre-migration `pg_dump` snapshots run on every restart that has pending migrations, so an upgrade can't eat your data.
+The `:0.3` tag in the compose file pins to the patch channel — see [Upgrading](upgrading.md) for choosing a different cadence and for the in-app update banner. Pre-migration `pg_dump` snapshots run on every restart that has pending migrations, so an upgrade can't eat your data.
 
 ## Backups on a VM
 

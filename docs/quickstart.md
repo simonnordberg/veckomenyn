@@ -9,7 +9,7 @@ podman compose up -d
 open http://localhost:8080
 ```
 
-That pulls `ghcr.io/simonnordberg/veckomenyn:0.2` from GHCR — the patch channel for the 0.2 line. The app generates and persists its own AES master key on first boot, so there's no `.env` ritual to start. Podman is the default; `docker compose up -d` works the same way. The compose file is plain OCI.
+That pulls `ghcr.io/simonnordberg/veckomenyn:0.3` from GHCR — the patch channel for the 0.3 line. The app generates and persists its own AES master key on first boot, so there's no `.env` ritual to start. Podman is the default; `docker compose up -d` works the same way. The compose file is plain OCI.
 
 The first time you open the URL, a setup wizard walks you through:
 

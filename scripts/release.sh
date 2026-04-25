@@ -78,7 +78,7 @@ if [ "$NEW_MINOR" != "$PREV_MINOR" ]; then
   perl -i -pe "s|\Q${PREV_MINOR}\E\.x|${NEW_MINOR}.x|g" "${files[@]}"
 
   if ! git diff --quiet; then
-    git add docker-compose.yml README.md
+    git add "${files[@]}"
     git commit -m "chore: bump compose+docs to :${NEW_MINOR} for v${VERSION}"
     echo
     echo "committed channel bump:"
