@@ -39,6 +39,11 @@ services:
       # upgrade never costs you data, and you can list, copy, or rsync
       # the dumps without going into the container.
       BACKUP_DIR: /var/lib/veckomenyn/backups
+      # In-app update controls. Watchtower runs as a passive trigger
+      # sidecar (no polling); the app POSTs here to drive both the
+      # manual "Update now" button and the optional auto-update toggle.
+      UPDATE_TRIGGER_URL: http://watchtower:8080/v1/update
+      UPDATE_TRIGGER_TOKEN: ${WATCHTOWER_TOKEN:-veckomenyn-internal}
     volumes:
       # Bind mount, NOT a named volume: survives `docker compose down -v`
       # so wiping the DB never wipes the snapshots that could restore it.
@@ -49,28 +54,38 @@ services:
       # Override with HOST_PORT=8081 in .env if 8080 is taken.
       - "${HOST_PORT:-8080}:8080"
     labels:
-      # Opt-in to Watchtower auto-updates when the `managed` profile is on.
-      # Without the label, Watchtower (if running for any reason) ignores us.
+      # Pair of labels for the local watchtower sidecar below.
+      # `enable=true` plus `--label-enable` opts this container in.
+      # `scope=veckomenyn` plus `--scope veckomenyn` keeps any other
+      # watchtower on the host from also targeting it (would race).
       com.centurylinklabs.watchtower.enable: "true"
+      com.centurylinklabs.watchtower.scope: "veckomenyn"
     restart: unless-stopped
 
-  # Auto-update sidecar. Enabled with `--profile managed`. Polls GHCR daily
-  # and restarts the app when a newer image lands on whatever tag the app
-  # service references (e.g. :0.1 picks up patches automatically). Pre-
-  # migration snapshots run on every restart, so the upgrade is safety-
-  # netted by pg_dump regardless of how it was triggered.
+  # Update trigger sidecar. Watchtower runs in HTTP-API-only mode (no
+  # polling), so it does nothing until the app POSTs to /v1/update. The
+  # app drives both the manual "Update now" button and the optional
+  # auto-update toggle in Settings; this container exists so something
+  # outside the app's own process can recreate the app's container.
+  # Pre-migration snapshots run on every restart, so a triggered upgrade
+  # can't eat your data.
   watchtower:
     image: containrrr/watchtower:latest
-    profiles: [managed]
     environment:
-      # Pin the Docker Engine API version watchtower talks. Without this,
-      # the docker SDK negotiates a version that podman's docker-compat
-      # socket rejects ("client version 1.25 is too old, minimum 1.40").
-      # 1.41 is supported by both Docker Engine and podman 4+.
+      # Pin the Docker Engine API version. Without this, the docker SDK
+      # negotiates a version that podman's docker-compat socket rejects
+      # ("client version 1.25 is too old, minimum 1.40"). 1.41 is
+      # supported by both Docker Engine and podman 4+.
       DOCKER_API_VERSION: "1.41"
+      WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_TOKEN:-veckomenyn-internal}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: ["--label-enable", "--cleanup", "--interval", "86400"]
+    command:
+      - --label-enable
+      - --cleanup
+      - --http-api-update
+      - --scope
+      - veckomenyn
     restart: unless-stopped
 
 volumes:

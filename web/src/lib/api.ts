@@ -415,12 +415,42 @@ export type UpdateStatus = {
   latest: string;
   has_update: boolean;
   url: string;
+  can_apply: boolean;
+  auto_enabled: boolean;
 };
 
 export async function getUpdates(): Promise<UpdateStatus> {
   const r = await fetch("/api/updates");
   if (!r.ok) throw new Error(`updates: ${r.status}`);
   return (await r.json()) as UpdateStatus;
+}
+
+export async function applyUpdate(): Promise<void> {
+  const r = await fetch("/api/updates/apply", { method: "POST" });
+  if (!r.ok && r.status !== 202) throw new Error(await r.text());
+}
+
+export type UpdateConfig = {
+  auto_update_enabled: boolean;
+  can_apply: boolean;
+};
+
+export async function getUpdateConfig(): Promise<UpdateConfig> {
+  const r = await fetch("/api/update-config");
+  if (!r.ok) throw new Error(`update-config: ${r.status}`);
+  return (await r.json()) as UpdateConfig;
+}
+
+export async function patchUpdateConfig(p: {
+  auto_update_enabled: boolean;
+}): Promise<UpdateConfig> {
+  const r = await fetch("/api/update-config", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(p),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return (await r.json()) as UpdateConfig;
 }
 
 export type SetupStatus = {

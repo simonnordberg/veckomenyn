@@ -11,6 +11,7 @@ import { navigate } from "../lib/route";
 import { setTheme, type Theme, useTheme } from "../lib/theme";
 import { BackupsSection } from "./BackupsSection";
 import { IntegrationsSection } from "./IntegrationsSection";
+import { UpdatesSection } from "./UpdatesSection";
 
 type Props = {
   open: boolean;
@@ -197,6 +198,7 @@ export function SettingsModal({ open, onClose }: Props) {
           )}
           <IntegrationsSection />
           <BackupsSection />
+          <UpdatesSection />
           <div className="mt-4 flex items-center justify-between border-t border-stone-200 pt-3 dark:border-stone-800">
             <button
               type="button"

@@ -105,41 +105,42 @@ else
     printf 'TS_AUTHKEY=%s\n' "$TS_AUTHKEY" >> .env
   fi
 fi
+
+# WATCHTOWER_TOKEN authenticates the in-app update trigger to the local
+# Watchtower sidecar. Internal-network only (compose), but generating a
+# random token avoids "anyone on the Docker network can trigger updates."
+if ! grep -q '^WATCHTOWER_TOKEN=' .env; then
+  if command -v openssl >/dev/null 2>&1; then
+    token=$(openssl rand -hex 32)
+  else
+    token=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
+  fi
+  printf 'WATCHTOWER_TOKEN=%s\n' "$token" >> .env
+fi
 chmod 600 .env
 
 # --- start ---------------------------------------------------------------
-# MANAGED=1 adds the Watchtower auto-update sidecar from docker-compose.yml's
-# `managed` profile. Otherwise upgrades are manual via `compose pull && up -d`.
-profile_args=""
-if [ "${MANAGED:-}" = "1" ]; then
-  profile_args="--profile managed"
-fi
-
-# shellcheck disable=SC2086
-$COMPOSE $profile_args -f docker-compose.yml -f docker-compose.tailscale.yml up -d
-
-if [ -n "$profile_args" ]; then
-  managed_status="enabled (Watchtower polls GHCR daily)"
-else
-  managed_status="off (re-run with MANAGED=1 to enable)"
-fi
+$COMPOSE -f docker-compose.yml -f docker-compose.tailscale.yml up -d
 
 cat <<HINT
 
 Started veckomenyn in $INSTALL_DIR using "$COMPOSE".
-Auto-updates: $managed_status.
 
 The app is reachable from any device on your tailnet at:
   http://veckomenyn.<your-tailnet>.ts.net:8080
 
 Find your tailnet name at https://login.tailscale.com/admin (e.g. "tail123abc.ts.net").
 
-To upgrade manually:
+Updates: open Settings in the app for the manual button and the
+auto-update toggle. Watchtower runs as a passive trigger sidecar; it
+never updates anything on its own.
+
+To pull a new compose definition (rare):
   cd $INSTALL_DIR
-  $COMPOSE $profile_args -f docker-compose.yml -f docker-compose.tailscale.yml pull
-  $COMPOSE $profile_args -f docker-compose.yml -f docker-compose.tailscale.yml up -d
+  $COMPOSE -f docker-compose.yml -f docker-compose.tailscale.yml pull
+  $COMPOSE -f docker-compose.yml -f docker-compose.tailscale.yml up -d
 
 To stop:
   cd $INSTALL_DIR
-  $COMPOSE $profile_args -f docker-compose.yml -f docker-compose.tailscale.yml down
+  $COMPOSE -f docker-compose.yml -f docker-compose.tailscale.yml down
 HINT

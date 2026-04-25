@@ -61,30 +61,16 @@ podman compose -f docker-compose.yml -f docker-compose.tailscale.yml up -d
 
 Drop the overlay and the base compose is the LAN deployment from [Quickstart](quickstart.md). Layer it back on for the tailnet path.
 
-## Auto-updates
+## Updates
 
-[Watchtower](https://github.com/containrrr/watchtower) polls GHCR daily and restarts the app when a newer image lands on your channel (`:0.3` by default). Add the `managed` profile to enable:
+The default compose ships a passive [Watchtower](https://github.com/containrrr/watchtower) sidecar (no polling, HTTP-API only). All update controls live in the app:
 
-```sh
-cd ~/veckomenyn
-docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile managed up -d
-```
+- **Manual**: when a new version is published, the banner above the topbar shows it. Click **Update now** and the app restarts itself with the new image.
+- **Automatic**: Settings → Updates → toggle **Apply updates automatically**. The app checks once an hour and fires the same trigger when a newer version exists.
 
-Or set `MANAGED=1` when running the installer to enable from the start:
+Both go through Watchtower internally; no part of the flow is exposed publicly. Pre-migration `pg_dump` runs on every restart with pending migrations, so an upgrade can't eat your data.
 
-```sh
-curl -fsSL https://raw.githubusercontent.com/simonnordberg/veckomenyn/main/install.sh \
-  | TS_AUTHKEY=tskey-... MANAGED=1 sh
-```
-
-The Tailscale sidecar isn't labeled for Watchtower, so the tailnet connection survives every app update. Pre-migration `pg_dump` runs on every restart with pending migrations, so an automatic upgrade can't eat your data.
-
-To stop auto-updates, remove the Watchtower container:
-
-```sh
-cd ~/veckomenyn
-docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile managed rm -sf watchtower
-```
+The Tailscale sidecar isn't scoped to Watchtower, so the tailnet connection survives every app update.
 
 ## Surviving reboots
 
@@ -96,15 +82,17 @@ docker compose -f docker-compose.yml -f docker-compose.tailscale.yml --profile m
 
 If you're running on a cloud VM with the default OS image and rootful Docker, you don't need to do anything; it already works.
 
-## Updating
+## Refreshing the compose definition
+
+The Update flow above pulls a new app image but uses the *existing* compose file. If a release adds new env vars or services (rare), refetch and restart:
 
 ```sh
 cd ~/veckomenyn
-podman compose -f docker-compose.yml -f docker-compose.tailscale.yml pull
+curl -fsSL https://raw.githubusercontent.com/simonnordberg/veckomenyn/main/docker-compose.yml -o docker-compose.yml
 podman compose -f docker-compose.yml -f docker-compose.tailscale.yml up -d
 ```
 
-`:0.3` pins to the patch channel. See [Upgrading](upgrading.md) for other cadences and the in-app update banner. Pre-migration `pg_dump` runs on every restart with pending migrations.
+See [Upgrading](upgrading.md) for channel pinning and other tags.
 
 ## Off-host backups
 

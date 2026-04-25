@@ -92,12 +92,24 @@ func main() {
 		updateChecker = updates.New("simonnordberg/veckomenyn", version)
 	}
 
+	updateTrigger := updates.NewTrigger(
+		os.Getenv("UPDATE_TRIGGER_URL"),
+		os.Getenv("UPDATE_TRIGGER_TOKEN"),
+	)
+	updateCfg := store.NewUpdateConfigStore(db.Pool)
+
+	if updateChecker != nil && updateTrigger.Configured() {
+		go updates.NewAutoUpdater(updateChecker, updateTrigger, updateCfg, log).Run(ctx)
+	}
+
 	srv := server.New(server.Config{
-		Addr:         addr,
-		Build:        server.BuildInfo{Version: version, Commit: commit, BuiltAt: builtAt},
-		Snapshotter:  snapshotter,
-		BackupConfig: backupCfg,
-		Updates:      updateChecker,
+		Addr:          addr,
+		Build:         server.BuildInfo{Version: version, Commit: commit, BuiltAt: builtAt},
+		Snapshotter:   snapshotter,
+		BackupConfig:  backupCfg,
+		Updates:       updateChecker,
+		UpdateTrigger: updateTrigger,
+		UpdateConfig:  updateCfg,
 	}, db, ag, provStore, log)
 
 	errCh := make(chan error, 1)

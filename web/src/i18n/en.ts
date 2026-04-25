@@ -282,9 +282,20 @@ export const en: Record<string, string> = {
 
   "update.available": "Update available: v{version}",
   "update.notes": "Release notes",
+  "update.compare": "What changed",
   "update.copy_command": "Copy upgrade command",
   "update.copied": "Copied",
   "update.dismiss": "Dismiss",
+  "update.apply": "Update now",
+  "update.applying": "Updating…",
+  "update.waiting": "Waiting for new version…",
+  "update.apply_timeout": "Update did not finish in time. Check your container's logs.",
+  "update.section_title": "Updates",
+  "update.section_subtitle":
+    "The Update now button in the banner is always available when an update is published. Toggle this on to also apply updates automatically once a day.",
+  "update.auto_label": "Apply updates automatically",
+  "update.auto_hint": "Hourly check; if a newer version is published, restart with the new image.",
+  "update.auto_unavailable": "Auto-update needs the Watchtower trigger sidecar. See deploy docs.",
 
   "setup.welcome_title": "Welcome to Veckomenyn",
   "setup.welcome_body":

@@ -24,11 +24,21 @@ import (
 )
 
 type Config struct {
-	Addr         string
-	Build        BuildInfo
-	Snapshotter  *backup.Snapshotter
-	BackupConfig BackupConfigStore
-	Updates      *updates.Checker
+	Addr           string
+	Build          BuildInfo
+	Snapshotter    *backup.Snapshotter
+	BackupConfig   BackupConfigStore
+	Updates        *updates.Checker
+	UpdateTrigger  *updates.Trigger
+	UpdateConfig   UpdateConfigStore
+}
+
+// UpdateConfigStore is the minimal surface server handlers need for the
+// auto-update toggle. Decoupled from internal/store so server tests don't
+// need a DB.
+type UpdateConfigStore interface {
+	UpdateConfig(ctx context.Context) (store.UpdateConfig, error)
+	SetAutoUpdate(ctx context.Context, enabled bool) (store.UpdateConfig, error)
 }
 
 // BackupConfigStore is the minimal surface server handlers need for the
@@ -48,29 +58,33 @@ type BuildInfo struct {
 }
 
 type Server struct {
-	cfg          Config
-	db           *store.DB
-	log          *slog.Logger
-	agent        *agent.Agent
-	providers    *providers.Store
-	snapshotter  *backup.Snapshotter
-	backupConfig BackupConfigStore
-	updates      *updates.Checker
-	router       *chi.Mux
-	http         *http.Server
+	cfg           Config
+	db            *store.DB
+	log           *slog.Logger
+	agent         *agent.Agent
+	providers     *providers.Store
+	snapshotter   *backup.Snapshotter
+	backupConfig  BackupConfigStore
+	updates       *updates.Checker
+	updateTrigger *updates.Trigger
+	updateConfig  UpdateConfigStore
+	router        *chi.Mux
+	http          *http.Server
 }
 
 func New(cfg Config, db *store.DB, ag *agent.Agent, providers *providers.Store, log *slog.Logger) *Server {
 	s := &Server{
-		cfg:          cfg,
-		db:           db,
-		agent:        ag,
-		providers:    providers,
-		snapshotter:  cfg.Snapshotter,
-		backupConfig: cfg.BackupConfig,
-		updates:      cfg.Updates,
-		log:          log,
-		router:       chi.NewRouter(),
+		cfg:           cfg,
+		db:            db,
+		agent:         ag,
+		providers:     providers,
+		snapshotter:   cfg.Snapshotter,
+		backupConfig:  cfg.BackupConfig,
+		updates:       cfg.Updates,
+		updateTrigger: cfg.UpdateTrigger,
+		updateConfig:  cfg.UpdateConfig,
+		log:           log,
+		router:        chi.NewRouter(),
 	}
 	s.routes()
 	s.http = &http.Server{
@@ -103,6 +117,9 @@ func (s *Server) routes() {
 		r.Get("/health", s.handleHealth)
 		r.Get("/version", s.handleVersion)
 		r.Get("/updates", s.handleGetUpdates)
+		r.Post("/updates/apply", s.handleApplyUpdate)
+		r.Get("/update-config", s.handleGetUpdateConfig)
+		r.Patch("/update-config", s.handlePatchUpdateConfig)
 		r.Get("/setup-status", s.handleGetSetupStatus)
 		r.Post("/preferences/seed", s.handleSeedPreferences)
 		r.With(chatLimiter).Post("/chat", s.handleChat)
@@ -156,12 +173,23 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetUpdates(w http.ResponseWriter, r *http.Request) {
+	canApply := s.updateTrigger != nil && s.updateTrigger.Configured()
+
+	autoEnabled := false
+	if s.updateConfig != nil {
+		if cfg, err := s.updateConfig.UpdateConfig(r.Context()); err == nil {
+			autoEnabled = cfg.AutoUpdateEnabled
+		}
+	}
+
 	if s.updates == nil {
 		writeJSON(w, http.StatusOK, map[string]any{
-			"current":    s.cfg.Build.Version,
-			"latest":     "",
-			"has_update": false,
-			"url":        "",
+			"current":      s.cfg.Build.Version,
+			"latest":       "",
+			"has_update":   false,
+			"url":          "",
+			"can_apply":    canApply,
+			"auto_enabled": autoEnabled,
 		})
 		return
 	}
@@ -169,7 +197,78 @@ func (s *Server) handleGetUpdates(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.log.Warn("update check failed", "err", err)
 	}
-	writeJSON(w, http.StatusOK, status)
+	writeJSON(w, http.StatusOK, map[string]any{
+		"current":      status.Current,
+		"latest":       status.Latest,
+		"has_update":   status.HasUpdate,
+		"url":          status.URL,
+		"can_apply":    canApply,
+		"auto_enabled": autoEnabled,
+	})
+}
+
+func (s *Server) handleApplyUpdate(w http.ResponseWriter, r *http.Request) {
+	if s.updateTrigger == nil || !s.updateTrigger.Configured() {
+		http.Error(w, "update trigger not configured", http.StatusServiceUnavailable)
+		return
+	}
+	if err := s.updateTrigger.Fire(r.Context()); err != nil {
+		s.internalError(w, r, "fire update trigger", err)
+		return
+	}
+	// 202 because the trigger returned but the actual recreate happens
+	// asynchronously and our process is about to die. Caller polls
+	// /api/version until the new version reports back.
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func (s *Server) handleGetUpdateConfig(w http.ResponseWriter, r *http.Request) {
+	if s.updateConfig == nil {
+		http.Error(w, "update config unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	cfg, err := s.updateConfig.UpdateConfig(r.Context())
+	if err != nil {
+		s.internalError(w, r, "read update config", err)
+		return
+	}
+	canApply := s.updateTrigger != nil && s.updateTrigger.Configured()
+	writeJSON(w, http.StatusOK, map[string]any{
+		"auto_update_enabled": cfg.AutoUpdateEnabled,
+		"can_apply":           canApply,
+	})
+}
+
+func (s *Server) handlePatchUpdateConfig(w http.ResponseWriter, r *http.Request) {
+	if s.updateConfig == nil {
+		http.Error(w, "update config unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	var p struct {
+		AutoUpdateEnabled *bool `json:"auto_update_enabled"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+		http.Error(w, "bad json: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	if p.AutoUpdateEnabled == nil {
+		http.Error(w, "auto_update_enabled required", http.StatusBadRequest)
+		return
+	}
+	if *p.AutoUpdateEnabled && (s.updateTrigger == nil || !s.updateTrigger.Configured()) {
+		http.Error(w, "cannot enable auto-update: trigger not configured", http.StatusBadRequest)
+		return
+	}
+	cfg, err := s.updateConfig.SetAutoUpdate(r.Context(), *p.AutoUpdateEnabled)
+	if err != nil {
+		s.internalError(w, r, "set auto_update_enabled", err)
+		return
+	}
+	canApply := s.updateTrigger != nil && s.updateTrigger.Configured()
+	writeJSON(w, http.StatusOK, map[string]any{
+		"auto_update_enabled": cfg.AutoUpdateEnabled,
+		"can_apply":           canApply,
+	})
 }
 
 // handleStatic serves the embedded SPA. If the frontend hasn't been built

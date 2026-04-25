@@ -21,6 +21,7 @@ The first request triggers a setup wizard:
 
 - **`db`**: Postgres 17 with meal plans, preferences, conversations, ratings.
 - **`app`**: Go binary serving the API and embedded React SPA.
+- **`watchtower`**: passive trigger sidecar for in-app updates. Idle until the app's "Update now" button or auto-update toggle calls it.
 
 Persistent state:
 
