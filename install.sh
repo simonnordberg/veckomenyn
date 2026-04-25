@@ -24,30 +24,37 @@ INSTALL_DIR="${VECKOMENYN_DIR:-$HOME/veckomenyn}"
 err() { printf '%s\n' "$*" >&2; }
 
 # --- detect a compose engine ----------------------------------------------
-# Prefer podman, fall back to docker. Either works; the rest of the script
-# uses $COMPOSE so we can address whichever one is present.
-if command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
-  COMPOSE="podman compose"
-elif command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+# Prefer docker. On a cloud VM rootful Docker is the smoother path: its
+# systemd unit is enabled at install, so containers come back at boot
+# without extra setup. Fall back to podman if that's what's already there
+# (homelab Fedora hosts, opinionated users). Either works; the rest of the
+# script uses $COMPOSE so we can address whichever one is present.
+if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
   COMPOSE="docker compose"
+elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
+  COMPOSE="podman compose"
 else
-  err "Neither podman nor docker (with the compose plugin) is installed."
+  err "Neither docker nor podman (with the compose plugin) is installed."
   err ""
-  err "Install podman, then re-run this script:"
+  err "On a cloud VM, install Docker (recommended):"
+  err "  https://docs.docker.com/engine/install/"
+  err ""
+  err "Or install Podman:"
   if [ -r /etc/os-release ]; then
     . /etc/os-release
     case "${ID:-}${ID_LIKE:-}" in
-      *ubuntu*|*debian*) err "  sudo apt update && sudo apt install -y podman podman-compose" ;;
+      *ubuntu*|*debian*)        err "  sudo apt update && sudo apt install -y podman podman-compose" ;;
       *fedora*|*rhel*|*centos*) err "  sudo dnf install -y podman podman-compose" ;;
-      *arch*)              err "  sudo pacman -S --needed podman podman-compose" ;;
-      *alpine*)            err "  sudo apk add podman podman-compose" ;;
-      *)                   err "  https://podman.io/getting-started/installation" ;;
+      *arch*)                   err "  sudo pacman -S --needed podman podman-compose" ;;
+      *alpine*)                 err "  sudo apk add podman podman-compose" ;;
+      *)                        err "  https://podman.io/getting-started/installation" ;;
     esac
   else
     err "  https://podman.io/getting-started/installation"
   fi
   err ""
-  err "Or install docker (https://docs.docker.com/engine/install/); both work."
+  err "Both work; rootless Podman needs extra setup to survive reboot."
+  err "See https://github.com/simonnordberg/veckomenyn/blob/main/docs/deploy-tailscale.md#surviving-reboots"
   exit 1
 fi
 

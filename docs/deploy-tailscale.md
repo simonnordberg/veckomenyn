@@ -4,7 +4,7 @@ A small cloud VM with **Tailscale as the auth layer**. The app sits on the tailn
 
 ## Prerequisites
 
-- A Linux VM with Docker or Podman. Hetzner CX22 (€4/mo, 4 GB RAM) is plenty; a Raspberry Pi 5 at home works identically.
+- A Linux VM with **rootful Docker** ([install docs](https://docs.docker.com/engine/install/)). Hetzner CX22 (€4/mo, 4 GB RAM) is plenty; a Raspberry Pi 5 at home works identically. Podman works too, but Docker is the smoother choice for a cloud VM: it ships with its systemd unit enabled, so containers come back automatically after reboot. Podman's rootless mode needs a couple of one-time commands ([Surviving reboots](#surviving-reboots)).
 - A free Tailscale account ([tailscale.com](https://tailscale.com)). The free plan covers 100 devices, more than enough for a household.
 - A Tailscale [auth key](https://login.tailscale.com/admin/settings/keys) (see Tailscale's [auth keys docs](https://tailscale.com/kb/1085/auth-keys)). A non-ephemeral, non-reusable key is the right default for a single VM.
 
@@ -19,7 +19,7 @@ curl -fsSL https://raw.githubusercontent.com/simonnordberg/veckomenyn/main/insta
 
 The script:
 
-1. Picks `podman` or falls back to `docker`.
+1. Picks `docker` or falls back to `podman`.
 2. Downloads `docker-compose.yml` and `docker-compose.tailscale.yml` into `~/veckomenyn`.
 3. Writes `.env` with the auth key (mode `600`).
 4. Runs `compose -f docker-compose.yml -f docker-compose.tailscale.yml up -d`.
