@@ -3,6 +3,7 @@ import { setLang, t, useLang } from "../i18n";
 import { getSettings, type HouseholdSettings, patchSettings } from "../lib/api";
 import { navigate } from "../lib/route";
 import { setTheme, type Theme, useTheme } from "../lib/theme";
+import { BackupsSection } from "./BackupsSection";
 import { IntegrationsSection } from "./IntegrationsSection";
 
 type Props = {
@@ -189,6 +190,7 @@ export function SettingsModal({ open, onClose }: Props) {
             </div>
           )}
           <IntegrationsSection />
+          <BackupsSection />
           <div className="mt-4 border-t border-stone-200 pt-3 dark:border-stone-800">
             <button
               type="button"

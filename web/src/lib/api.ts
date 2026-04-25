@@ -410,6 +410,60 @@ export async function getVersion(): Promise<VersionInfo> {
   return (await r.json()) as VersionInfo;
 }
 
+export type BackupReason = "pre-migration" | "manual" | "nightly" | "";
+
+export type Backup = {
+  filename: string;
+  reason: BackupReason;
+  label: string;
+  size_bytes: number;
+  created_at: string;
+};
+
+export async function listBackups(): Promise<Backup[]> {
+  const r = await fetch("/api/backups");
+  if (!r.ok) throw new Error(`backups: ${r.status}`);
+  const body = (await r.json()) as { backups: Backup[] };
+  return body.backups;
+}
+
+export async function takeBackup(): Promise<Backup> {
+  const r = await fetch("/api/backups", { method: "POST" });
+  if (!r.ok) throw new Error(await r.text());
+  return (await r.json()) as Backup;
+}
+
+export async function deleteBackup(filename: string): Promise<void> {
+  const r = await fetch(`/api/backups/${encodeURIComponent(filename)}`, { method: "DELETE" });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+export function backupDownloadURL(filename: string): string {
+  return `/api/backups/${encodeURIComponent(filename)}/download`;
+}
+
+export type BackupConfig = {
+  nightly_enabled: boolean;
+  nightly_keep: number;
+  can_write: boolean;
+};
+
+export async function getBackupConfig(): Promise<BackupConfig> {
+  const r = await fetch("/api/backup-config");
+  if (!r.ok) throw new Error(`backup-config: ${r.status}`);
+  return (await r.json()) as BackupConfig;
+}
+
+export async function patchBackupConfig(p: Partial<BackupConfig>): Promise<BackupConfig> {
+  const r = await fetch("/api/backup-config", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(p),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return (await r.json()) as BackupConfig;
+}
+
 export type StreamHandlers = {
   onMeta?: (m: ChatMeta) => void;
   onEvent?: (e: AgentEvent) => void;

@@ -248,4 +248,28 @@ export const en: Record<string, string> = {
   "usage.col.conversation": "Conversation",
   "usage.col.date": "Date",
   "usage.open": "Open usage report",
+
+  "backups.title": "Backups",
+  "backups.subtitle":
+    "Automatic snapshots before every upgrade, plus optional nightly dumps. Files live in ./backups on the host and survive `docker compose down -v`.",
+  "backups.nightly": "Nightly automatic backup",
+  "backups.nightly_hint": "Takes a pg_dump every 24h. Pre-migration snapshots run regardless.",
+  "backups.nightly_disabled":
+    "pg_dump isn't available in this environment, so scheduled backups can't be enabled.",
+  "backups.keep": "Keep last",
+  "backups.keep_unit": "nightly snapshots",
+  "backups.take_now": "Take backup now",
+  "backups.taking": "Taking…",
+  "backups.empty": "No backups yet.",
+  "backups.col.taken": "Taken",
+  "backups.col.reason": "Reason",
+  "backups.col.size": "Size",
+  "backups.reason.pre-migration": "Pre-migration",
+  "backups.reason.manual": "Manual",
+  "backups.reason.nightly": "Nightly",
+  "backups.download": "Download",
+  "backups.delete": "Delete",
+  "backups.delete_confirm": "Delete this backup? This cannot be undone.",
+  "backups.restore_hint":
+    "To restore: stream a downloaded file into pg_restore, e.g. `podman compose exec -T db pg_restore --clean --if-exists -U veckomenyn -d veckomenyn < your.dump`.",
 };

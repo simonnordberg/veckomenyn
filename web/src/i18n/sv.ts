@@ -249,4 +249,28 @@ export const sv: Record<string, string> = {
   "usage.col.conversation": "Konversation",
   "usage.col.date": "Datum",
   "usage.open": "Öppna användningsrapport",
+
+  "backups.title": "Säkerhetskopior",
+  "backups.subtitle":
+    "Automatisk säkerhetskopia före varje uppgradering, plus valfri nattlig dump. Filerna ligger i ./backups på hosten och överlever `docker compose down -v`.",
+  "backups.nightly": "Nattlig automatisk säkerhetskopia",
+  "backups.nightly_hint": "Tar en pg_dump var 24:e timme. Förmigreringskopior körs alltid.",
+  "backups.nightly_disabled":
+    "pg_dump finns inte i den här miljön, så schemalagda säkerhetskopior kan inte aktiveras.",
+  "backups.keep": "Behåll senaste",
+  "backups.keep_unit": "nattliga kopior",
+  "backups.take_now": "Ta säkerhetskopia nu",
+  "backups.taking": "Sparar…",
+  "backups.empty": "Inga säkerhetskopior än.",
+  "backups.col.taken": "Skapad",
+  "backups.col.reason": "Orsak",
+  "backups.col.size": "Storlek",
+  "backups.reason.pre-migration": "Förmigrering",
+  "backups.reason.manual": "Manuell",
+  "backups.reason.nightly": "Nattlig",
+  "backups.download": "Ladda ner",
+  "backups.delete": "Ta bort",
+  "backups.delete_confirm": "Ta bort den här säkerhetskopian? Det går inte att ångra.",
+  "backups.restore_hint":
+    "Återställ: streama den nedladdade filen till pg_restore, t.ex. `podman compose exec -T db pg_restore --clean --if-exists -U veckomenyn -d veckomenyn < din.dump`.",
 };
