@@ -22,7 +22,16 @@ import (
 )
 
 type Config struct {
-	Addr string
+	Addr  string
+	Build BuildInfo
+}
+
+// BuildInfo is build metadata stamped into the binary via -ldflags. Surfaced
+// at /api/version so the UI can show what's running and check for updates.
+type BuildInfo struct {
+	Version string
+	Commit  string
+	BuiltAt string
 }
 
 type Server struct {
@@ -66,6 +75,7 @@ func (s *Server) routes() {
 
 	s.router.Route("/api", func(r chi.Router) {
 		r.Get("/health", s.handleHealth)
+		r.Get("/version", s.handleVersion)
 		r.With(chatLimiter).Post("/chat", s.handleChat)
 		r.Get("/conversations", s.handleListConversations)
 		r.Get("/conversations/{id}", s.handleGetConversation)
@@ -99,6 +109,14 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":  "ok",
 		"service": "veckomenyn",
+	})
+}
+
+func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"version":  s.cfg.Build.Version,
+		"commit":   s.cfg.Build.Commit,
+		"built_at": s.cfg.Build.BuiltAt,
 	})
 }
 

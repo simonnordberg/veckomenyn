@@ -17,11 +17,19 @@ import (
 	"github.com/simonnordberg/veckomenyn/internal/store"
 )
 
+// Set via -ldflags at build time. Defaults are for `go run` / dev builds.
+var (
+	version = "dev"
+	commit  = "unknown"
+	builtAt = "unknown"
+)
+
 func main() {
 	_ = godotenv.Load()
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(log)
+	log.Info("veckomenyn starting", "version", version, "commit", commit, "built_at", builtAt)
 
 	addr := envOr("HTTP_ADDR", ":8080")
 	dsn := os.Getenv("DATABASE_URL")
@@ -66,7 +74,10 @@ func main() {
 
 	ag := agent.New(agent.Config{}, db.Pool, provStore, willysShop, log)
 
-	srv := server.New(server.Config{Addr: addr}, db, ag, provStore, log)
+	srv := server.New(server.Config{
+		Addr:  addr,
+		Build: server.BuildInfo{Version: version, Commit: commit, BuiltAt: builtAt},
+	}, db, ag, provStore, log)
 
 	errCh := make(chan error, 1)
 	go func() {
