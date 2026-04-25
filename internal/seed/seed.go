@@ -19,7 +19,7 @@ var preferencesFS embed.FS
 
 // Preferences upserts each shipped preference markdown file into
 // cooking_principles, keyed by the filename stem. Returns the number of
-// rows touched. Idempotent — re-seeding overwrites existing rows.
+// rows touched. Idempotent: re-seeding overwrites existing rows.
 func Preferences(ctx context.Context, pool *pgxpool.Pool) (int, error) {
 	entries, err := fs.ReadDir(preferencesFS, "preferences")
 	if err != nil {

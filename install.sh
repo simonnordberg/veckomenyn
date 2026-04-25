@@ -1,10 +1,10 @@
 #!/bin/sh
-# Veckomenyn — one-command remote install via Tailscale.
+# Veckomenyn one-command remote install via Tailscale.
 #
 # Drops the upstream docker-compose.yml + docker-compose.tailscale.yml
 # into ~/veckomenyn (override with $VECKOMENYN_DIR), writes a tiny .env
 # with your Tailscale auth key, and starts the stack. The app is only
-# reachable via your tailnet — no public ports, no DNS, no TLS to
+# reachable via your tailnet. No public ports, no DNS, no TLS to
 # manage.
 #
 # Usage:
@@ -47,7 +47,7 @@ else
     err "  https://podman.io/getting-started/installation"
   fi
   err ""
-  err "Or install docker (https://docs.docker.com/engine/install/) — both work."
+  err "Or install docker (https://docs.docker.com/engine/install/); both work."
   exit 1
 fi
 

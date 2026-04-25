@@ -26,7 +26,7 @@ case "$BUMP" in
 esac
 
 if ! git diff --quiet HEAD || [ -n "$(git status --porcelain)" ]; then
-  echo "working tree must be clean — commit or stash changes first" >&2
+  echo "working tree must be clean. Commit or stash changes first." >&2
   exit 1
 fi
 
@@ -87,7 +87,7 @@ if [ "$NEW_MINOR" != "$PREV_MINOR" ]; then
     echo "no doc changes needed (already in sync)"
   fi
 else
-  echo "patch bump within :${NEW_MINOR} — no doc changes needed"
+  echo "patch bump within :${NEW_MINOR}, no doc changes needed"
 fi
 
 echo

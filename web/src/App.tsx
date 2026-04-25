@@ -59,7 +59,7 @@ export function App() {
         }
       })
       .catch(() => {
-        // On error, don't trap users in the wizard — assume complete.
+        // On error, don't trap users in the wizard; assume complete.
         if (!cancelled) setSetupComplete(true);
       });
     return () => {

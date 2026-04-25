@@ -54,7 +54,7 @@ func (s *Server) handleCreateBackup(w http.ResponseWriter, r *http.Request) {
 }
 
 // resolveBackup finds a snapshot by filename in the snapshotter's listing.
-// Returning matched paths from the listing avoids any path-traversal worry —
+// Returning matched paths from the listing avoids any path-traversal worry:
 // only files we already enumerated are reachable.
 func (s *Server) resolveBackup(w http.ResponseWriter, r *http.Request) (backup.Snapshot, *backup.Snapshotter, bool) {
 	snap, ok := s.snapshotterOrError(w)

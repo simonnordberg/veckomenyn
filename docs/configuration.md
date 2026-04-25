@@ -1,10 +1,10 @@
 # Configuration
 
-Everything except the variables below lives in Settings (in the UI), including the Anthropic model and store credentials. The env vars are for things the binary needs before the UI is reachable.
+Env vars only cover what the binary needs before the UI loads. Anthropic model, store credentials, household defaults, and backup schedule all live in Settings.
 
 | Var | Purpose |
 |---|---|
-| `MASTER_KEY` | 32-byte base64 AES key encrypting provider secrets in the DB. **Optional** — auto-generated and persisted on first boot. Set explicitly only to manage the key externally (KMS, sealed secrets). Generate with `openssl rand -base64 32`. |
+| `MASTER_KEY` | 32-byte base64 AES key encrypting provider secrets in the DB. **Optional**: auto-generated and persisted on first boot. Set explicitly only to manage the key externally (KMS, sealed secrets). Generate with `openssl rand -base64 32`. |
 | `DATABASE_URL` | Postgres DSN. Set automatically by compose. |
 | `HTTP_ADDR` | Listen address. Defaults to `:8080`. |
 | `HOST_PORT` | Host port mapped to the container's 8080. Defaults to 8080. |

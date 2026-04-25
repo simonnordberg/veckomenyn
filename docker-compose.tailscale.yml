@@ -1,4 +1,4 @@
-# Tailscale overlay — adds private tailnet auth to the LAN compose.
+# Tailscale overlay. Adds private tailnet auth to the LAN compose.
 #
 # Layered on top of docker-compose.yml:
 #   podman compose -f docker-compose.yml -f docker-compose.tailscale.yml up -d
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
 
   app:
-    # Host port binding goes away — the app is only on the tailnet now.
+    # Host port binding goes away. The app is only on the tailnet now.
     ports: !reset []
     network_mode: service:tailscale
 

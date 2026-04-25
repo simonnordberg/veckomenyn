@@ -36,7 +36,7 @@ services:
       # MASTER_KEY=<base64-32-bytes> in .env and uncomment below.
       # MASTER_KEY: ${MASTER_KEY}
       # Pre-migration pg_dump lands in ./backups on the host so a bad
-      # upgrade never costs you data — and you can list, copy, or rsync
+      # upgrade never costs you data, and you can list, copy, or rsync
       # the dumps without going into the container.
       BACKUP_DIR: /var/lib/veckomenyn/backups
     volumes:

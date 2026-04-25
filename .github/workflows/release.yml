@@ -24,7 +24,7 @@ jobs:
           tag_channel="${tag%.*}"  # strip patch: 0.2.3 -> 0.2
           compose_tag=$(grep -oE 'ghcr\.io/[^:[:space:]]+:[0-9.]+' docker-compose.yml | head -1 | awk -F: '{print $NF}')
           if [ "$tag_channel" != "$compose_tag" ]; then
-            echo "::error::tag $GITHUB_REF_NAME pins channel $tag_channel but docker-compose.yml references :$compose_tag — bump the compose image tag and re-tag."
+            echo "::error::tag $GITHUB_REF_NAME pins channel $tag_channel but docker-compose.yml references :$compose_tag. Bump the compose image tag and re-tag."
             exit 1
           fi
           echo "compose tag :$compose_tag matches release minor $tag_channel"

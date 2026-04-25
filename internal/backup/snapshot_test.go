@@ -56,7 +56,7 @@ func TestListAndPrune(t *testing.T) {
 		t.Fatalf("Open: %v", err)
 	}
 
-	// Create fake dumps with deterministic mtimes — newest first when listed.
+	// Create fake dumps with deterministic mtimes; newest first when listed.
 	type fake struct {
 		name  string
 		mtime time.Time

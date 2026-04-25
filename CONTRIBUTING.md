@@ -49,7 +49,7 @@ Dependencies cost. If a helper does the job, write the helper.
 
 ## Release checklist
 
-Use one of these to cut a release — the next version is computed from the latest tag, you don't need to track what's current:
+Use one of these to cut a release. The next version is computed from the latest tag, you don't need to track what's current:
 
 ```sh
 make release        # patch bump (default)
@@ -57,13 +57,13 @@ make release-minor  # new feature, additive schema
 make release-major  # breaking changes
 ```
 
-Each command bumps the compose pin and README upgrade-channel examples to match the new minor (no-op for patch bumps), commits, and creates an annotated tag. It does NOT push — the print message tells you the exact two `git push` commands to run.
+Each command bumps the compose pin and README upgrade-channel examples to match the new minor (no-op for patch bumps), commits, and creates an annotated tag. It does NOT push; the print message tells you the exact two `git push` commands to run.
 
 Users on `:0.x` (patch channel) and `:0` (minor channel) get whatever you tag. Hold the line on what each version step means or the auto-update story breaks.
 
-- **Patch** (0.x.y): bug fixes, doc updates, perf wins. Migrations must be additive — new tables, new nullable columns, new indexes. No renames, no drops, no required-NOT-NULL on existing columns without a default.
+- **Patch** (0.x.y): bug fixes, doc updates, perf wins. Migrations must be additive (new tables, new nullable columns, new indexes). No renames, no drops, no required-NOT-NULL on existing columns without a default.
 - **Minor** (0.x.0): new features, additive schema changes. Same migration rules as patch. The release script bumps `docker-compose.yml` and README example versions automatically; the release workflow refuses to publish if they're out of sync, so a forgotten manual edit can't slip through.
-- **Major** (X.0.0): anything goes. Document the migration path in release notes. If the upgrade requires a manual step, gate the boot path so the binary refuses to start without the user's explicit acknowledgement (env var) — never silently apply destructive changes.
+- **Major** (X.0.0): anything goes. Document the migration path in release notes. If the upgrade requires a manual step, gate the boot path so the binary refuses to start without the user's explicit acknowledgement (env var). Never silently apply destructive changes.
 
 Audit older snapshots before any column-shape change. Pre-migration snapshots are restored against a freshly-migrated schema; if your migration drops or renames a column an older snapshot referenced, restore from that snapshot will fail. When in doubt, stage the change across two minor releases (add new column, dual-write, deprecate old).
 

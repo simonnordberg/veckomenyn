@@ -22,11 +22,11 @@ Shopping backends are pluggable. Willys.se ships today.
 
 ## Get started
 
-- **[Quickstart (LAN)](docs/quickstart.md)** — `podman compose up -d` on a trusted home network.
-- **[Deploy on a remote VM (Tailscale)](docs/deploy-tailscale.md)** — one curl-piped command, ~5 minutes, no public ports.
-- **[Upgrading](docs/upgrading.md)** — channels, automatic pre-migration snapshots, the in-app update banner.
-- **[Backups & restore](docs/backups.md)** — what's automatic, what's optional, how to restore.
-- **[Configuration reference](docs/configuration.md)** — every env var.
+- **[Quickstart (LAN)](docs/quickstart.md)**. `podman compose up -d` on a trusted home network.
+- **[Deploy on a remote VM (Tailscale)](docs/deploy-tailscale.md)**. One curl-piped command, ~5 minutes, no public ports.
+- **[Upgrading](docs/upgrading.md)**. Channels, automatic pre-migration snapshots, the in-app update banner.
+- **[Backups & restore](docs/backups.md)**. What's automatic, what's optional, how to restore.
+- **[Configuration reference](docs/configuration.md)**. Every env var.
 
 ## Screenshots
 
@@ -65,7 +65,7 @@ The Go binary embeds the Vite bundle via `//go:embed`.
 
 ## Threat model
 
-There is no built-in authentication. The network boundary is the trust boundary. Run on a trusted LAN, on a tailnet ([Tailscale guide](docs/deploy-tailscale.md)), or behind any equivalent VPN — never directly on the public internet. Full picture in [SECURITY.md](SECURITY.md).
+There is no built-in authentication. The network boundary is the trust boundary. Run on a trusted LAN, on a tailnet ([Tailscale guide](docs/deploy-tailscale.md)), or behind any equivalent VPN. Never on the public internet. Full picture in [SECURITY.md](SECURITY.md).
 
 ## Contributing
 

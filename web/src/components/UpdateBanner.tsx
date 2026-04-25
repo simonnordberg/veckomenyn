@@ -35,7 +35,7 @@ export function UpdateBanner() {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      /* clipboard denied — user can still copy manually */
+      /* clipboard denied; user can still copy manually */
     }
   };
 

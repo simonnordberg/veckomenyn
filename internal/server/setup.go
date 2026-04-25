@@ -7,8 +7,8 @@ import (
 )
 
 // setupStatusDTO drives the first-run wizard. setup_complete flips to true
-// the moment we have the bare minimum to use the app — an Anthropic key.
-// Households can be added later via the regular UI; we don't gate on them.
+// the moment an Anthropic key is configured. Households can be added later
+// via the regular UI; we don't gate on them.
 type setupStatusDTO struct {
 	SetupComplete    bool `json:"setup_complete"`
 	HasAnthropicKey  bool `json:"has_anthropic_key"`

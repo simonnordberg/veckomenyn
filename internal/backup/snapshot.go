@@ -185,7 +185,7 @@ func (s *Snapshotter) Prune(reason Reason, keep int) ([]string, error) {
 func (s *Snapshotter) Dir() string { return s.dir }
 
 // CanWrite reports whether new snapshots can be taken. False on
-// read-only Snapshotters (pg_dump not on PATH) — List and Prune still
+// read-only Snapshotters (pg_dump not on PATH); List and Prune still
 // work for those.
 func (s *Snapshotter) CanWrite() bool { return s.pgDump != "" }
 

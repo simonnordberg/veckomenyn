@@ -47,15 +47,15 @@ func decideKey(envSet, dbSet, envEqualsDB bool) keyChoice {
 //   - env set, DB empty:    use env, mirror to DB so removing env later
 //                           doesn't lose the key.
 //   - env set, DB matches:  use env (or DB; identical).
-//   - env set, DB differs:  refuse to start — existing encrypted data
+//   - env set, DB differs:  refuse to start. Existing encrypted data
 //                           would become unreadable. User must restore
 //                           the previous key in env, or wipe and re-enter.
 //   - env unset, DB has it: use DB.
 //   - both empty:           generate, persist, use.
 //
 // The DB-stored copy lives in the same DB as the ciphertext it protects.
-// That's intentional — losing one already loses the other regardless,
-// and it eliminates the openssl-rand-base64 ritual from first-run UX.
+// That's intentional: losing one already loses the other regardless, and
+// it eliminates the openssl-rand-base64 ritual from first-run UX.
 func LoadOrGenerateMasterKey(ctx context.Context, pool *pgxpool.Pool, envValue string, log *slog.Logger) ([]byte, error) {
 	var dbKey []byte
 	err := pool.QueryRow(ctx,

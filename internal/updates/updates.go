@@ -47,7 +47,7 @@ func New(repo, current string) *Checker {
 }
 
 // Status returns the cached upgrade status, refreshing if past TTL. Errors
-// are absorbed and the previous value is served — a 30 second GitHub
+// are absorbed and the previous value is served, so a 30 second GitHub
 // outage shouldn't break the banner.
 func (c *Checker) Status(ctx context.Context) (Status, error) {
 	c.mu.Lock()
@@ -65,7 +65,7 @@ func (c *Checker) Status(ctx context.Context) (Status, error) {
 		if c.cached != nil {
 			return *c.cached, nil
 		}
-		// First attempt failed — return current-only state without claiming
+		// First attempt failed; return current-only state without claiming
 		// an update is available.
 		return Status{Current: c.current}, err
 	}
@@ -110,7 +110,7 @@ func (c *Checker) fetchLatest(ctx context.Context) (string, string, error) {
 }
 
 // cmp returns 1 if a > b, -1 if a < b, 0 if equal or unparsable. Strips a
-// leading "v" and ignores pre-release suffixes — sufficient for the
+// leading "v" and ignores pre-release suffixes; sufficient for the
 // "are we behind the latest tag" question.
 func cmp(a, b string) int {
 	pa, oka := parseSemver(a)
