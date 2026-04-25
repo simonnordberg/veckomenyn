@@ -15,6 +15,15 @@ make dev
 
 `go.mod` pins the Go toolchain. `web/` uses pnpm.
 
+Integration tests for SQL-touching code are gated on `TEST_DATABASE_URL`; they skip silently when unset. To run them locally against the dev compose db:
+
+```sh
+TEST_DATABASE_URL='postgres://veckomenyn:veckomenyn@localhost:5432/veckomenyn?sslmode=disable' \
+  go test -race ./...
+```
+
+CI sets `TEST_DATABASE_URL` against an ephemeral `services.postgres` so PRs always run them.
+
 To exercise the full container image (the one users actually run), layer the dev override on top of the production compose so it builds from source instead of pulling:
 
 ```sh

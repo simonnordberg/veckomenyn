@@ -190,11 +190,11 @@ func listDishesRecentTool(db *pgxpool.Pool) Tool {
 			if in.Weeks <= 0 {
 				in.Weeks = 4
 			}
-			// day_date <= current_date excludes future-dated dinners
-			// (the rest of the current week being planned, plus any
-			// future drafts) so the agent doesn't read its own draft and
-			// think "we just had this." Already-eaten days within the
-			// current week are still included.
+			// Exclude the currently-scoped plan: the agent is editing it,
+			// so its own draft shouldn't read back as "we just had this."
+			// $2 = 0 means no plan is in scope (general chat) — the
+			// condition becomes a no-op.
+			currentWeek := WeekIDFrom(ctx)
 			rows, err := db.Query(ctx, `
 				SELECT wd.day_date::text, d.name, d.cuisine, dr.rating, COALESCE(dr.notes, '')
 				FROM week_dinners wd
@@ -202,9 +202,9 @@ func listDishesRecentTool(db *pgxpool.Pool) Tool {
 				LEFT JOIN dishes d ON d.id = wd.dish_id
 				LEFT JOIN dish_ratings dr ON dr.week_dinner_id = wd.id
 				WHERE w.start_date >= current_date - ($1::int * interval '7 days')
-				  AND wd.day_date <= current_date
+				  AND ($2::bigint = 0 OR wd.week_id != $2::bigint)
 				ORDER BY wd.day_date DESC
-			`, in.Weeks)
+			`, in.Weeks, currentWeek)
 			if err != nil {
 				return "", err
 			}
@@ -277,9 +277,10 @@ func searchHistoryTool(db *pgxpool.Pool) Tool {
 			var buf strings.Builder
 
 			if kind == "dishes" || kind == "both" {
-				// day_date <= current_date excludes future-dated dinners
-				// from the current draft so a freshly-planned week doesn't
-				// show up in "when did we last…" answers.
+				// Exclude the currently-scoped plan: the agent is editing it,
+				// so its own draft shouldn't show up in "when did we last…"
+				// answers. $3 = 0 (no plan in scope) makes the filter a no-op.
+				currentWeek := WeekIDFrom(ctx)
 				rows, err := db.Query(ctx, `
 					SELECT DISTINCT ON (d.id)
 					       d.name, COALESCE(d.cuisine, ''),
@@ -287,13 +288,13 @@ func searchHistoryTool(db *pgxpool.Pool) Tool {
 					FROM dishes d
 					JOIN week_dinners wd ON wd.dish_id = d.id
 					JOIN weeks w ON w.id = wd.week_id
-					WHERE wd.day_date <= current_date
+					WHERE ($3::bigint = 0 OR wd.week_id != $3::bigint)
 					  AND (d.name ILIKE $1
 					       OR COALESCE(d.cuisine,'') ILIKE $1
 					       OR d.recipe_md ILIKE $1
 					       OR d.tags_json::text ILIKE $1)
 					ORDER BY d.id, wd.day_date DESC
-					LIMIT $2`, pat, in.Limit)
+					LIMIT $2`, pat, in.Limit, currentWeek)
 				if err != nil {
 					return "", err
 				}
