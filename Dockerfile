@@ -40,8 +40,12 @@ FROM public.ecr.aws/docker/library/alpine:3.23
 # snapshot. Pin major to match docker-compose.yml's db service — clients
 # newer than the server work, but the major must match what the data was
 # written by. See CONTRIBUTING.md "release checklist".
+# UID/GID pinned to 1000 so bind-mounted host directories (./backups) have a
+# predictable owner. Users who hit permission errors can `chown -R 1000:1000`
+# on the host path.
 RUN apk add --no-cache ca-certificates tzdata postgresql17-client && \
-    addgroup -S veckomenyn && adduser -S veckomenyn -G veckomenyn
+    addgroup -S -g 1000 veckomenyn && \
+    adduser -S -u 1000 -G veckomenyn veckomenyn
 COPY --from=go /out/veckomenyn /usr/local/bin/veckomenyn
 COPY --from=go /out/veckomenyn-import /usr/local/bin/veckomenyn-import
 COPY --from=go /out/veckomenyn-import-week /usr/local/bin/veckomenyn-import-week
