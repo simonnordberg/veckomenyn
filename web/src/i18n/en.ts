@@ -272,4 +272,10 @@ export const en: Record<string, string> = {
   "backups.delete_confirm": "Delete this backup? This cannot be undone.",
   "backups.restore_hint":
     "To restore: stream a downloaded file into pg_restore, e.g. `podman compose exec -T db pg_restore --clean --if-exists -U veckomenyn -d veckomenyn < your.dump`.",
+
+  "update.available": "Update available: v{version}",
+  "update.notes": "Release notes",
+  "update.copy_command": "Copy upgrade command",
+  "update.copied": "Copied",
+  "update.dismiss": "Dismiss",
 };

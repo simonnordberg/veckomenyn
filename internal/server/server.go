@@ -19,6 +19,7 @@ import (
 	"github.com/simonnordberg/veckomenyn/internal/backup"
 	"github.com/simonnordberg/veckomenyn/internal/providers"
 	"github.com/simonnordberg/veckomenyn/internal/store"
+	"github.com/simonnordberg/veckomenyn/internal/updates"
 	"github.com/simonnordberg/veckomenyn/web"
 )
 
@@ -27,6 +28,7 @@ type Config struct {
 	Build        BuildInfo
 	Snapshotter  *backup.Snapshotter
 	BackupConfig BackupConfigStore
+	Updates      *updates.Checker
 }
 
 // BackupConfigStore is the minimal surface server handlers need for the
@@ -53,6 +55,7 @@ type Server struct {
 	providers    *providers.Store
 	snapshotter  *backup.Snapshotter
 	backupConfig BackupConfigStore
+	updates      *updates.Checker
 	router       *chi.Mux
 	http         *http.Server
 }
@@ -65,6 +68,7 @@ func New(cfg Config, db *store.DB, ag *agent.Agent, providers *providers.Store, 
 		providers:    providers,
 		snapshotter:  cfg.Snapshotter,
 		backupConfig: cfg.BackupConfig,
+		updates:      cfg.Updates,
 		log:          log,
 		router:       chi.NewRouter(),
 	}
@@ -98,6 +102,7 @@ func (s *Server) routes() {
 	s.router.Route("/api", func(r chi.Router) {
 		r.Get("/health", s.handleHealth)
 		r.Get("/version", s.handleVersion)
+		r.Get("/updates", s.handleGetUpdates)
 		r.With(chatLimiter).Post("/chat", s.handleChat)
 		r.Get("/conversations", s.handleListConversations)
 		r.Get("/conversations/{id}", s.handleGetConversation)
@@ -146,6 +151,23 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 		"commit":   s.cfg.Build.Commit,
 		"built_at": s.cfg.Build.BuiltAt,
 	})
+}
+
+func (s *Server) handleGetUpdates(w http.ResponseWriter, r *http.Request) {
+	if s.updates == nil {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"current":    s.cfg.Build.Version,
+			"latest":     "",
+			"has_update": false,
+			"url":        "",
+		})
+		return
+	}
+	status, err := s.updates.Status(r.Context())
+	if err != nil {
+		s.log.Warn("update check failed", "err", err)
+	}
+	writeJSON(w, http.StatusOK, status)
 }
 
 // handleStatic serves the embedded SPA. If the frontend hasn't been built

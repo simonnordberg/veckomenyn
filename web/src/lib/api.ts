@@ -410,6 +410,19 @@ export async function getVersion(): Promise<VersionInfo> {
   return (await r.json()) as VersionInfo;
 }
 
+export type UpdateStatus = {
+  current: string;
+  latest: string;
+  has_update: boolean;
+  url: string;
+};
+
+export async function getUpdates(): Promise<UpdateStatus> {
+  const r = await fetch("/api/updates");
+  if (!r.ok) throw new Error(`updates: ${r.status}`);
+  return (await r.json()) as UpdateStatus;
+}
+
 export type BackupReason = "pre-migration" | "manual" | "nightly" | "";
 
 export type Backup = {

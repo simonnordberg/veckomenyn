@@ -273,4 +273,10 @@ export const sv: Record<string, string> = {
   "backups.delete_confirm": "Ta bort den här säkerhetskopian? Det går inte att ångra.",
   "backups.restore_hint":
     "Återställ: streama den nedladdade filen till pg_restore, t.ex. `podman compose exec -T db pg_restore --clean --if-exists -U veckomenyn -d veckomenyn < din.dump`.",
+
+  "update.available": "Uppdatering tillgänglig: v{version}",
+  "update.notes": "Versionsanteckningar",
+  "update.copy_command": "Kopiera uppgraderingskommando",
+  "update.copied": "Kopierat",
+  "update.dismiss": "Stäng",
 };

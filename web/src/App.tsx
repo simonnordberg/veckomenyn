@@ -5,6 +5,7 @@ import { PlanNewForm } from "./components/PlanNewForm";
 import { PreferencesModal } from "./components/PreferencesModal";
 import { PrintableWeek } from "./components/PrintableWeek";
 import { SettingsModal } from "./components/SettingsModal";
+import { UpdateBanner } from "./components/UpdateBanner";
 import { UsageModal } from "./components/UsageModal";
 import { WeeksSidebar } from "./components/WeeksSidebar";
 import { WeekView } from "./components/WeekView";
@@ -332,6 +333,7 @@ function Main({ route }: { route: Route }) {
 
   return (
     <div className="flex h-full w-full flex-col">
+      <UpdateBanner />
       <TopBar
         chatOpen={chatOpen}
         onToggleChat={() => setChatOpen((o) => !o)}

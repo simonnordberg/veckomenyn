@@ -17,6 +17,7 @@ import (
 	"github.com/simonnordberg/veckomenyn/internal/server"
 	"github.com/simonnordberg/veckomenyn/internal/shopping"
 	"github.com/simonnordberg/veckomenyn/internal/store"
+	"github.com/simonnordberg/veckomenyn/internal/updates"
 )
 
 // Set via -ldflags at build time. Defaults are for `go run` / dev builds.
@@ -86,11 +87,17 @@ func main() {
 		go backup.NewScheduler(snapshotter, backupCfg, version, log).Run(ctx)
 	}
 
+	var updateChecker *updates.Checker
+	if os.Getenv("DISABLE_UPDATE_CHECK") != "1" {
+		updateChecker = updates.New("simonnordberg/veckomenyn", version)
+	}
+
 	srv := server.New(server.Config{
 		Addr:         addr,
 		Build:        server.BuildInfo{Version: version, Commit: commit, BuiltAt: builtAt},
 		Snapshotter:  snapshotter,
 		BackupConfig: backupCfg,
+		Updates:      updateChecker,
 	}, db, ag, provStore, log)
 
 	errCh := make(chan error, 1)
