@@ -196,6 +196,13 @@ function ThinkingIndicator() {
     t("chat.deliberating.chopping"),
     t("chat.deliberating.plating"),
     t("chat.deliberating.cookbook"),
+    t("chat.deliberating.marinating"),
+    t("chat.deliberating.whisking"),
+    t("chat.deliberating.browning"),
+    t("chat.deliberating.pantry"),
+    t("chat.deliberating.kneading"),
+    t("chat.deliberating.garnishing"),
+    t("chat.deliberating.watched_pot"),
   ];
   // Start on a random phrase so two back-to-back waits don't always open
   // with the same word.
