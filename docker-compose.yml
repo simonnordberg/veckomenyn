@@ -62,6 +62,12 @@ services:
   watchtower:
     image: containrrr/watchtower:latest
     profiles: [managed]
+    environment:
+      # Pin the Docker Engine API version watchtower talks. Without this,
+      # the docker SDK negotiates a version that podman's docker-compat
+      # socket rejects ("client version 1.25 is too old, minimum 1.40").
+      # 1.41 is supported by both Docker Engine and podman 4+.
+      DOCKER_API_VERSION: "1.41"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: ["--label-enable", "--cleanup", "--interval", "86400"]
