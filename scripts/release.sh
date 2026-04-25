@@ -67,9 +67,19 @@ echo
 if [ "$NEW_MINOR" != "$PREV_MINOR" ]; then
   echo "bumping channel references ${PREV_MINOR} -> ${NEW_MINOR}"
 
-  # Files that may carry channel references. Globbing docs/*.md catches
-  # the deploy/upgrade/backups guides; add new locations here as needed.
-  files=(docker-compose.yml README.md docs/*.md)
+  # Files that may carry channel references. Defensive list: every file
+  # a user might read or run. The substitution patterns are specific
+  # enough that a no-op pass on a file without channel refs is harmless.
+  # Add new locations here as needed.
+  files=(
+    docker-compose.yml
+    docker-compose.tailscale.yml
+    install.sh
+    README.md
+    CONTRIBUTING.md
+    SECURITY.md
+    docs/*.md
+  )
 
   perl -i -pe "s|veckomenyn:\Q${PREV_MINOR}\E\b|veckomenyn:${NEW_MINOR}|g" "${files[@]}"
   perl -i -pe "s|the \Q${PREV_MINOR}\E line|the ${NEW_MINOR} line|g" "${files[@]}"
