@@ -67,15 +67,15 @@ echo
 if [ "$NEW_MINOR" != "$PREV_MINOR" ]; then
   echo "bumping channel references ${PREV_MINOR} -> ${NEW_MINOR}"
 
-  perl -i -pe "s|veckomenyn:\Q${PREV_MINOR}\E\b|veckomenyn:${NEW_MINOR}|g" docker-compose.yml
-  perl -i -pe "s|\Q${PREV_MINOR}\E\.x|${NEW_MINOR}.x|g" docker-compose.yml
-  perl -i -pe "s|:\Q${PREV_MINOR}\E\.\d+\b|:${NEW_MINOR}.0|g" docker-compose.yml
+  # Files that may carry channel references. Globbing docs/*.md catches
+  # the deploy/upgrade/backups guides; add new locations here as needed.
+  files=(docker-compose.yml README.md docs/*.md)
 
-  perl -i -pe "s|veckomenyn:\Q${PREV_MINOR}\E\b|veckomenyn:${NEW_MINOR}|g" README.md
-  perl -i -pe "s|the \Q${PREV_MINOR}\E line|the ${NEW_MINOR} line|g" README.md
-  perl -i -pe "s|:\Q${PREV_MINOR}\E\.\d+\b|:${NEW_MINOR}.0|g" README.md
-  perl -i -pe "s|\`:\Q${PREV_MINOR}\E\`|\`:${NEW_MINOR}\`|g" README.md
-  perl -i -pe "s|\Q${PREV_MINOR}\E\.x|${NEW_MINOR}.x|g" README.md
+  perl -i -pe "s|veckomenyn:\Q${PREV_MINOR}\E\b|veckomenyn:${NEW_MINOR}|g" "${files[@]}"
+  perl -i -pe "s|the \Q${PREV_MINOR}\E line|the ${NEW_MINOR} line|g" "${files[@]}"
+  perl -i -pe "s|:\Q${PREV_MINOR}\E\.\d+\b|:${NEW_MINOR}.0|g" "${files[@]}"
+  perl -i -pe "s|\`:\Q${PREV_MINOR}\E\`|\`:${NEW_MINOR}\`|g" "${files[@]}"
+  perl -i -pe "s|\Q${PREV_MINOR}\E\.x|${NEW_MINOR}.x|g" "${files[@]}"
 
   if ! git diff --quiet; then
     git add docker-compose.yml README.md
