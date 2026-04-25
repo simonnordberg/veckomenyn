@@ -36,23 +36,37 @@ elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1
 else
   err "Neither docker nor podman (with the compose plugin) is installed."
   err ""
-  err "On a cloud VM, install Docker (recommended):"
-  err "  https://docs.docker.com/engine/install/"
-  err ""
-  err "Or install Podman:"
+
+  distro="other"
   if [ -r /etc/os-release ]; then
     . /etc/os-release
     case "${ID:-}${ID_LIKE:-}" in
-      *ubuntu*|*debian*)        err "  sudo apt update && sudo apt install -y podman podman-compose" ;;
-      *fedora*|*rhel*|*centos*) err "  sudo dnf install -y podman podman-compose" ;;
-      *arch*)                   err "  sudo pacman -S --needed podman podman-compose" ;;
-      *alpine*)                 err "  sudo apk add podman podman-compose" ;;
-      *)                        err "  https://podman.io/getting-started/installation" ;;
+      *ubuntu*|*debian*)         distro="debian" ;;
+      *fedora*|*rhel*|*centos*)  distro="rhel" ;;
+      *arch*)                    distro="arch" ;;
+      *alpine*)                  distro="alpine" ;;
     esac
-  else
-    err "  https://podman.io/getting-started/installation"
   fi
+
+  err "Install Docker (recommended for cloud VMs):"
+  case "$distro" in
+    debian|rhel) err "  curl -fsSL https://get.docker.com | sh" ;;
+    arch)        err "  sudo pacman -S --needed docker docker-compose" ;;
+    alpine)      err "  sudo apk add docker docker-cli-compose && sudo rc-update add docker default && sudo service docker start" ;;
+    *)           err "  https://docs.docker.com/engine/install/" ;;
+  esac
   err ""
+
+  err "Or install Podman:"
+  case "$distro" in
+    debian)  err "  sudo apt update && sudo apt install -y podman podman-compose" ;;
+    rhel)    err "  sudo dnf install -y podman podman-compose" ;;
+    arch)    err "  sudo pacman -S --needed podman podman-compose" ;;
+    alpine)  err "  sudo apk add podman podman-compose" ;;
+    *)       err "  https://podman.io/getting-started/installation" ;;
+  esac
+  err ""
+
   err "Both work; rootless Podman needs extra setup to survive reboot."
   err "See https://github.com/simonnordberg/veckomenyn/blob/main/docs/deploy-tailscale.md#surviving-reboots"
   exit 1
