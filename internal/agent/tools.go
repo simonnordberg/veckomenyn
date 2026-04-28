@@ -753,6 +753,9 @@ func addDinnerTool(db *pgxpool.Pool) Tool {
 			if err != nil {
 				return "", err
 			}
+			if err := EnsureEditable(ctx, db, weekID); err != nil {
+				return "", err
+			}
 			in.WeekID = weekID
 			if in.Servings == 0 {
 				in.Servings = 4
@@ -825,7 +828,7 @@ func updateDinnerTool(db *pgxpool.Pool) Tool {
 			if err := json.Unmarshal(input, &in); err != nil {
 				return "", err
 			}
-			if err := CheckDinnerInScope(ctx, db, in.DinnerID); err != nil {
+			if err := EnsureDinnerEditable(ctx, db, in.DinnerID); err != nil {
 				return "", err
 			}
 			if in.Servings == 0 {
@@ -888,7 +891,7 @@ func deleteDinnerTool(db *pgxpool.Pool) Tool {
 			if err := json.Unmarshal(input, &in); err != nil {
 				return "", err
 			}
-			if err := CheckDinnerInScope(ctx, db, in.DinnerID); err != nil {
+			if err := EnsureDinnerEditable(ctx, db, in.DinnerID); err != nil {
 				return "", err
 			}
 			tag, err := db.Exec(ctx, `DELETE FROM week_dinners WHERE id=$1`, in.DinnerID)
@@ -924,6 +927,9 @@ func addExceptionTool(db *pgxpool.Pool) Tool {
 			}
 			weekID, err := ResolvePlan(ctx, in.WeekID)
 			if err != nil {
+				return "", err
+			}
+			if err := EnsureEditable(ctx, db, weekID); err != nil {
 				return "", err
 			}
 			var id int64
