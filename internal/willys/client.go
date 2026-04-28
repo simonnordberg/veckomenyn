@@ -24,12 +24,13 @@ const (
 // Safe for concurrent use. Mutable session state (cookies, CSRF token) is
 // protected by mu; the underlying *http.Client is already safe.
 type Client struct {
-	http         *http.Client
-	mu           sync.RWMutex      // protects cookies, csrfToken
-	cookies      map[string]string // guarded by mu
-	csrfToken    string            // guarded by mu
-	baseOverride string            // test-only, immutable after construction
-	store        SessionStore      // itself safe for concurrent use
+	http          *http.Client
+	mu            sync.RWMutex      // protects cookies, csrfToken, authenticated
+	cookies       map[string]string // guarded by mu
+	csrfToken     string            // guarded by mu
+	authenticated bool              // guarded by mu; true only after Login confirms a real user
+	baseOverride  string            // test-only, immutable after construction
+	store         SessionStore      // itself safe for concurrent use
 }
 
 // NewClient creates a new Willys API client backed by the default file
@@ -109,10 +110,28 @@ func (c *Client) ClearState() {
 	c.mu.Lock()
 	c.cookies = map[string]string{}
 	c.csrfToken = ""
+	c.authenticated = false
 	c.mu.Unlock()
 	if c.store != nil {
 		_ = c.store.Clear(context.Background())
 	}
+}
+
+// requireAuth gates user-scoped operations. It refuses to make the request
+// unless a successful Login has set the authenticated flag. The cookie-based
+// session alone is not enough: /api/config hands out anonymous JSESSIONIDs,
+// and the cart endpoint cheerfully serves an empty guest cart against one.
+func (c *Client) requireAuth() error {
+	if c.IsLoggedIn() {
+		return nil
+	}
+	return &authErr{status: http.StatusUnauthorized, reason: "not logged in"}
+}
+
+func (c *Client) setAuthenticated(v bool) {
+	c.mu.Lock()
+	c.authenticated = v
+	c.mu.Unlock()
 }
 
 // IsAuthError reports whether an error came from a rejected authentication.
@@ -309,6 +328,7 @@ func (c *Client) Login(username, password string) (Customer, error) {
 		return Customer{}, &authErr{status: http.StatusUnauthorized, reason: "anonymous session after login (bad credentials)"}
 	}
 
+	c.setAuthenticated(true)
 	c.saveSession()
 	return cust, nil
 }
@@ -323,19 +343,14 @@ func isAuthenticated(cust Customer) bool {
 	return cust.UID != "" && cust.FirstName != ""
 }
 
-// IsLoggedIn checks if the saved session is still valid.
+// IsLoggedIn reports whether the client believes it has a confirmed session.
+// Pure getter: it does not contact Willys. The flag is set true at the end of
+// a successful Login and reset by ClearState; a remotely-expired session is
+// caught by the 401 retry in WillysProvider.withAuth.
 func (c *Client) IsLoggedIn() bool {
 	c.mu.RLock()
-	hasCookies := len(c.cookies) > 0
-	c.mu.RUnlock()
-	if !hasCookies {
-		return false
-	}
-	cust, err := c.GetCustomer()
-	if err != nil {
-		return false
-	}
-	return cust.FirstName != "" && cust.Name != "anonymous"
+	defer c.mu.RUnlock()
+	return c.authenticated
 }
 
 // GetCustomer returns the logged-in user's profile.
@@ -424,6 +439,9 @@ func (c *Client) Browse(categoryPath string, page, size int) (SearchResult, erro
 
 // GetCart returns the current shopping cart.
 func (c *Client) GetCart() (Cart, error) {
+	if err := c.requireAuth(); err != nil {
+		return Cart{}, err
+	}
 	resp, err := c.do(http.MethodGet, "/axfood/rest/cart", nil)
 	if err != nil {
 		return Cart{}, err
@@ -446,6 +464,9 @@ type addProductEntry struct {
 
 // AddToCart adds products to the cart and returns the updated cart.
 func (c *Client) AddToCart(code string, qty int) (Cart, error) {
+	if err := c.requireAuth(); err != nil {
+		return Cart{}, err
+	}
 	if c.needsCSRF() {
 		if err := c.fetchCSRFToken(); err != nil {
 			return Cart{}, err
@@ -480,6 +501,9 @@ func (c *Client) RemoveFromCart(code string) (Cart, error) {
 // GetOrderHistory returns the order history for the logged-in user.
 // The API may return either a raw array or an object with an "orders" key.
 func (c *Client) GetOrderHistory() ([]OrderSummary, error) {
+	if err := c.requireAuth(); err != nil {
+		return nil, err
+	}
 	resp, err := c.do(http.MethodGet, "/axfood/rest/account/orders", nil)
 	if err != nil {
 		return nil, err
@@ -508,6 +532,9 @@ func (c *Client) GetOrderHistory() ([]OrderSummary, error) {
 
 // GetOrderDetail returns the full details of a single order.
 func (c *Client) GetOrderDetail(orderNumber string) (OrderDetail, error) {
+	if err := c.requireAuth(); err != nil {
+		return OrderDetail{}, err
+	}
 	params := url.Values{
 		"q": {orderNumber},
 	}
@@ -525,6 +552,9 @@ func (c *Client) GetOrderDetail(orderNumber string) (OrderDetail, error) {
 
 // ClearCart removes all products from the cart.
 func (c *Client) ClearCart() error {
+	if err := c.requireAuth(); err != nil {
+		return err
+	}
 	if c.needsCSRF() {
 		if err := c.fetchCSRFToken(); err != nil {
 			return err

@@ -17,7 +17,7 @@ func TestParseOrderHistory_Array(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{http: srv.Client(), cookies: map[string]string{}}
+	c := &Client{http: srv.Client(), cookies: map[string]string{}, authenticated: true}
 	c.baseOverride = srv.URL
 	orders, err := c.GetOrderHistory()
 	if err != nil {
@@ -39,7 +39,7 @@ func TestParseOrderHistory_Wrapper(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{http: srv.Client(), cookies: map[string]string{}}
+	c := &Client{http: srv.Client(), cookies: map[string]string{}, authenticated: true}
 	c.baseOverride = srv.URL
 	orders, err := c.GetOrderHistory()
 	if err != nil {
@@ -57,7 +57,7 @@ func TestParseOrderHistory_Empty(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{http: srv.Client(), cookies: map[string]string{}}
+	c := &Client{http: srv.Client(), cookies: map[string]string{}, authenticated: true}
 	c.baseOverride = srv.URL
 	orders, err := c.GetOrderHistory()
 	if err != nil {
@@ -105,7 +105,7 @@ func TestSearchUsesMultiWordEndpoint(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{http: srv.Client(), cookies: map[string]string{}}
+	c := &Client{http: srv.Client(), cookies: map[string]string{}, authenticated: true}
 	c.baseOverride = srv.URL
 	if _, err := c.Search("färsk koriander", 0, 10); err != nil {
 		t.Fatalf("Search: %v", err)
@@ -261,7 +261,7 @@ func TestGetProduct(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := &Client{http: srv.Client(), cookies: map[string]string{}}
+	c := &Client{http: srv.Client(), cookies: map[string]string{}, authenticated: true}
 	c.baseOverride = srv.URL
 
 	p, err := c.GetProduct("101206348_ST")
@@ -344,6 +344,49 @@ func TestLoginSucceedsForRealCustomer(t *testing.T) {
 	}
 	if cust.FirstName != "Alice" {
 		t.Errorf("FirstName = %q, want %q", cust.FirstName, "Alice")
+	}
+}
+
+// TestAuthedOpsRequireLogin proves the structural invariant: cart and order
+// operations on the client must refuse to run unless Login has succeeded.
+// Without this, a stray JSESSIONID from /api/config (or stale cookies from
+// disk) is enough for Willys to serve an anonymous cart, and a hole in
+// the provider layer would leak through.
+func TestAuthedOpsRequireLogin(t *testing.T) {
+	srv := fakeWillysServer(t, `{"name":"anonymous"}`)
+	defer srv.Close()
+
+	c := NewClientWithStore(&FileSessionStore{Path: filepath.Join(t.TempDir(), "session.json")})
+	c.baseOverride = srv.URL
+
+	cases := []struct {
+		name string
+		fn   func() error
+	}{
+		{"GetCart", func() error { _, err := c.GetCart(); return err }},
+		{"AddToCart", func() error { _, err := c.AddToCart("ABC", 1); return err }},
+		{"RemoveFromCart", func() error { _, err := c.RemoveFromCart("ABC"); return err }},
+		{"ClearCart", func() error { return c.ClearCart() }},
+		{"GetOrderHistory", func() error { _, err := c.GetOrderHistory(); return err }},
+		{"GetOrderDetail", func() error { _, err := c.GetOrderDetail("X"); return err }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.fn()
+			if err == nil {
+				t.Fatal("want auth error before login, got nil")
+			}
+			if !IsAuthError(err) {
+				t.Errorf("IsAuthError(err) = false; want true (err=%v)", err)
+			}
+		})
+	}
+
+	// And also: a rejected (anonymous) login must not flip the client into
+	// an authenticated state, so the same ops still fail afterwards.
+	_, _ = c.Login("bad", "creds")
+	if _, err := c.GetCart(); err == nil || !IsAuthError(err) {
+		t.Errorf("GetCart after rejected login: err=%v, want auth error", err)
 	}
 }
 
