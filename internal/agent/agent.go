@@ -320,7 +320,7 @@ func currentPlanBlock(ctx context.Context, db *pgxpool.Pool, log *slog.Logger) a
   status: %s
   dinners: %d
 </current-plan>
-This chat is tied to the plan above. Assume every user request refers to it. When calling week-scoped tools (add_dinner, update_week, update_dinner, delete_dinner, add_exception, record_retrospective, get_week), omit week_id or pass id=%d; any other value will be refused. If the user wants to edit a different plan, tell them to open it and try there.`, id, iso, start, end, status, dinnerCount, id)
+This chat is tied to the plan above. Assume every user request refers to it. When calling week-scoped tools (add_dinner, update_week, update_dinner, delete_dinner, add_exception, update_exception, delete_exception, record_retrospective, get_week), omit week_id or pass id=%d; any other value will be refused. If the user wants to edit a different plan, tell them to open it and try there.`, id, iso, start, end, status, dinnerCount, id)
 	return anthropic.TextBlockParam{Text: text}
 }
 

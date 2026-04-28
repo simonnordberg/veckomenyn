@@ -69,6 +69,8 @@ func registerTools(db *pgxpool.Pool, shop shopping.Provider, log *slog.Logger) [
 		updateDinnerTool(db),
 		deleteDinnerTool(db),
 		addExceptionTool(db),
+		updateExceptionTool(db),
+		deleteExceptionTool(db),
 		recordRetrospectiveTool(db),
 	}
 	if shop != nil {
@@ -940,6 +942,78 @@ func addExceptionTool(db *pgxpool.Pool) Tool {
 				return "", err
 			}
 			return fmt.Sprintf("added exception id=%d (%s: %s)", id, in.Kind, in.Description), nil
+		},
+	)
+}
+
+func updateExceptionTool(db *pgxpool.Pool) Tool {
+	return newTool(
+		"update_exception",
+		"Edit a plan-level exception. Pass exception_id plus any of kind / description; omitted fields stay as they were. Refuses if the exception belongs to a different plan or the plan is locked.",
+		map[string]any{
+			"exception_id": map[string]any{"type": "integer"},
+			"kind":         map[string]any{"type": "string", "description": "Optional new kind: 'absence', 'extra_meal', 'bake', 'other'."},
+			"description":  map[string]any{"type": "string", "description": "Optional new description."},
+		},
+		[]string{"exception_id"},
+		func(ctx context.Context, input json.RawMessage) (string, error) {
+			var in struct {
+				ExceptionID int64   `json:"exception_id"`
+				Kind        *string `json:"kind"`
+				Description *string `json:"description"`
+			}
+			if err := json.Unmarshal(input, &in); err != nil {
+				return "", err
+			}
+			if in.Kind == nil && in.Description == nil {
+				return "", fmt.Errorf("nothing to update: pass kind and/or description")
+			}
+			if err := ensureExceptionEditable(ctx, db, in.ExceptionID); err != nil {
+				return "", err
+			}
+			tag, err := db.Exec(ctx, `
+				UPDATE week_exceptions
+				SET kind = COALESCE($2, kind),
+				    description = COALESCE($3, description)
+				WHERE id = $1`,
+				in.ExceptionID, in.Kind, in.Description)
+			if err != nil {
+				return "", err
+			}
+			if tag.RowsAffected() == 0 {
+				return fmt.Sprintf("no exception with id=%d", in.ExceptionID), nil
+			}
+			return fmt.Sprintf("updated exception id=%d", in.ExceptionID), nil
+		},
+	)
+}
+
+func deleteExceptionTool(db *pgxpool.Pool) Tool {
+	return newTool(
+		"delete_exception",
+		"Remove a plan-level exception. Refuses if the exception belongs to a different plan or the plan is locked.",
+		map[string]any{
+			"exception_id": map[string]any{"type": "integer"},
+		},
+		[]string{"exception_id"},
+		func(ctx context.Context, input json.RawMessage) (string, error) {
+			var in struct {
+				ExceptionID int64 `json:"exception_id"`
+			}
+			if err := json.Unmarshal(input, &in); err != nil {
+				return "", err
+			}
+			if err := ensureExceptionEditable(ctx, db, in.ExceptionID); err != nil {
+				return "", err
+			}
+			tag, err := db.Exec(ctx, `DELETE FROM week_exceptions WHERE id=$1`, in.ExceptionID)
+			if err != nil {
+				return "", err
+			}
+			if tag.RowsAffected() == 0 {
+				return fmt.Sprintf("no exception with id=%d", in.ExceptionID), nil
+			}
+			return fmt.Sprintf("deleted exception id=%d", in.ExceptionID), nil
 		},
 	)
 }
