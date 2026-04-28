@@ -11,6 +11,12 @@ open http://localhost:8080
 
 That pulls `ghcr.io/simonnordberg/veckomenyn:0.5` from GHCR, the patch channel for the 0.5 line. The app generates and persists its own AES master key on first boot, so there's no `.env` ritual. Podman is the default; `docker compose up -d` works the same way.
 
+> **Rootless podman:** before the first `up`, write the path to your own podman socket into `.env` so the watchtower sidecar can reach it. The default `/var/run/docker.sock` is owned `root:docker` and a rootless container can't read it.
+>
+> ```sh
+> echo "WATCHTOWER_SOCK=/run/user/$(id -u)/podman/podman.sock" >> .env
+> ```
+
 The first request triggers a setup wizard:
 
 1. LAN-only warning.
