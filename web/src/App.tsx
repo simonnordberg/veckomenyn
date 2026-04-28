@@ -6,6 +6,7 @@ import { PreferencesModal } from "./components/PreferencesModal";
 import { PrintableWeek } from "./components/PrintableWeek";
 import { SettingsModal } from "./components/SettingsModal";
 import { SetupWizard } from "./components/SetupWizard";
+import { ToastViewport } from "./components/ToastViewport";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { UsageModal } from "./components/UsageModal";
 import { WeeksSidebar } from "./components/WeeksSidebar";
@@ -32,6 +33,7 @@ import {
 } from "./lib/api";
 import { goBack, navigate, type Route, useRoute } from "./lib/route";
 import { setTheme, useTheme } from "./lib/theme";
+import { toast } from "./lib/toast";
 
 type Status = "loading" | "empty" | "ready" | "error";
 
@@ -128,8 +130,8 @@ function Main({ route }: { route: Route }) {
   useEffect(() => {
     getSettings()
       .then((s) => setLang(s.language))
-      .catch(() => {
-        /* keep default */
+      .catch((err: Error) => {
+        toast.error(`${t("toast.network_error")}: ${err.message}`);
       });
   }, []);
 
@@ -339,7 +341,7 @@ function Main({ route }: { route: Route }) {
         setDuplicateSource(null);
         navigate({ kind: "week", id: cloned.id });
       } catch (err) {
-        window.alert(err instanceof Error ? err.message : String(err));
+        toast.error(err instanceof Error ? err.message : String(err));
       }
     },
     [duplicateSource],
@@ -351,6 +353,7 @@ function Main({ route }: { route: Route }) {
       try {
         await deleteWeek(target.id);
         setSidebarRefresh((k) => k + 1);
+        toast.success(t("toast.week_deleted"));
         // If the deleted plan was the one being viewed, fall back to the
         // current plan so we don't stay on a dead URL.
         if (week?.id === target.id) {
@@ -359,7 +362,7 @@ function Main({ route }: { route: Route }) {
           navigate({ kind: "current" }, { replace: true });
         }
       } catch (err) {
-        window.alert(err instanceof Error ? err.message : String(err));
+        toast.error(err instanceof Error ? err.message : String(err));
       }
     },
     [week?.id],
@@ -375,7 +378,7 @@ function Main({ route }: { route: Route }) {
     try {
       await deleteWeekConversations(week.id);
     } catch (err) {
-      console.error("clear chat", err);
+      toast.error(err instanceof Error ? err.message : String(err));
     }
     setChatEntries([]);
     setConversationID(null);
@@ -384,8 +387,15 @@ function Main({ route }: { route: Route }) {
   const patchCurrentWeek = useCallback(
     async (patch: WeekPatch) => {
       if (!week) return;
-      const updated = await patchWeek(week.id, patch);
-      setWeek(updated);
+      try {
+        const updated = await patchWeek(week.id, patch);
+        setWeek(updated);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : String(err));
+        // Re-throw so EditableText/Date callers know the save failed and
+        // keep their editor open for retry instead of closing it.
+        throw err;
+      }
     },
     [week],
   );
@@ -477,6 +487,7 @@ function Main({ route }: { route: Route }) {
         onCancel={() => setDuplicateSource(null)}
         onConfirm={confirmDuplicate}
       />
+      <ToastViewport />
     </div>
   );
 }

@@ -56,6 +56,9 @@ export function EditableDate({
     try {
       await onCommit(iso);
       setOpen(false);
+    } catch {
+      // Keep the popover open so the user can retry. The upstream onCommit
+      // owner is responsible for surfacing the error (toast).
     } finally {
       setSaving(false);
     }
@@ -270,7 +273,8 @@ export function EditableText({
       await onCommit(draft);
       setEditing(false);
     } catch {
-      // keep editing open
+      // Keep the editor open so the user can retry without retyping. The
+      // upstream onCommit owner is responsible for surfacing the error.
     } finally {
       setSaving(false);
     }

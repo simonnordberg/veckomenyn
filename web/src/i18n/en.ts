@@ -86,7 +86,6 @@ export const en: Record<string, string> = {
   "settings.notes": "Notes",
   "settings.save": "Save",
   "settings.saving": "Saving…",
-  "settings.saved": "Saved.",
   "settings.loading": "Loading…",
   "settings.close": "Close",
   "settings.theme": "Theme",
@@ -206,6 +205,16 @@ export const en: Record<string, string> = {
   // Chat drawer aria-label
   "chat.aria": "Chat",
 
+  // Toast notifications
+  "toast.dismiss": "Dismiss",
+  "toast.retry": "Retry",
+  "toast.save_failed": "Save failed",
+  "toast.save_failed_retrying": "Save failed; retrying…",
+  "toast.changes_saved": "Changes saved",
+  "toast.week_deleted": "Week deleted",
+  "toast.network_error": "Network error",
+  "toast.unsaved_changes": "Retrospective hasn't saved yet. Leave anyway?",
+
   // Per-dinner rating
   "rating.how_was_it": "How was it?",
   "rating.your_verdict": "Verdict:",
@@ -222,9 +231,6 @@ export const en: Record<string, string> = {
     "Pacing, portion sizes, overall balance. Whatever the per-dinner verdicts don't already capture.",
   "retro.placeholder":
     "Heavy on red meat this week, mix in more fish next. The porchetta stretched to three days.",
-  "retro.saving": "Saving…",
-  "retro.saved": "Saved",
-  "retro.error": "Could not save",
 
   // LLM usage admin page
   "usage.title": "Usage & cost",

@@ -87,7 +87,6 @@ export const sv: Record<string, string> = {
   "settings.notes": "Noteringar",
   "settings.save": "Spara",
   "settings.saving": "Sparar…",
-  "settings.saved": "Sparat.",
   "settings.loading": "Laddar…",
   "settings.close": "Stäng",
   "settings.theme": "Tema",
@@ -207,6 +206,16 @@ export const sv: Record<string, string> = {
   // Chat drawer aria-label
   "chat.aria": "Chatt",
 
+  // Toast notifications
+  "toast.dismiss": "Stäng",
+  "toast.retry": "Försök igen",
+  "toast.save_failed": "Kunde inte spara",
+  "toast.save_failed_retrying": "Kunde inte spara; försöker igen…",
+  "toast.changes_saved": "Sparat",
+  "toast.week_deleted": "Vecka borttagen",
+  "toast.network_error": "Nätverksfel",
+  "toast.unsaved_changes": "Återblicken har inte sparats än. Lämna ändå?",
+
   // Per-dinner rating
   "rating.how_was_it": "Hur blev den?",
   "rating.your_verdict": "Omdöme:",
@@ -223,9 +232,6 @@ export const sv: Record<string, string> = {
     "Pacing, portionsstorlekar, mängder, allmän vibe. Allt som inte fångas av per-middags-betygen.",
   "retro.placeholder":
     "Tung vecka med mycket röd köttfärs, blanda in mer fisk nästa. Porchettan räckte till tre dagar.",
-  "retro.saving": "Sparar…",
-  "retro.saved": "Sparat",
-  "retro.error": "Kunde inte spara",
 
   // LLM usage admin page
   "usage.title": "Användning & kostnad",

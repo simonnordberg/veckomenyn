@@ -9,6 +9,7 @@ import {
 } from "../lib/api";
 import { navigate } from "../lib/route";
 import { setTheme, type Theme, useTheme } from "../lib/theme";
+import { toast } from "../lib/toast";
 import { BackupsSection } from "./BackupsSection";
 import { IntegrationsSection } from "./IntegrationsSection";
 import { UpdatesSection } from "./UpdatesSection";
@@ -18,17 +19,13 @@ type Props = {
   onClose: () => void;
 };
 
-type SaveStatus = "idle" | "saving" | "saved" | "error";
-
 const SAVE_DEBOUNCE_MS = 400;
-const SAVED_FLASH_MS = 1500;
 
 export function SettingsModal({ open, onClose }: Props) {
   useLang();
   const { theme } = useTheme();
   const [settings, setSettings] = useState<HouseholdSettings | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [loaded, setLoaded] = useState(false);
 
   // Accumulates field changes between debounced flushes so rapid edits to
   // different fields ship as one PATCH.
@@ -43,16 +40,12 @@ export function SettingsModal({ open, onClose }: Props) {
       saveTimer.current = null;
     }
     if (Object.keys(toSend).length === 0) return;
-    setSaveStatus("saving");
-    setError(null);
     try {
       const next = await patchSettings(toSend);
       setSettings(next);
       if (toSend.language) setLang(next.language);
-      setSaveStatus("saved");
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      setSaveStatus("error");
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   }, []);
 
@@ -74,19 +67,16 @@ export function SettingsModal({ open, onClose }: Props) {
       if (Object.keys(pendingPatch.current).length > 0) void flush();
       return;
     }
-    setError(null);
-    setSaveStatus("idle");
+    setLoaded(false);
     getSettings()
-      .then(setSettings)
-      .catch((e: Error) => setError(e.message));
+      .then((s) => {
+        setSettings(s);
+        setLoaded(true);
+      })
+      .catch((e: Error) => {
+        toast.error(e.message);
+      });
   }, [open, flush]);
-
-  // "Saved" is a momentary confirmation; fade it back to idle shortly.
-  useEffect(() => {
-    if (saveStatus !== "saved") return;
-    const handle = window.setTimeout(() => setSaveStatus("idle"), SAVED_FLASH_MS);
-    return () => window.clearTimeout(handle);
-  }, [saveStatus]);
 
   useEffect(() => {
     return () => {
@@ -120,12 +110,9 @@ export function SettingsModal({ open, onClose }: Props) {
         aria-label={t("settings.title")}
       >
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-stone-200 px-5 py-3 dark:border-stone-800">
-          <div className="flex items-baseline gap-3">
-            <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100">
-              {t("settings.title")}
-            </h2>
-            <SaveIndicator status={saveStatus} />
-          </div>
+          <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100">
+            {t("settings.title")}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -138,12 +125,7 @@ export function SettingsModal({ open, onClose }: Props) {
           </button>
         </header>
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          {error && (
-            <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-              {error}
-            </div>
-          )}
-          {!settings && !error && <p className="text-sm text-stone-500">{t("settings.loading")}</p>}
+          {!loaded && <p className="text-sm text-stone-500">{t("settings.loading")}</p>}
           {settings && (
             <div className="flex flex-col gap-4">
               <Field label={t("settings.theme")}>
@@ -254,15 +236,6 @@ function SettingsVersion() {
     >
       {label}
     </a>
-  );
-}
-
-function SaveIndicator({ status }: { status: SaveStatus }) {
-  if (status === "idle" || status === "error") return null;
-  return (
-    <span className="text-xs text-stone-500 dark:text-stone-400" aria-live="polite" role="status">
-      {status === "saving" ? t("settings.saving") : t("settings.saved")}
-    </span>
   );
 }
 
