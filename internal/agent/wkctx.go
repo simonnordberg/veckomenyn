@@ -116,3 +116,16 @@ func EnsureDinnerEditable(ctx context.Context, db rowQueryer, dinnerID int64) er
 	}
 	return EnsureEditable(ctx, db, weekID)
 }
+
+// ensureExceptionEditable enforces both the chat-binding scope check and
+// the plan-status editability guard for week_exceptions mutations.
+func ensureExceptionEditable(ctx context.Context, db rowQueryer, exceptionID int64) error {
+	var weekID int64
+	if err := db.QueryRow(ctx, `SELECT week_id FROM week_exceptions WHERE id = $1`, exceptionID).Scan(&weekID); err != nil {
+		return err
+	}
+	if curr := WeekIDFrom(ctx); curr != 0 && weekID != curr {
+		return fmt.Errorf("exception id=%d belongs to plan id=%d; this chat is tied to plan id=%d. Ask the user to open that plan to edit it", exceptionID, weekID, curr)
+	}
+	return EnsureEditable(ctx, db, weekID)
+}

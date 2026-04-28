@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -176,6 +177,160 @@ func TestSearchHistory_excludesCurrentWeekDishes(t *testing.T) {
 			t.Errorf("current-week dish leaked into scoped search: %q", out)
 		}
 	})
+}
+
+// seedException inserts a week_exceptions row and returns its id.
+func seedException(t *testing.T, pool *pgxpool.Pool, weekID int64, kind, description string) int64 {
+	t.Helper()
+	var id int64
+	err := pool.QueryRow(t.Context(), `
+		INSERT INTO week_exceptions (week_id, kind, description)
+		VALUES ($1, $2, $3) RETURNING id`,
+		weekID, kind, description).Scan(&id)
+	if err != nil {
+		t.Fatalf("insert exception: %v", err)
+	}
+	return id
+}
+
+func TestUpdateException(t *testing.T) {
+	pool := setupTestDB(t)
+	ctx := t.Context()
+
+	dish := seedDish(t, pool, "Pasta")
+	weekID := seedWeek(t, pool, "2026-W17", "2026-04-21", "2026-04-27", dish)
+	excID := seedException(t, pool, weekID, "absence", "Noah away Thu")
+
+	scoped := WithWeekID(ctx, weekID)
+	tool := updateExceptionTool(pool)
+
+	t.Run("updates description only", func(t *testing.T) {
+		input := json.RawMessage(`{"exception_id": ` + jsonInt(excID) + `, "description": "Noah away Thu-Sun"}`)
+		out, err := tool.Call(scoped, input)
+		if err != nil {
+			t.Fatalf("call: %v", err)
+		}
+		if !strings.Contains(out, "updated exception") {
+			t.Errorf("unexpected result: %q", out)
+		}
+		var k, d string
+		if err := pool.QueryRow(ctx, `SELECT kind, description FROM week_exceptions WHERE id=$1`, excID).Scan(&k, &d); err != nil {
+			t.Fatalf("select: %v", err)
+		}
+		if k != "absence" {
+			t.Errorf("kind changed unexpectedly: %q", k)
+		}
+		if d != "Noah away Thu-Sun" {
+			t.Errorf("description not updated: %q", d)
+		}
+	})
+
+	t.Run("updates kind only", func(t *testing.T) {
+		input := json.RawMessage(`{"exception_id": ` + jsonInt(excID) + `, "kind": "other"}`)
+		if _, err := tool.Call(scoped, input); err != nil {
+			t.Fatalf("call: %v", err)
+		}
+		var k string
+		if err := pool.QueryRow(ctx, `SELECT kind FROM week_exceptions WHERE id=$1`, excID).Scan(&k); err != nil {
+			t.Fatalf("select: %v", err)
+		}
+		if k != "other" {
+			t.Errorf("kind not updated: %q", k)
+		}
+	})
+
+	t.Run("updates both fields", func(t *testing.T) {
+		input := json.RawMessage(`{"exception_id": ` + jsonInt(excID) + `, "kind": "absence", "description": "Noah away Fri"}`)
+		if _, err := tool.Call(scoped, input); err != nil {
+			t.Fatalf("call: %v", err)
+		}
+		var k, d string
+		if err := pool.QueryRow(ctx, `SELECT kind, description FROM week_exceptions WHERE id=$1`, excID).Scan(&k, &d); err != nil {
+			t.Fatalf("select: %v", err)
+		}
+		if k != "absence" || d != "Noah away Fri" {
+			t.Errorf("both fields not updated: kind=%q description=%q", k, d)
+		}
+	})
+
+	t.Run("rejects empty payload", func(t *testing.T) {
+		input := json.RawMessage(`{"exception_id": ` + jsonInt(excID) + `}`)
+		if _, err := tool.Call(scoped, input); err == nil {
+			t.Error("expected error on empty payload")
+		}
+	})
+
+	t.Run("rejects cross-plan id", func(t *testing.T) {
+		dish2 := seedDish(t, pool, "Sallad")
+		other := seedWeek(t, pool, "2026-W18", "2026-04-28", "2026-05-04", dish2)
+		otherExc := seedException(t, pool, other, "bake", "fika")
+
+		input := json.RawMessage(`{"exception_id": ` + jsonInt(otherExc) + `, "description": "x"}`)
+		if _, err := tool.Call(scoped, input); err == nil {
+			t.Error("expected refusal on cross-plan exception")
+		}
+	})
+
+	t.Run("rejects locked plan", func(t *testing.T) {
+		if _, err := pool.Exec(ctx, `UPDATE weeks SET status='ordered' WHERE id=$1`, weekID); err != nil {
+			t.Fatalf("lock: %v", err)
+		}
+		t.Cleanup(func() {
+			_, _ = pool.Exec(ctx, `UPDATE weeks SET status='draft' WHERE id=$1`, weekID)
+		})
+		input := json.RawMessage(`{"exception_id": ` + jsonInt(excID) + `, "description": "y"}`)
+		if _, err := tool.Call(scoped, input); err == nil {
+			t.Error("expected refusal on locked plan")
+		}
+	})
+}
+
+func TestDeleteException(t *testing.T) {
+	pool := setupTestDB(t)
+	ctx := t.Context()
+
+	dish := seedDish(t, pool, "Pasta")
+	weekID := seedWeek(t, pool, "2026-W17", "2026-04-21", "2026-04-27", dish)
+	excID := seedException(t, pool, weekID, "absence", "Noah away Thu")
+
+	scoped := WithWeekID(ctx, weekID)
+	tool := deleteExceptionTool(pool)
+
+	t.Run("deletes on draft plan", func(t *testing.T) {
+		input := json.RawMessage(`{"exception_id": ` + jsonInt(excID) + `}`)
+		out, err := tool.Call(scoped, input)
+		if err != nil {
+			t.Fatalf("call: %v", err)
+		}
+		if !strings.Contains(out, "deleted exception") {
+			t.Errorf("unexpected result: %q", out)
+		}
+		var n int
+		if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM week_exceptions WHERE id=$1`, excID).Scan(&n); err != nil {
+			t.Fatalf("select: %v", err)
+		}
+		if n != 0 {
+			t.Errorf("expected row gone, count=%d", n)
+		}
+	})
+
+	t.Run("rejects locked plan", func(t *testing.T) {
+		other := seedException(t, pool, weekID, "bake", "fika")
+		if _, err := pool.Exec(ctx, `UPDATE weeks SET status='ordered' WHERE id=$1`, weekID); err != nil {
+			t.Fatalf("lock: %v", err)
+		}
+		t.Cleanup(func() {
+			_, _ = pool.Exec(ctx, `UPDATE weeks SET status='draft' WHERE id=$1`, weekID)
+		})
+		input := json.RawMessage(`{"exception_id": ` + jsonInt(other) + `}`)
+		if _, err := tool.Call(scoped, input); err == nil {
+			t.Error("expected refusal on locked plan")
+		}
+	})
+}
+
+func jsonInt(i int64) string {
+	return strconv.FormatInt(i, 10)
 }
 
 // Compile-time guard that we're using the same context.Context type as the
