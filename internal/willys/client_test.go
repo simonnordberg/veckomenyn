@@ -284,7 +284,7 @@ func TestGetProduct(t *testing.T) {
 
 // fakeWillysServer returns a httptest server that mimics the endpoints the
 // real Willys.se backend exposes for login. customerJSON is what /customer
-// will return — pass an "anonymous" body to simulate bad credentials, since
+// will return; pass an "anonymous" body to simulate bad credentials, since
 // the real backend returns 200 on /login regardless and only the customer
 // payload reveals whether auth actually succeeded.
 func fakeWillysServer(t *testing.T, customerJSON string) *httptest.Server {

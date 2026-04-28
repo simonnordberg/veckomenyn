@@ -115,9 +115,9 @@ func (c *Client) ClearState() {
 	}
 }
 
-// IsAuthError reports whether an error came from a rejected authentication
-// (HTTP 401/403, or a /login that returned 200 but resolved to an anonymous
-// session — Willys does that when credentials are wrong).
+// IsAuthError reports whether an error came from a rejected authentication.
+// That covers HTTP 401/403, and the case where /login returns 200 but the
+// resulting session is anonymous (which is how Willys signals bad creds).
 func IsAuthError(err error) bool {
 	var ae *authErr
 	return errors.As(err, &ae)
