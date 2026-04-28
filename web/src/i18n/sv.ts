@@ -43,6 +43,10 @@ export const sv: Record<string, string> = {
   "week.clone_next": "Planera nästa vecka utifrån denna",
   "week.truncate_confirm":
     "Om du kortar ner planen tas {count} middag(ar) bort som ligger efter det nya slutdatumet. Fortsätt?",
+  "week.unlock_confirm":
+    "Detta flyttar tillbaka veckan till ”{target}” så menyn går att redigera igen. Innehållet i kundvagnen och betyg behålls. Fortsätt?",
+  "week.locked_hint":
+    "Menyn är låst när status är {status}. Ändra status nedan för att låsa upp redigering.",
   "week.add_dinner_prompt":
     "Lägg till ytterligare en middag till veckan som löper från {start} till {end}.",
   "week.regenerate_prompt":

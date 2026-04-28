@@ -43,6 +43,9 @@ export const en: Record<string, string> = {
   "week.clone_next": "Plan next week from this one",
   "week.truncate_confirm":
     "Shortening the plan will drop {count} dinner(s) past the new end date. Continue?",
+  "week.unlock_confirm":
+    "This will move the week back to '{target}' so the menu becomes editable again. Cart contents and ratings stay. Continue?",
+  "week.locked_hint": "Menu locked while {status}. Change status below to reopen editing.",
   "week.add_dinner_prompt": "Add another dinner to the week running {start} through {end}.",
   "week.regenerate_prompt":
     "Regenerate the meal plan for the week running {start} through {end}. Replace each dinner with a fresh option, keeping the same constraints.",
