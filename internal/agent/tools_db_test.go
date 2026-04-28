@@ -239,6 +239,20 @@ func TestUpdateException(t *testing.T) {
 		}
 	})
 
+	t.Run("updates both fields", func(t *testing.T) {
+		input := json.RawMessage(`{"exception_id": ` + jsonInt(excID) + `, "kind": "absence", "description": "Noah away Fri"}`)
+		if _, err := tool.Call(scoped, input); err != nil {
+			t.Fatalf("call: %v", err)
+		}
+		var k, d string
+		if err := pool.QueryRow(ctx, `SELECT kind, description FROM week_exceptions WHERE id=$1`, excID).Scan(&k, &d); err != nil {
+			t.Fatalf("select: %v", err)
+		}
+		if k != "absence" || d != "Noah away Fri" {
+			t.Errorf("both fields not updated: kind=%q description=%q", k, d)
+		}
+	})
+
 	t.Run("rejects empty payload", func(t *testing.T) {
 		input := json.RawMessage(`{"exception_id": ` + jsonInt(excID) + `}`)
 		if _, err := tool.Call(scoped, input); err == nil {

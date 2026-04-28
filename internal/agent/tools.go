@@ -971,7 +971,7 @@ func updateExceptionTool(db *pgxpool.Pool) Tool {
 			if err := ensureExceptionEditable(ctx, db, in.ExceptionID); err != nil {
 				return "", err
 			}
-			tag, err := db.Exec(ctx, `
+			_, err := db.Exec(ctx, `
 				UPDATE week_exceptions
 				SET kind = COALESCE($2, kind),
 				    description = COALESCE($3, description)
@@ -979,9 +979,6 @@ func updateExceptionTool(db *pgxpool.Pool) Tool {
 				in.ExceptionID, in.Kind, in.Description)
 			if err != nil {
 				return "", err
-			}
-			if tag.RowsAffected() == 0 {
-				return fmt.Sprintf("no exception with id=%d", in.ExceptionID), nil
 			}
 			return fmt.Sprintf("updated exception id=%d", in.ExceptionID), nil
 		},
@@ -1006,12 +1003,8 @@ func deleteExceptionTool(db *pgxpool.Pool) Tool {
 			if err := ensureExceptionEditable(ctx, db, in.ExceptionID); err != nil {
 				return "", err
 			}
-			tag, err := db.Exec(ctx, `DELETE FROM week_exceptions WHERE id=$1`, in.ExceptionID)
-			if err != nil {
+			if _, err := db.Exec(ctx, `DELETE FROM week_exceptions WHERE id=$1`, in.ExceptionID); err != nil {
 				return "", err
-			}
-			if tag.RowsAffected() == 0 {
-				return fmt.Sprintf("no exception with id=%d", in.ExceptionID), nil
 			}
 			return fmt.Sprintf("deleted exception id=%d", in.ExceptionID), nil
 		},
