@@ -48,7 +48,7 @@ Before you call `willys_search` or any cart tool, you must produce a consolidate
    - fresh parsley: salsa verde (2) + shakshuka (1) + meatloaf (1) = 4 bunches
 5. **Subtract what's already in the cart.** For each aggregated ingredient, check the list from step 1. If a matching product (by name, fuzzy is fine: "lök" covers "Lök Gul Klass 1") is already there, drop it from the add list and note it as "redan i kundvagn". Don't re-add, and don't add a second variant of the same thing.
 6. **One product per ingredient.** Never add two overlapping variants of the same thing: no loose + bagged of the same onion, no two brands of the same spice, no Garant + non-Garant of the same product. If you change your mind mid-build, `willys_cart_remove` the old before adding the new.
-7. `willys_search` for each *distinct* ingredient still on the list. Pick the best match (Garant / Swedish / loose where applicable) and note the code and chosen qty.
+7. `willys_search` for each *distinct* ingredient still on the list. Query the bare ingredient name (`lök`, `mango`, `tomat`, `färsk koriander`); never append quality grades (`klass 1`), brands, weights, or pack sizes. The search matches all terms, so qualifiers filter out valid hits ("mango klass 1" finds nothing; "mango" returns the products you can then choose from). Pick the best match from the results (Garant / Swedish / loose where applicable) and note the code and chosen qty.
 8. Submit the delta with one `willys_cart_add_many`.
 9. Call `willys_cart_get` at the end and compare against your aggregated list (existing + newly added). If anything's missing, over-quantified, or duplicated, fix it now, not after the user points it out.
 
