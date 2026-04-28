@@ -115,7 +115,9 @@ func (c *Client) ClearState() {
 	}
 }
 
-// IsAuthError reports whether an error came from a 401/403 response.
+// IsAuthError reports whether an error came from a rejected authentication
+// (HTTP 401/403, or a /login that returned 200 but resolved to an anonymous
+// session — Willys does that when credentials are wrong).
 func IsAuthError(err error) bool {
 	var ae *authErr
 	return errors.As(err, &ae)
@@ -123,9 +125,13 @@ func IsAuthError(err error) bool {
 
 type authErr struct {
 	status int
+	reason string
 }
 
 func (e *authErr) Error() string {
+	if e.reason != "" {
+		return fmt.Sprintf("auth failed: %s", e.reason)
+	}
 	return fmt.Sprintf("auth failed: %d", e.status)
 }
 
@@ -269,8 +275,13 @@ func (c *Client) Login(username, password string) (Customer, error) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		c.ClearState()
+		return Customer{}, &authErr{status: resp.StatusCode}
+	}
 	if resp.StatusCode >= 400 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 200))
+		c.ClearState()
 		return Customer{}, fmt.Errorf("login failed (%d): %s", resp.StatusCode, body)
 	}
 
@@ -290,9 +301,26 @@ func (c *Client) Login(username, password string) (Customer, error) {
 	if err != nil {
 		return Customer{}, err
 	}
+	// Willys returns 200 even when credentials are wrong; the resulting
+	// session is anonymous. Reject it so cart/order operations can't run
+	// on a guest account.
+	if !isAuthenticated(cust) {
+		c.ClearState()
+		return Customer{}, &authErr{status: http.StatusUnauthorized, reason: "anonymous session after login (bad credentials)"}
+	}
 
 	c.saveSession()
 	return cust, nil
+}
+
+// isAuthenticated reports whether a Customer payload represents a real
+// logged-in user. The Willys backend returns name="anonymous" for guest
+// sessions; real users always have a UID and a first name.
+func isAuthenticated(cust Customer) bool {
+	if cust.Name == "anonymous" {
+		return false
+	}
+	return cust.UID != "" && cust.FirstName != ""
 }
 
 // IsLoggedIn checks if the saved session is still valid.
