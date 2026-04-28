@@ -5,19 +5,19 @@ import { useSyncExternalStore } from "react";
 // deep-linking all work the same way. A plan is identified by its numeric id
 // so the permalink points at one specific plan; iso_week is a label only.
 export type Route =
-  | { kind: "current" } //          /
-  | { kind: "week"; id: number } //         /weeks/:id
-  | { kind: "new" } //              /weeks/new
-  | { kind: "print"; id: number } //        /weeks/:id/print
-  | { kind: "settings" } //         /settings
-  | { kind: "preferences" } //      /preferences
-  | { kind: "usage" } //            /usage
-  | { kind: "setup" }; //           /setup
+  | { kind: "home" } //                      /
+  | { kind: "week"; id: number } //          /weeks/:id
+  | { kind: "new" } //                       /weeks/new
+  | { kind: "print"; id: number } //         /weeks/:id/print
+  | { kind: "settings" } //                  /settings
+  | { kind: "preferences" } //               /preferences
+  | { kind: "usage" } //                     /usage
+  | { kind: "setup" }; //                    /setup
 
 const ID_RE = /^\d+$/;
 
 export function parseRoute(pathname: string): Route {
-  if (pathname === "/" || pathname === "") return { kind: "current" };
+  if (pathname === "/" || pathname === "") return { kind: "home" };
   if (pathname === "/weeks/new") return { kind: "new" };
   if (pathname === "/settings") return { kind: "settings" };
   if (pathname === "/preferences") return { kind: "preferences" };
@@ -30,12 +30,12 @@ export function parseRoute(pathname: string): Route {
     if (parts.length === 2) return { kind: "week", id };
     if (parts.length === 3 && parts[2] === "print") return { kind: "print", id };
   }
-  return { kind: "current" };
+  return { kind: "home" };
 }
 
 export function routeToPath(route: Route): string {
   switch (route.kind) {
-    case "current":
+    case "home":
       return "/";
     case "week":
       return `/weeks/${route.id}`;
@@ -83,7 +83,7 @@ export function navigate(route: Route | string, options?: { replace?: boolean })
 
 // goBack returns to the previous in-app URL if possible, otherwise navigates
 // to the fallback (useful for modals opened directly from a bookmark).
-export function goBack(fallback: Route = { kind: "current" }): void {
+export function goBack(fallback: Route = { kind: "home" }): void {
   if (window.history.length > 1) window.history.back();
   else navigate(fallback, { replace: true });
 }
