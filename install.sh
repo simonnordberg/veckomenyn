@@ -31,8 +31,10 @@ err() { printf '%s\n' "$*" >&2; }
 # script uses $COMPOSE so we can address whichever one is present.
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
   COMPOSE="docker compose"
+  ENGINE="docker"
 elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
   COMPOSE="podman compose"
+  ENGINE="podman"
 else
   err "Neither docker nor podman (with the compose plugin) is installed."
   err ""
@@ -116,6 +118,16 @@ if ! grep -q '^WATCHTOWER_TOKEN=' .env; then
     token=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')
   fi
   printf 'WATCHTOWER_TOKEN=%s\n' "$token" >> .env
+fi
+
+# Rootless podman can't read /var/run/docker.sock (root:docker). Point
+# watchtower at the user's own podman socket instead. Skipped when a
+# WATCHTOWER_SOCK is already set or when running rootful.
+if [ "$ENGINE" = "podman" ] && [ "$(id -u)" -ne 0 ] && ! grep -q '^WATCHTOWER_SOCK=' .env; then
+  podman_sock="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock"
+  if [ -S "$podman_sock" ]; then
+    printf 'WATCHTOWER_SOCK=%s\n' "$podman_sock" >> .env
+  fi
 fi
 chmod 600 .env
 
