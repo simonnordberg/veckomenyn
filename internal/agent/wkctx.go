@@ -88,3 +88,31 @@ func CheckDinnerInScope(ctx context.Context, db rowQueryer, dinnerID int64) erro
 	}
 	return nil
 }
+
+// EnsureEditable refuses menu mutations on plans past 'draft' status. Once
+// a cart is built or the order placed, silently changing the menu would
+// drift the recorded plan from what was actually shopped or eaten. The
+// user can reopen the plan to draft from the UI status menu first.
+func EnsureEditable(ctx context.Context, db rowQueryer, weekID int64) error {
+	var status string
+	if err := db.QueryRow(ctx, `SELECT status FROM weeks WHERE id = $1`, weekID).Scan(&status); err != nil {
+		return err
+	}
+	if status != "draft" {
+		return fmt.Errorf("plan id=%d is locked (status=%s); menu edits aren't allowed. Tell the user the plan is past planning and ask them to reopen it to draft from the status menu if they really want to change the menu", weekID, status)
+	}
+	return nil
+}
+
+// EnsureDinnerEditable combines CheckDinnerInScope with the plan-status
+// editability guard so dinner-level mutations refuse on locked plans.
+func EnsureDinnerEditable(ctx context.Context, db rowQueryer, dinnerID int64) error {
+	if err := CheckDinnerInScope(ctx, db, dinnerID); err != nil {
+		return err
+	}
+	var weekID int64
+	if err := db.QueryRow(ctx, `SELECT week_id FROM week_dinners WHERE id = $1`, dinnerID).Scan(&weekID); err != nil {
+		return err
+	}
+	return EnsureEditable(ctx, db, weekID)
+}

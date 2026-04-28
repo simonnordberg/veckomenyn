@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { t, useLang } from "../i18n";
 import { deletePreference, listPreferences, type Preference, savePreference } from "../lib/api";
+import { toast } from "../lib/toast";
 
 type Props = {
   open: boolean;
@@ -12,8 +13,7 @@ export function PreferencesModal({ open, onClose }: Props) {
   const [prefs, setPrefs] = useState<Preference[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [pending, setPending] = useState(false);
   const [newCategory, setNewCategory] = useState("");
 
   const refresh = () =>
@@ -25,11 +25,10 @@ export function PreferencesModal({ open, onClose }: Props) {
           setDraft(rows[0].body_md);
         }
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => toast.error(e.message));
 
   useEffect(() => {
     if (!open) return;
-    setError(null);
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -42,23 +41,22 @@ export function PreferencesModal({ open, onClose }: Props) {
 
   const save = async () => {
     if (!selected) return;
-    setSaving(true);
-    setError(null);
+    setPending(true);
     try {
       const next = await savePreference(selected, draft);
       setPrefs((cur) => (cur ? cur.map((p) => (p.category === next.category ? next : p)) : cur));
+      toast.success(t("toast.changes_saved"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
-      setSaving(false);
+      setPending(false);
     }
   };
 
   const createNew = async () => {
     const cat = newCategory.trim().toLowerCase().replace(/\s+/g, "_");
     if (!cat) return;
-    setSaving(true);
-    setError(null);
+    setPending(true);
     try {
       await savePreference(cat, "");
       setNewCategory("");
@@ -66,25 +64,24 @@ export function PreferencesModal({ open, onClose }: Props) {
       setSelected(cat);
       setDraft("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
-      setSaving(false);
+      setPending(false);
     }
   };
 
   const remove = async () => {
     if (!selected) return;
     if (!confirm(t("prefs.confirm_delete", { category: selected }))) return;
-    setSaving(true);
-    setError(null);
+    setPending(true);
     try {
       await deletePreference(selected);
       setSelected(null);
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
-      setSaving(false);
+      setPending(false);
     }
   };
 
@@ -121,11 +118,6 @@ export function PreferencesModal({ open, onClose }: Props) {
             </svg>
           </button>
         </header>
-        {error && (
-          <div className="m-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-            {error}
-          </div>
-        )}
         <div className="flex flex-1 overflow-hidden">
           <aside className="flex w-40 shrink-0 flex-col border-r border-stone-200 bg-stone-50/60 sm:w-56 dark:border-stone-800 dark:bg-stone-950/60">
             <p className="px-3 pt-3 text-xs text-stone-500 dark:text-stone-400">
@@ -165,7 +157,7 @@ export function PreferencesModal({ open, onClose }: Props) {
                 <button
                   type="button"
                   onClick={() => void createNew()}
-                  disabled={saving || !newCategory.trim()}
+                  disabled={pending || !newCategory.trim()}
                   className="rounded-md bg-stone-900 px-2 py-1 text-xs text-stone-50 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900"
                 >
                   +
@@ -183,7 +175,7 @@ export function PreferencesModal({ open, onClose }: Props) {
                   <button
                     type="button"
                     onClick={() => void remove()}
-                    disabled={saving}
+                    disabled={pending}
                     className="rounded-md px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/40"
                   >
                     {t("prefs.delete")}
@@ -199,10 +191,10 @@ export function PreferencesModal({ open, onClose }: Props) {
                   <button
                     type="button"
                     onClick={() => void save()}
-                    disabled={saving}
+                    disabled={pending}
                     className="rounded-md bg-stone-900 px-3 py-1.5 text-sm text-stone-50 hover:bg-stone-800 disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
                   >
-                    {saving ? t("settings.saving") : t("settings.save")}
+                    {pending ? t("settings.saving") : t("settings.save")}
                   </button>
                 </div>
               </>

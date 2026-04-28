@@ -1,5 +1,20 @@
 export const sv: Record<string, string> = {
+  // Home
+  "home.title": "Veckomenyn",
+  "home.subtitle": "Planera en vecka, bygg kundvagnen, beställ, blicka tillbaka.",
+  "home.plan_new": "Planera en ny vecka",
+  "home.plan_first": "Planera din första vecka",
+  "home.your_weeks": "Dina veckor",
+  "home.empty_title": "Välkommen.",
+  "home.empty_body":
+    "Här bor familjens veckor. Agenten hjälper dig planera middagar, bygger kundvagnen och lär sig av varje veckas återblick.",
+  "home.loop_step_plan": "Planera middagar för veckan.",
+  "home.loop_step_cart": "Låt agenten bygga Willys-kundvagnen.",
+  "home.loop_step_order": "Beställ på willys.se.",
+  "home.loop_step_retro": "Skriv en återblick så nästa vecka blir bättre.",
+
   // Top bar
+  "topbar.brand_home": "Hem",
   "topbar.working": "agenten arbetar",
   "topbar.stop": "Stoppa",
   "topbar.refresh": "Uppdatera",
@@ -43,6 +58,10 @@ export const sv: Record<string, string> = {
   "week.clone_next": "Planera nästa vecka utifrån denna",
   "week.truncate_confirm":
     "Om du kortar ner planen tas {count} middag(ar) bort som ligger efter det nya slutdatumet. Fortsätt?",
+  "week.unlock_confirm":
+    "Detta flyttar tillbaka veckan till ”{target}” så menyn går att redigera igen. Innehållet i kundvagnen och betyg behålls. Fortsätt?",
+  "week.locked_hint":
+    "Menyn är låst när status är {status}. Ändra status nedan för att låsa upp redigering.",
   "week.add_dinner_prompt":
     "Lägg till ytterligare en middag till veckan som löper från {start} till {end}.",
   "week.regenerate_prompt":
@@ -87,7 +106,6 @@ export const sv: Record<string, string> = {
   "settings.notes": "Noteringar",
   "settings.save": "Spara",
   "settings.saving": "Sparar…",
-  "settings.saved": "Sparat.",
   "settings.loading": "Laddar…",
   "settings.close": "Stäng",
   "settings.theme": "Tema",
@@ -207,6 +225,16 @@ export const sv: Record<string, string> = {
   // Chat drawer aria-label
   "chat.aria": "Chatt",
 
+  // Toast notifications
+  "toast.dismiss": "Stäng",
+  "toast.retry": "Försök igen",
+  "toast.save_failed": "Kunde inte spara",
+  "toast.save_failed_retrying": "Kunde inte spara; försöker igen…",
+  "toast.changes_saved": "Sparat",
+  "toast.week_deleted": "Vecka borttagen",
+  "toast.network_error": "Nätverksfel",
+  "toast.unsaved_changes": "Återblicken har inte sparats än. Lämna ändå?",
+
   // Per-dinner rating
   "rating.how_was_it": "Hur blev den?",
   "rating.your_verdict": "Omdöme:",
@@ -223,9 +251,6 @@ export const sv: Record<string, string> = {
     "Pacing, portionsstorlekar, mängder, allmän vibe. Allt som inte fångas av per-middags-betygen.",
   "retro.placeholder":
     "Tung vecka med mycket röd köttfärs, blanda in mer fisk nästa. Porchettan räckte till tre dagar.",
-  "retro.saving": "Sparar…",
-  "retro.saved": "Sparat",
-  "retro.error": "Kunde inte spara",
 
   // LLM usage admin page
   "usage.title": "Användning & kostnad",

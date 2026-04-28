@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { t, useLang } from "../i18n";
 import { listProviders, type Provider, type ProviderKindInfo, patchProvider } from "../lib/api";
+import { toast } from "../lib/toast";
 
 export function IntegrationsSection() {
   useLang();
   const [known, setKnown] = useState<ProviderKindInfo[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [sentinel, setSentinel] = useState("");
-  const [error, setError] = useState<string | null>(null);
 
   const refresh = () =>
     listProviders()
@@ -16,7 +16,7 @@ export function IntegrationsSection() {
         setProviders(env.providers);
         setSentinel(env.sentinel);
       })
-      .catch((e: Error) => setError(e.message));
+      .catch((e: Error) => toast.error(e.message));
 
   useEffect(() => {
     void refresh();
@@ -30,11 +30,6 @@ export function IntegrationsSection() {
       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
         {t("integrations.subtitle")}
       </p>
-      {error && (
-        <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-          {error}
-        </div>
-      )}
       <div className="mt-3 flex flex-col gap-3">
         {known.map((info) => {
           const p = providers.find((x) => x.kind === info.kind) ?? {
@@ -79,9 +74,7 @@ function ProviderCard({
   };
   const [enabled, setEnabled] = useState(provider.enabled);
   const [config, setConfig] = useState<Record<string, string>>(() => initialConfig(provider));
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     setEnabled(provider.enabled);
@@ -93,17 +86,16 @@ function ProviderCard({
     info.fields.some((f) => (config[f.key] ?? "") !== (provider.config[f.key] ?? ""));
 
   const save = async () => {
-    if (saving || !dirty) return;
-    setSaving(true);
-    setError(null);
+    if (pending || !dirty) return;
+    setPending(true);
     try {
       await patchProvider(info.kind, { enabled, config });
-      setSavedAt(Date.now());
+      toast.success(t("toast.changes_saved"));
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
-      setSaving(false);
+      setPending(false);
     }
   };
 
@@ -171,22 +163,14 @@ function ProviderCard({
           </label>
         ))}
       </div>
-      {error && (
-        <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-          {error}
-        </div>
-      )}
-      <div className="mt-3 flex items-center justify-between">
-        <span className="text-[11px] text-stone-500 dark:text-stone-400">
-          {savedAt ? t("settings.saved") : ""}
-        </span>
+      <div className="mt-3 flex items-center justify-end">
         <button
           type="button"
           onClick={() => void save()}
-          disabled={saving || !dirty}
+          disabled={pending || !dirty}
           className="rounded-md bg-stone-900 px-3 py-1 text-xs font-medium text-stone-50 shadow-sm hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
         >
-          {saving ? t("settings.saving") : t("settings.save")}
+          {pending ? t("settings.saving") : t("settings.save")}
         </button>
       </div>
     </article>

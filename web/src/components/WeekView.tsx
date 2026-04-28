@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatPeriod, formatWeekday, t, useLang } from "../i18n";
 import {
   type CartItem,
@@ -12,6 +12,7 @@ import {
   type WeekPatch,
   type WeekSummary,
 } from "../lib/api";
+import { toast } from "../lib/toast";
 import { EditableDate, EditableText } from "./Editable";
 import { Markdown } from "./Markdown";
 
@@ -37,29 +38,34 @@ export function WeekView({
   // Rating & retrospective live on weeks you've actually cooked through.
   // Hiding them while planning keeps the card tidy and reflects the lifecycle.
   const rateable = week.status === "ordered";
+  // Menu edits are only allowed in draft. Past planning the user goes back
+  // to draft via StatusMenu, which prompts before reopening edits.
+  const locked = week.status !== "draft";
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-      <WeekHeader week={week} onAction={onAction} onPatch={onPatch} />
+      <WeekHeader week={week} locked={locked} onAction={onAction} onPatch={onPatch} />
       {week.exceptions.length > 0 && <Exceptions items={week.exceptions} />}
       <section className="flex flex-col gap-3">
         {dinners.length === 0 ? (
           <div className="rounded-lg border border-dashed border-stone-300 bg-stone-50 px-6 py-10 text-center text-stone-500 dark:border-stone-700 dark:bg-stone-900/50 dark:text-stone-400">
             <p>{t("week.no_dinners")}</p>
-            <button
-              type="button"
-              onClick={() =>
-                onAction(
-                  t("week.plan_dinners_prompt", {
-                    start: week.start_date,
-                    end: week.end_date,
-                  }),
-                )
-              }
-              className="mt-3 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
-            >
-              {t("week.plan_dinners")}
-            </button>
+            {!locked && (
+              <button
+                type="button"
+                onClick={() =>
+                  onAction(
+                    t("week.plan_dinners_prompt", {
+                      start: week.start_date,
+                      end: week.end_date,
+                    }),
+                  )
+                }
+                className="mt-3 rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm hover:bg-stone-100 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+              >
+                {t("week.plan_dinners")}
+              </button>
+            )}
           </div>
         ) : (
           dinners.map((d) => (
@@ -69,6 +75,7 @@ export function WeekView({
               dimmed={activeDayDate !== null && activeDayDate !== d.day_date}
               active={activeDayDate === d.day_date}
               rateable={rateable}
+              locked={locked}
               onAction={onAction}
               onRatingChanged={onRefetch}
             />
@@ -188,6 +195,12 @@ function Lifecycle({
   );
 }
 
+const STATUS_ORDER: WeekDetail["status"][] = ["draft", "cart_built", "ordered"];
+
+function isBackwardTransition(from: WeekDetail["status"], to: WeekDetail["status"]): boolean {
+  return STATUS_ORDER.indexOf(to) < STATUS_ORDER.indexOf(from);
+}
+
 function StatusMenu({
   current,
   onPick,
@@ -196,12 +209,13 @@ function StatusMenu({
   onPick: (s: WeekDetail["status"]) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const statuses: WeekDetail["status"][] = ["draft", "cart_built", "ordered"];
   return (
     <div className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
         className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
       >
         {t("lifecycle.set_status")} ▾
@@ -211,19 +225,34 @@ function StatusMenu({
           <div
             className="fixed inset-0 z-10"
             onClick={() => setOpen(false)}
-            onKeyDown={() => setOpen(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setOpen(false);
+            }}
             role="button"
             tabIndex={-1}
-            aria-label="close menu"
+            aria-label={t("toast.dismiss")}
           />
-          <div className="absolute right-0 top-full z-20 mt-1 min-w-40 rounded-md border border-stone-200 bg-white p-1 shadow-lg dark:border-stone-700 dark:bg-stone-800">
-            {statuses.map((s) => (
+          <div
+            role="menu"
+            className="absolute right-0 top-full z-20 mt-1 min-w-40 rounded-md border border-stone-200 bg-white p-1 shadow-lg dark:border-stone-700 dark:bg-stone-800"
+          >
+            {STATUS_ORDER.map((s) => (
               <button
                 key={s}
                 type="button"
+                role="menuitem"
                 onClick={() => {
                   setOpen(false);
-                  if (s !== current) onPick(s);
+                  if (s === current) return;
+                  // Going back unlocks edits; ask first so a stray click on
+                  // an ordered week can't silently reopen the menu.
+                  if (
+                    isBackwardTransition(current, s) &&
+                    !window.confirm(t("week.unlock_confirm", { target: t(`status.${s}`) }))
+                  ) {
+                    return;
+                  }
+                  onPick(s);
                 }}
                 className={`block w-full rounded px-3 py-1.5 text-left text-xs ${
                   s === current
@@ -342,10 +371,12 @@ function today(): string {
 
 function WeekHeader({
   week,
+  locked,
   onAction,
   onPatch,
 }: {
   week: WeekDetail;
+  locked: boolean;
   onAction: (a: string) => void;
   onPatch: (patch: WeekPatch) => Promise<void>;
 }) {
@@ -357,42 +388,60 @@ function WeekHeader({
             {formatPeriod(week.start_date, week.end_date)}
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-1 gap-y-1 text-sm text-stone-600 dark:text-stone-400">
-            <EditableDate
-              value={week.start_date}
-              label="start date"
-              onCommit={(v) => (v ? onPatch({ start_date: v }) : Promise.resolve())}
-            />
+            {locked ? (
+              <span className="px-1 py-0.5 font-mono tabular-nums text-stone-700 dark:text-stone-300">
+                {week.start_date}
+              </span>
+            ) : (
+              <EditableDate
+                value={week.start_date}
+                label="start date"
+                onCommit={(v) => (v ? onPatch({ start_date: v }) : Promise.resolve())}
+              />
+            )}
             <span>→</span>
-            <EditableDate
-              value={week.end_date}
-              label="end date"
-              onCommit={(v) => {
-                if (!v) return Promise.resolve();
-                // Shrinking past existing dinners drops them on the server,
-                // so ask first with the count so the user can back out.
-                if (v < week.end_date) {
-                  const lost = week.dinners.filter((d) => d.day_date > v).length;
-                  if (lost > 0 && !window.confirm(t("week.truncate_confirm", { count: lost }))) {
-                    return Promise.resolve();
+            {locked ? (
+              <span className="px-1 py-0.5 font-mono tabular-nums text-stone-700 dark:text-stone-300">
+                {week.end_date}
+              </span>
+            ) : (
+              <EditableDate
+                value={week.end_date}
+                label="end date"
+                onCommit={(v) => {
+                  if (!v) return Promise.resolve();
+                  // Shrinking past existing dinners drops them on the server,
+                  // so ask first with the count so the user can back out.
+                  if (v < week.end_date) {
+                    const lost = week.dinners.filter((d) => d.day_date > v).length;
+                    if (lost > 0 && !window.confirm(t("week.truncate_confirm", { count: lost }))) {
+                      return Promise.resolve();
+                    }
                   }
-                }
-                return onPatch({ end_date: v });
-              }}
-            />
+                  return onPatch({ end_date: v });
+                }}
+              />
+            )}
             <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-stone-600 dark:bg-stone-800 dark:text-stone-300">
               {t(`status.${week.status}`)}
             </span>
           </div>
-          <div className="mt-2 text-sm italic text-stone-600 dark:text-stone-400">
-            <EditableText
-              value={week.notes_md}
-              label={t("week.notes_label")}
-              placeholder={t("week.notes_placeholder")}
-              multiline
-              onCommit={(v) => onPatch({ notes_md: v })}
-              className="-mx-1"
-            />
-          </div>
+          {(week.notes_md || !locked) && (
+            <div className="mt-2 text-sm italic text-stone-600 dark:text-stone-400">
+              {locked ? (
+                <span className="px-1">{week.notes_md}</span>
+              ) : (
+                <EditableText
+                  value={week.notes_md}
+                  label={t("week.notes_label")}
+                  placeholder={t("week.notes_placeholder")}
+                  multiline
+                  onCommit={(v) => onPatch({ notes_md: v })}
+                  className="-mx-1"
+                />
+              )}
+            </div>
+          )}
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           <a
@@ -403,36 +452,45 @@ function WeekHeader({
           >
             {t("week.print")}
           </a>
-          <button
-            type="button"
-            onClick={() =>
-              onAction(
-                t("week.add_dinner_prompt", {
-                  start: week.start_date,
-                  end: week.end_date,
-                }),
-              )
-            }
-            className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
-          >
-            {t("week.add_dinner")}
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              onAction(
-                t("week.regenerate_prompt", {
-                  start: week.start_date,
-                  end: week.end_date,
-                }),
-              )
-            }
-            className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
-          >
-            {t("week.regenerate")}
-          </button>
+          {!locked && (
+            <>
+              <button
+                type="button"
+                onClick={() =>
+                  onAction(
+                    t("week.add_dinner_prompt", {
+                      start: week.start_date,
+                      end: week.end_date,
+                    }),
+                  )
+                }
+                className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+              >
+                {t("week.add_dinner")}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  onAction(
+                    t("week.regenerate_prompt", {
+                      start: week.start_date,
+                      end: week.end_date,
+                    }),
+                  )
+                }
+                className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+              >
+                {t("week.regenerate")}
+              </button>
+            </>
+          )}
         </div>
       </div>
+      {locked && (
+        <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+          {t("week.locked_hint", { status: t(`status.${week.status}`) })}
+        </p>
+      )}
     </header>
   );
 }
@@ -455,47 +513,104 @@ function Exceptions({ items }: { items: Exception[] }) {
   );
 }
 
+// Retry strategy: input debounces by 700ms; failed saves auto-retry up to
+// MAX_ATTEMPTS with exponential backoff. The error toast updates in place
+// (constant id per week) and offers a manual retry once auto-retry exhausts.
+const RETRO_DEBOUNCE_MS = 700;
+const RETRO_MAX_ATTEMPTS = 3;
+const RETRO_BACKOFFS_MS = [1000, 3000, 9000];
+
 function WeekRetrospective({ week }: { week: WeekDetail }) {
   const initial = week.retrospectives[0]?.notes_md ?? "";
   const [value, setValue] = useState(initial);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const timerRef = useRef<number | null>(null);
+  const savedRef = useRef(initial);
+  const dirtyRef = useRef(false);
+  const debounceRef = useRef<number | null>(null);
+  const retryRef = useRef<number | null>(null);
+  const attemptsRef = useRef(0);
+  const toastID = `retro-${week.id}`;
 
   // Reset local state when switching to a different week.
   useEffect(() => {
     setValue(initial);
-    setStatus("idle");
-  }, [initial]);
+    savedRef.current = initial;
+    dirtyRef.current = false;
+    attemptsRef.current = 0;
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    if (retryRef.current) window.clearTimeout(retryRef.current);
+    toast.dismiss(toastID);
+  }, [initial, toastID]);
 
-  const save = (next: string) => {
-    setStatus("saving");
-    setWeekRetrospective(week.id, next)
-      .then(() => setStatus("saved"))
-      .catch(() => setStatus("error"));
-  };
+  // Cleanup on unmount.
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      if (retryRef.current) window.clearTimeout(retryRef.current);
+    };
+  }, []);
+
+  // Warn before navigating away with unsaved changes. Registered once;
+  // dirtyRef tracks whether the latest value matches the last successful save.
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!dirtyRef.current) return;
+      e.preventDefault();
+      e.returnValue = t("toast.unsaved_changes");
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, []);
+
+  const save = useCallback(
+    async (next: string): Promise<void> => {
+      try {
+        await setWeekRetrospective(week.id, next);
+        savedRef.current = next;
+        dirtyRef.current = false;
+        attemptsRef.current = 0;
+        toast.dismiss(toastID);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        attemptsRef.current += 1;
+        if (attemptsRef.current < RETRO_MAX_ATTEMPTS) {
+          toast.error(`${t("toast.save_failed_retrying")} ${message}`, { id: toastID });
+          const delay =
+            RETRO_BACKOFFS_MS[Math.min(attemptsRef.current - 1, RETRO_BACKOFFS_MS.length - 1)];
+          retryRef.current = window.setTimeout(() => void save(next), delay);
+        } else {
+          toast.error(`${t("toast.save_failed")}: ${message}`, {
+            id: toastID,
+            action: {
+              label: t("toast.retry"),
+              onClick: () => {
+                attemptsRef.current = 0;
+                void save(next);
+              },
+            },
+          });
+        }
+      }
+    },
+    [week.id, toastID],
+  );
 
   const onChange = (next: string) => {
     setValue(next);
-    if (timerRef.current) window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(() => save(next), 700);
+    dirtyRef.current = next !== savedRef.current;
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    if (retryRef.current) window.clearTimeout(retryRef.current);
+    // Drop the prior error toast: its manual-retry button captures the old
+    // value and would overwrite a newer save if the user clicks it later.
+    toast.dismiss(toastID);
+    attemptsRef.current = 0;
+    debounceRef.current = window.setTimeout(() => void save(next), RETRO_DEBOUNCE_MS);
   };
 
   return (
     <section className="mt-2 rounded-md border border-stone-200 bg-stone-50 px-4 py-3 dark:border-stone-800 dark:bg-stone-900/50">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100">
-          {t("week.retrospective")}
-        </h2>
-        <span className="text-xs text-stone-400 dark:text-stone-500">
-          {status === "saving"
-            ? t("retro.saving")
-            : status === "saved"
-              ? t("retro.saved")
-              : status === "error"
-                ? t("retro.error")
-                : ""}
-        </span>
-      </div>
+      <h2 className="font-serif text-lg text-stone-900 dark:text-stone-100">
+        {t("week.retrospective")}
+      </h2>
       <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{t("retro.hint")}</p>
       <textarea
         value={value}
@@ -511,7 +626,6 @@ function WeekRetrospective({ week }: { week: WeekDetail }) {
 function RatingControl({ dinner, onChanged }: { dinner: Dinner; onChanged: () => void }) {
   const [rating, setRating] = useState<DinnerRating | null>(dinner.rating);
   const [notes, setNotes] = useState(dinner.rating_notes);
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const timerRef = useRef<number | null>(null);
 
   // If the prop changes (e.g. week refetch after agent tool) pick it up.
@@ -521,13 +635,11 @@ function RatingControl({ dinner, onChanged }: { dinner: Dinner; onChanged: () =>
   }, [dinner.rating, dinner.rating_notes]);
 
   const persist = (nextRating: DinnerRating, nextNotes: string) => {
-    setStatus("saving");
     setDinnerRating(dinner.id, nextRating, nextNotes)
       .then(() => {
-        setStatus("saved");
         onChanged();
       })
-      .catch(() => setStatus("error"));
+      .catch((err: Error) => toast.error(err.message));
   };
 
   const pickRating = (next: DinnerRating) => {
@@ -546,13 +658,11 @@ function RatingControl({ dinner, onChanged }: { dinner: Dinner; onChanged: () =>
   const clear = () => {
     setRating(null);
     setNotes("");
-    setStatus("saving");
     clearDinnerRating(dinner.id)
       .then(() => {
-        setStatus("idle");
         onChanged();
       })
-      .catch(() => setStatus("error"));
+      .catch((err: Error) => toast.error(err.message));
   };
 
   return (
@@ -579,24 +689,13 @@ function RatingControl({ dinner, onChanged }: { dinner: Dinner; onChanged: () =>
           );
         })}
         {rating && (
-          <>
-            <span className="ml-auto text-xs text-stone-400 dark:text-stone-500">
-              {status === "saving"
-                ? t("retro.saving")
-                : status === "saved"
-                  ? t("retro.saved")
-                  : status === "error"
-                    ? t("retro.error")
-                    : ""}
-            </span>
-            <button
-              type="button"
-              onClick={clear}
-              className="text-xs text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
-            >
-              {t("rating.clear")}
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={clear}
+            className="ml-auto text-xs text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"
+          >
+            {t("rating.clear")}
+          </button>
         )}
       </div>
       {rating && (
@@ -630,6 +729,7 @@ function DinnerCard({
   dimmed,
   active,
   rateable,
+  locked,
   onAction,
   onRatingChanged,
 }: {
@@ -637,6 +737,7 @@ function DinnerCard({
   dimmed: boolean;
   active: boolean;
   rateable: boolean;
+  locked: boolean;
   onAction: (a: string) => void;
   onRatingChanged: () => void;
 }) {
@@ -716,20 +817,22 @@ function DinnerCard({
               {t(`rating.${dinner.rating}`)}
             </span>
           )}
-          <button
-            type="button"
-            onClick={() => setAdjustOpen((o) => !o)}
-            className={`shrink-0 rounded-md border px-2.5 py-1 text-xs ${
-              adjustOpen
-                ? "border-stone-900 bg-stone-900 text-stone-50 dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900"
-                : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
-            }`}
-          >
-            {t("dinner.adjust")}
-          </button>
+          {!locked && (
+            <button
+              type="button"
+              onClick={() => setAdjustOpen((o) => !o)}
+              className={`shrink-0 rounded-md border px-2.5 py-1 text-xs ${
+                adjustOpen
+                  ? "border-stone-900 bg-stone-900 text-stone-50 dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900"
+                  : "border-stone-300 bg-white text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+              }`}
+            >
+              {t("dinner.adjust")}
+            </button>
+          )}
         </div>
       </header>
-      {adjustOpen && (
+      {!locked && adjustOpen && (
         <div className="border-t border-stone-100 bg-stone-50/60 px-4 py-3 dark:border-stone-800 dark:bg-stone-950/60">
           <textarea
             value={adjustDraft}

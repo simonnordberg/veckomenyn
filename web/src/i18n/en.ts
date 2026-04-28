@@ -1,5 +1,20 @@
 export const en: Record<string, string> = {
+  // Home
+  "home.title": "Veckomenyn",
+  "home.subtitle": "Plan a week, build the cart, order, retrospect.",
+  "home.plan_new": "Plan a new week",
+  "home.plan_first": "Plan your first week",
+  "home.your_weeks": "Your weeks",
+  "home.empty_title": "Welcome.",
+  "home.empty_body":
+    "This is where the family's weeks live. The agent helps you plan dinners, builds the grocery cart, and learns from each week's feedback.",
+  "home.loop_step_plan": "Plan dinners for the week.",
+  "home.loop_step_cart": "Let the agent build the Willys cart.",
+  "home.loop_step_order": "Place the order on willys.se.",
+  "home.loop_step_retro": "Record a retrospective so next week is better.",
+
   // Top bar
+  "topbar.brand_home": "Home",
   "topbar.working": "agent working",
   "topbar.stop": "Stop",
   "topbar.refresh": "Refresh",
@@ -43,6 +58,9 @@ export const en: Record<string, string> = {
   "week.clone_next": "Plan next week from this one",
   "week.truncate_confirm":
     "Shortening the plan will drop {count} dinner(s) past the new end date. Continue?",
+  "week.unlock_confirm":
+    "This will move the week back to '{target}' so the menu becomes editable again. Cart contents and ratings stay. Continue?",
+  "week.locked_hint": "Menu locked while {status}. Change status below to reopen editing.",
   "week.add_dinner_prompt": "Add another dinner to the week running {start} through {end}.",
   "week.regenerate_prompt":
     "Regenerate the meal plan for the week running {start} through {end}. Replace each dinner with a fresh option, keeping the same constraints.",
@@ -86,7 +104,6 @@ export const en: Record<string, string> = {
   "settings.notes": "Notes",
   "settings.save": "Save",
   "settings.saving": "Saving…",
-  "settings.saved": "Saved.",
   "settings.loading": "Loading…",
   "settings.close": "Close",
   "settings.theme": "Theme",
@@ -206,6 +223,16 @@ export const en: Record<string, string> = {
   // Chat drawer aria-label
   "chat.aria": "Chat",
 
+  // Toast notifications
+  "toast.dismiss": "Dismiss",
+  "toast.retry": "Retry",
+  "toast.save_failed": "Save failed",
+  "toast.save_failed_retrying": "Save failed; retrying…",
+  "toast.changes_saved": "Changes saved",
+  "toast.week_deleted": "Week deleted",
+  "toast.network_error": "Network error",
+  "toast.unsaved_changes": "Retrospective hasn't saved yet. Leave anyway?",
+
   // Per-dinner rating
   "rating.how_was_it": "How was it?",
   "rating.your_verdict": "Verdict:",
@@ -222,9 +249,6 @@ export const en: Record<string, string> = {
     "Pacing, portion sizes, overall balance. Whatever the per-dinner verdicts don't already capture.",
   "retro.placeholder":
     "Heavy on red meat this week, mix in more fish next. The porchetta stretched to three days.",
-  "retro.saving": "Saving…",
-  "retro.saved": "Saved",
-  "retro.error": "Could not save",
 
   // LLM usage admin page
   "usage.title": "Usage & cost",
