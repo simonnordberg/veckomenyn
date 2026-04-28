@@ -15,7 +15,11 @@ COPY web/ ./
 RUN pnpm build
 
 # ---- Go binaries ----------------------------------------------------------
-FROM golang:1.26-alpine AS go
+# Pin to BUILDPLATFORM so the Go toolchain runs natively on the runner,
+# then cross-compile to TARGETOS/TARGETARCH. Without this the arm64 build
+# runs under QEMU emulation and takes ~6 minutes; cross-compiled it
+# matches the amd64 build at ~40s.
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS go
 WORKDIR /app
 RUN apk add --no-cache ca-certificates
 COPY go.mod go.sum ./
@@ -28,8 +32,10 @@ COPY --from=web /app/web/dist ./web/dist
 ARG VERSION=dev
 ARG COMMIT=unknown
 ARG BUILT_AT=unknown
+ARG TARGETOS
+ARG TARGETARCH
 ENV CGO_ENABLED=0
-RUN go build -trimpath \
+RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath \
         -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.builtAt=${BUILT_AT}" \
         -o /out/veckomenyn ./cmd/veckomenyn
 
