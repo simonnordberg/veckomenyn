@@ -1,4 +1,4 @@
-.PHONY: build build-server build-import build-import-week build-web dev test lint fmt verify install-hooks clean release release-minor release-major
+.PHONY: build build-server build-web dev test lint fmt verify install-hooks clean release release-minor release-major
 
 # Stamped into the main binary via -ldflags. CI overrides VERSION/COMMIT/BUILT_AT
 # from semver tags; local builds derive from git so the binary still reports
@@ -8,16 +8,10 @@ COMMIT   ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
 BUILT_AT ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS  := -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.builtAt=$(BUILT_AT)
 
-build: build-web build-server build-import build-import-week
+build: build-web build-server
 
 build-server: build-web
 	go build -ldflags "$(LDFLAGS)" -o bin/veckomenyn ./cmd/veckomenyn
-
-build-import:
-	go build -o bin/veckomenyn-import ./cmd/veckomenyn-import
-
-build-import-week:
-	go build -o bin/veckomenyn-import-week ./cmd/veckomenyn-import-week
 
 build-web:
 	cd web && pnpm install --frozen-lockfile && pnpm build

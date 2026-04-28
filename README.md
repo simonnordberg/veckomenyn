@@ -44,9 +44,7 @@ Shopping backends are pluggable. Willys.se ships today.
 
 ```
 cmd/
-  veckomenyn/              HTTP server + embedded SPA. Main binary.
-  veckomenyn-import/       Seeds preference files.
-  veckomenyn-import-week/  Imports a historical week from markdown + CSV.
+  veckomenyn/       HTTP server + embedded SPA. Main binary.
 internal/
   agent/            Claude agent. System prompt, tools, streaming loop.
   willys/           Willys.se HTTP client.
