@@ -325,6 +325,10 @@ export const sv: Record<string, string> = {
     "Kontrollerar varje timme; om en nyare version finns startas appen om med den nya imagen.",
   "update.auto_unavailable":
     "Automatiska uppdateringar kräver Watchtower-sidecar. Se distributionsdokumentationen.",
+  "update.check_now": "Sök efter uppdateringar",
+  "update.checking": "Kollar…",
+  "update.up_to_date": "Du har senaste versionen (v{version}).",
+  "update.found": "Uppdatering tillgänglig: v{version}.",
 
   "setup.welcome_title": "Välkommen till Veckomenyn",
   "setup.welcome_body":

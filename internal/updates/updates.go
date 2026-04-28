@@ -23,10 +23,11 @@ type Status struct {
 }
 
 type Checker struct {
-	repo       string
-	current    string
-	httpClient *http.Client
-	ttl        time.Duration
+	repo        string
+	current     string
+	httpClient  *http.Client
+	ttl         time.Duration
+	releasesURL string // overridable for tests
 
 	mu        sync.Mutex
 	cached    *Status
@@ -39,10 +40,11 @@ type Checker struct {
 // update available.
 func New(repo, current string) *Checker {
 	return &Checker{
-		repo:       repo,
-		current:    current,
-		httpClient: &http.Client{Timeout: 10 * time.Second},
-		ttl:        time.Hour,
+		repo:        repo,
+		current:     current,
+		httpClient:  &http.Client{Timeout: 10 * time.Second},
+		ttl:         time.Hour,
+		releasesURL: "https://api.github.com/repos/" + repo + "/releases/latest",
 	}
 }
 
@@ -57,7 +59,17 @@ func (c *Checker) Status(ctx context.Context) (Status, error) {
 		return s, nil
 	}
 	c.mu.Unlock()
+	return c.fetchAndCache(ctx)
+}
 
+// Refresh forces a fresh upstream fetch, bypassing the TTL cache. Used by
+// the manual "check for updates" button so users don't have to wait out
+// the cache window when verifying that a freshly cut release is visible.
+func (c *Checker) Refresh(ctx context.Context) (Status, error) {
+	return c.fetchAndCache(ctx)
+}
+
+func (c *Checker) fetchAndCache(ctx context.Context) (Status, error) {
 	latest, url, err := c.fetchLatest(ctx)
 	if err != nil {
 		c.mu.Lock()
@@ -84,8 +96,7 @@ func (c *Checker) Status(ctx context.Context) (Status, error) {
 }
 
 func (c *Checker) fetchLatest(ctx context.Context) (string, string, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET",
-		"https://api.github.com/repos/"+c.repo+"/releases/latest", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", c.releasesURL, nil)
 	if err != nil {
 		return "", "", err
 	}
