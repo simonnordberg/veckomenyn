@@ -71,6 +71,13 @@ services:
   # can't eat your data.
   watchtower:
     image: containrrr/watchtower:latest
+    # On SELinux-enforcing hosts (Fedora, RHEL) the rootless podman
+    # socket is labelled user_tmp_t and the container's container_t
+    # domain can't reach it. Disabling labelling for this single
+    # sidecar lets it talk to the host socket without relabelling
+    # the systemd-managed socket file. No-op on Ubuntu/Debian.
+    security_opt:
+      - label=disable
     environment:
       # Pin the Docker Engine API version. Without this, the docker SDK
       # negotiates a too-old version that modern daemons reject. 1.44
@@ -79,7 +86,12 @@ services:
       DOCKER_API_VERSION: "1.44"
       WATCHTOWER_HTTP_API_TOKEN: ${WATCHTOWER_TOKEN:-veckomenyn-internal}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Default is the rootful Docker / rootful Podman socket. Rootless
+      # Podman users override with WATCHTOWER_SOCK in .env, since the
+      # host /var/run/docker.sock is owned root:docker and the rootless
+      # container has no access to it. Typical override:
+      #   WATCHTOWER_SOCK=/run/user/1000/podman/podman.sock
+      - ${WATCHTOWER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
     command:
       - --label-enable
       - --cleanup
