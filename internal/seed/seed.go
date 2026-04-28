@@ -1,6 +1,5 @@
 // Package seed embeds starter preference markdown so the first-run wizard
-// can populate the cooking_principles table without shelling out to the
-// veckomenyn-import CLI.
+// can populate the cooking_principles table.
 package seed
 
 import (
