@@ -51,7 +51,7 @@ type preferencePatch struct {
 }
 
 // handlePutPreference upserts a preference row. Treat the whole document as
-// the unit; replace on write. Matches how the import tool already works.
+// the unit; replace on write.
 func (s *Server) handlePutPreference(w http.ResponseWriter, r *http.Request) {
 	category := chi.URLParam(r, "category")
 	if !validCategory(category) {
