@@ -1,5 +1,20 @@
 export const sv: Record<string, string> = {
+  // Home
+  "home.title": "Veckomenyn",
+  "home.subtitle": "Planera en vecka, bygg kundvagnen, beställ, blicka tillbaka.",
+  "home.plan_new": "Planera en ny vecka",
+  "home.plan_first": "Planera din första vecka",
+  "home.your_weeks": "Dina veckor",
+  "home.empty_title": "Välkommen.",
+  "home.empty_body":
+    "Här bor familjens veckor. Agenten hjälper dig planera middagar, bygger kundvagnen och lär sig av varje veckas återblick.",
+  "home.loop_step_plan": "Planera middagar för veckan.",
+  "home.loop_step_cart": "Låt agenten bygga Willys-kundvagnen.",
+  "home.loop_step_order": "Beställ på willys.se.",
+  "home.loop_step_retro": "Skriv en återblick så nästa vecka blir bättre.",
+
   // Top bar
+  "topbar.brand_home": "Hem",
   "topbar.working": "agenten arbetar",
   "topbar.stop": "Stoppa",
   "topbar.refresh": "Uppdatera",

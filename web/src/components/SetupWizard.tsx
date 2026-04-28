@@ -26,7 +26,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   };
   const finish = () => {
     onComplete();
-    navigate({ kind: "current" }, { replace: true });
+    navigate({ kind: "home" }, { replace: true });
   };
 
   const saveKey = async () => {

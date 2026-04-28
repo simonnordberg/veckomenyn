@@ -1,5 +1,20 @@
 export const en: Record<string, string> = {
+  // Home
+  "home.title": "Veckomenyn",
+  "home.subtitle": "Plan a week, build the cart, order, retrospect.",
+  "home.plan_new": "Plan a new week",
+  "home.plan_first": "Plan your first week",
+  "home.your_weeks": "Your weeks",
+  "home.empty_title": "Welcome.",
+  "home.empty_body":
+    "This is where the family's weeks live. The agent helps you plan dinners, builds the grocery cart, and learns from each week's feedback.",
+  "home.loop_step_plan": "Plan dinners for the week.",
+  "home.loop_step_cart": "Let the agent build the Willys cart.",
+  "home.loop_step_order": "Place the order on willys.se.",
+  "home.loop_step_retro": "Record a retrospective so next week is better.",
+
   // Top bar
+  "topbar.brand_home": "Home",
   "topbar.working": "agent working",
   "topbar.stop": "Stop",
   "topbar.refresh": "Refresh",

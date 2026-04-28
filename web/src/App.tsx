@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { applyAgentEvent, ChatDrawer, type ChatEntry } from "./components/ChatDrawer";
 import { DuplicatePlanDialog } from "./components/DuplicatePlanDialog";
+import { HomeView } from "./components/HomeView";
 import { PlanNewForm } from "./components/PlanNewForm";
 import { PreferencesModal } from "./components/PreferencesModal";
 import { PrintableWeek } from "./components/PrintableWeek";
@@ -73,7 +74,7 @@ export function App() {
   // them back to the home route so the wizard isn't a one-way gate.
   useEffect(() => {
     if (setupComplete && route.kind === "setup") {
-      navigate({ kind: "current" }, { replace: true });
+      navigate({ kind: "home" }, { replace: true });
     }
   }, [setupComplete, route.kind]);
 
@@ -119,10 +120,11 @@ function Main({ route }: { route: Route }) {
   const abortRef = useRef<AbortController | null>(null);
 
   const planMode = route.kind === "new";
+  const homeMode = route.kind === "home";
   const settingsOpen = route.kind === "settings";
   const preferencesOpen = route.kind === "preferences";
   const usageOpen = route.kind === "usage";
-  const selectedID = route.kind === "week" ? route.id : (week?.id ?? null);
+  const selectedID = route.kind === "week" ? route.id : homeMode ? null : (week?.id ?? null);
 
   useLang(); // subscribe root to language changes
 
@@ -145,6 +147,13 @@ function Main({ route }: { route: Route }) {
     let cancelled = false;
     (async () => {
       try {
+        if (route.kind === "home") {
+          // Home is its own surface; no week needs to load. Bump the
+          // sidebar so the list reflects any recent changes.
+          setStatus("ready");
+          setSidebarRefresh((k) => k + 1);
+          return;
+        }
         if (route.kind === "new") {
           // Plan form owns the main area. If nothing is loaded yet (fresh
           // bookmark), fetch a week in the background so cancel has a real
@@ -163,21 +172,10 @@ function Main({ route }: { route: Route }) {
         let fetched: WeekDetail | null;
         if (route.kind === "week") {
           fetched = await getWeekById(route.id);
-        } else if (
-          route.kind === "settings" ||
-          route.kind === "preferences" ||
-          route.kind === "usage"
-        ) {
+        } else {
           // Modals overlay the most recently loaded week. If nothing is
           // loaded yet (fresh bookmark), fall back to the current week.
           fetched = week?.id ? await getWeekById(week.id) : await getCurrentWeek();
-        } else {
-          // kind === "current" (fallback landing route): resolve via the
-          // backend and pin the URL to the specific week.
-          fetched = await getCurrentWeek();
-          if (fetched) {
-            navigate({ kind: "week", id: fetched.id }, { replace: true });
-          }
         }
         if (cancelled) return;
         if (fetched) {
@@ -354,12 +352,12 @@ function Main({ route }: { route: Route }) {
         await deleteWeek(target.id);
         setSidebarRefresh((k) => k + 1);
         toast.success(t("toast.week_deleted"));
-        // If the deleted plan was the one being viewed, fall back to the
-        // current plan so we don't stay on a dead URL.
+        // If the deleted plan was the one being viewed, fall back to home
+        // so we don't stay on a dead URL.
         if (week?.id === target.id) {
           setWeek(null);
-          setStatus("loading");
-          navigate({ kind: "current" }, { replace: true });
+          setStatus("ready");
+          navigate({ kind: "home" }, { replace: true });
         }
       } catch (err) {
         toast.error(err instanceof Error ? err.message : String(err));
@@ -446,7 +444,13 @@ function Main({ route }: { route: Route }) {
           {planMode ? (
             <PlanNewForm
               onSubmit={createNewPlan}
-              onCancel={week ? () => goBack({ kind: "week", id: week.id }) : undefined}
+              onCancel={() => goBack(week ? { kind: "week", id: week.id } : { kind: "home" })}
+            />
+          ) : homeMode ? (
+            <HomeView
+              refreshKey={sidebarRefresh}
+              onPlanNew={() => navigate({ kind: "new" })}
+              onOpenWeek={(id) => navigate({ kind: "week", id })}
             />
           ) : (
             <>
@@ -536,9 +540,14 @@ function TopBar({
             <path d="M3 5a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1Zm0 5a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1Zm1 4a1 1 0 1 0 0 2h12a1 1 0 1 0 0-2H4Z" />
           </svg>
         </button>
-        <span className="truncate font-serif text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-100">
+        <button
+          type="button"
+          onClick={() => navigate({ kind: "home" })}
+          aria-label={t("topbar.brand_home")}
+          className="-mx-1 truncate rounded-md px-1 font-serif text-lg font-semibold tracking-tight text-stone-900 hover:bg-stone-100 dark:text-stone-100 dark:hover:bg-stone-800"
+        >
           Veckomenyn<span className="text-orange-600 dark:text-orange-500">.</span>
-        </span>
+        </button>
         {busy && (
           <button
             type="button"
