@@ -7,11 +7,7 @@ import {
   type UpdateConfig,
   type UpdateStatus,
 } from "../lib/api";
-
-// UpdateBanner listens for this event and re-fetches its status when it
-// fires, so a manual check from Settings reflects in the banner without
-// a full page reload.
-export const UPDATES_REFRESHED_EVENT = "veckomenyn:updates-refreshed";
+import { UPDATES_REFRESHED_EVENT } from "../lib/events";
 
 export function UpdatesSection() {
   useLang();
@@ -51,6 +47,7 @@ export function UpdatesSection() {
   const onCheck = async () => {
     setChecking(true);
     setError(null);
+    setCheckResult(null);
     try {
       const status = await checkUpdates();
       setCheckResult(status);

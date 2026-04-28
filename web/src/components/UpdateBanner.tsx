@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { t, useLang } from "../i18n";
 import { applyUpdate, getUpdates, getVersion, type UpdateStatus } from "../lib/api";
-import { UPDATES_REFRESHED_EVENT } from "./UpdatesSection";
+import { UPDATES_REFRESHED_EVENT } from "../lib/events";
 
 const DISMISSED_KEY = "veckomenyn.update.dismissed";
 const UPGRADED_FROM_KEY = "veckomenyn.update.upgraded_from";

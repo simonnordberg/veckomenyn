@@ -69,7 +69,6 @@ func newReleaseServer(t *testing.T, calls *int32, tag string) *httptest.Server {
 	}))
 }
 
-
 func TestCmp(t *testing.T) {
 	cases := []struct {
 		a, b string
