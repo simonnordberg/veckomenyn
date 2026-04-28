@@ -282,6 +282,71 @@ func TestGetProduct(t *testing.T) {
 	}
 }
 
+// fakeWillysServer returns a httptest server that mimics the endpoints the
+// real Willys.se backend exposes for login. customerJSON is what /customer
+// will return; pass an "anonymous" body to simulate bad credentials, since
+// the real backend returns 200 on /login regardless and only the customer
+// payload reveals whether auth actually succeeded.
+func fakeWillysServer(t *testing.T, customerJSON string) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{Name: "JSESSIONID", Value: "sess"})
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("/axfood/rest/csrf-token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`"csrf-token"`))
+	})
+	mux.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	mux.HandleFunc("/axfood/rest/customer", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(customerJSON))
+	})
+	return httptest.NewServer(mux)
+}
+
+func TestLoginRejectsAnonymousResponse(t *testing.T) {
+	srv := fakeWillysServer(t, `{"name":"anonymous"}`)
+	defer srv.Close()
+
+	store := &FileSessionStore{Path: filepath.Join(t.TempDir(), "session.json")}
+	c := NewClientWithStore(store)
+	c.baseOverride = srv.URL
+
+	_, err := c.Login("bad", "creds")
+	if err == nil {
+		t.Fatal("Login: want error for anonymous response, got nil")
+	}
+	if !IsAuthError(err) {
+		t.Errorf("IsAuthError(err) = false; want true (err=%v)", err)
+	}
+	if c.IsLoggedIn() {
+		t.Error("IsLoggedIn = true after rejected login; want false")
+	}
+	if _, statErr := os.Stat(store.Path); !os.IsNotExist(statErr) {
+		t.Error("session file should not be saved when login is rejected")
+	}
+}
+
+func TestLoginSucceedsForRealCustomer(t *testing.T) {
+	srv := fakeWillysServer(t, `{"uid":"u-1","name":"Alice","firstName":"Alice"}`)
+	defer srv.Close()
+
+	c := NewClientWithStore(&FileSessionStore{Path: filepath.Join(t.TempDir(), "session.json")})
+	c.baseOverride = srv.URL
+
+	cust, err := c.Login("good", "creds")
+	if err != nil {
+		t.Fatalf("Login: %v", err)
+	}
+	if cust.FirstName != "Alice" {
+		t.Errorf("FirstName = %q, want %q", cust.FirstName, "Alice")
+	}
+}
+
 func TestSessionRoundTrip(t *testing.T) {
 	store := &FileSessionStore{Path: filepath.Join(t.TempDir(), "session.json")}
 
