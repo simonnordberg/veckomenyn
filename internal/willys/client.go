@@ -331,7 +331,7 @@ func (c *Client) Search(query string, page, size int) (SearchResult, error) {
 		"size": {strconv.Itoa(size)},
 		"page": {strconv.Itoa(page)},
 	}
-	resp, err := c.do(http.MethodGet, "/search/clean?"+params.Encode(), nil)
+	resp, err := c.do(http.MethodGet, "/search?"+params.Encode(), nil)
 	if err != nil {
 		return SearchResult{}, err
 	}

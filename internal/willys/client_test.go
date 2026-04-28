@@ -92,6 +92,32 @@ func TestParseSearchResult(t *testing.T) {
 	}
 }
 
+func TestSearchUsesMultiWordEndpoint(t *testing.T) {
+	// Willys has two search endpoints: /search/clean returns a degenerate
+	// single-token match (q=färsk koriander → Färskost). /search does proper
+	// multi-word relevance. We must hit /search.
+	var gotPath, gotQuery string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		gotQuery = r.URL.Query().Get("q")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"results":[],"pagination":{}}`))
+	}))
+	defer srv.Close()
+
+	c := &Client{http: srv.Client(), cookies: map[string]string{}}
+	c.baseOverride = srv.URL
+	if _, err := c.Search("färsk koriander", 0, 10); err != nil {
+		t.Fatalf("Search: %v", err)
+	}
+	if gotPath != "/search" {
+		t.Errorf("path = %q, want %q", gotPath, "/search")
+	}
+	if gotQuery != "färsk koriander" {
+		t.Errorf("q = %q, want %q", gotQuery, "färsk koriander")
+	}
+}
+
 func TestParseOrderDetail(t *testing.T) {
 	raw := `{
 		"orderNumber":"3057837654",
