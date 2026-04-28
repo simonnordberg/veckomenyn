@@ -13,8 +13,8 @@ The image tag in your `docker-compose.yml` is the channel:
 
 | Tag | Resolves to | When |
 |---|---|---|
-| `:0.4.0` | Pinned exact version. | Maximum stability. Bump manually. |
-| `:0.4` | Latest 0.4.x patch. | **Default.** Bug fixes only. |
+| `:0.5.0` | Pinned exact version. | Maximum stability. Bump manually. |
+| `:0.5` | Latest 0.5.x patch. | **Default.** Bug fixes only. |
 | `:0` | Latest 0.x. | Patches + new features within 0.x. |
 | `:latest` | Whatever just shipped. | Bleeding edge. |
 
