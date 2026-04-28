@@ -425,6 +425,13 @@ export async function getUpdates(): Promise<UpdateStatus> {
   return (await r.json()) as UpdateStatus;
 }
 
+// checkUpdates forces a fresh upstream check, bypassing the 1h cache.
+export async function checkUpdates(): Promise<UpdateStatus> {
+  const r = await fetch("/api/updates/check", { method: "POST" });
+  if (!r.ok) throw new Error(`updates/check: ${r.status}`);
+  return (await r.json()) as UpdateStatus;
+}
+
 export async function applyUpdate(): Promise<void> {
   const r = await fetch("/api/updates/apply", { method: "POST" });
   if (!r.ok && r.status !== 202) throw new Error(await r.text());

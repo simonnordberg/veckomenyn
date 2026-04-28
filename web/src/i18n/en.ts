@@ -321,6 +321,10 @@ export const en: Record<string, string> = {
   "update.auto_label": "Apply updates automatically",
   "update.auto_hint": "Hourly check; if a newer version is published, restart with the new image.",
   "update.auto_unavailable": "Auto-update needs the Watchtower trigger sidecar. See deploy docs.",
+  "update.check_now": "Check for updates",
+  "update.checking": "Checking…",
+  "update.up_to_date": "You're on the latest version (v{version}).",
+  "update.found": "Update available: v{version}.",
 
   "setup.welcome_title": "Welcome to Veckomenyn",
   "setup.welcome_body":

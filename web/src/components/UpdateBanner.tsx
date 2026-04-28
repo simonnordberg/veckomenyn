@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { t, useLang } from "../i18n";
 import { applyUpdate, getUpdates, getVersion, type UpdateStatus } from "../lib/api";
+import { UPDATES_REFRESHED_EVENT } from "./UpdatesSection";
 
 const DISMISSED_KEY = "veckomenyn.update.dismissed";
 const UPGRADED_FROM_KEY = "veckomenyn.update.upgraded_from";
@@ -45,19 +46,35 @@ export function UpdateBanner() {
     };
   }, []);
 
+  // Initial fetch + re-fetch when Settings dispatches a manual check, so
+  // the banner appears (or disappears) inline without needing a reload.
   useEffect(() => {
     let cancelled = false;
-    getUpdates()
-      .then((s) => {
-        if (!cancelled) setStatus(s);
-      })
-      .catch(() => {
-        /* silently keep banner hidden on error */
-      });
+    const fetchStatus = () => {
+      getUpdates()
+        .then((s) => {
+          if (!cancelled) setStatus(s);
+        })
+        .catch(() => {
+          /* silently keep banner hidden on error */
+        });
+    };
+    fetchStatus();
+    window.addEventListener(UPDATES_REFRESHED_EVENT, fetchStatus);
     return () => {
       cancelled = true;
+      window.removeEventListener(UPDATES_REFRESHED_EVENT, fetchStatus);
     };
   }, []);
+
+  // If the user dismissed an older version, allow the banner to reappear
+  // when a newer one shows up.
+  useEffect(() => {
+    if (status?.latest && dismissed && status.latest !== dismissed) {
+      window.localStorage.removeItem(DISMISSED_KEY);
+      setDismissed("");
+    }
+  }, [status?.latest, dismissed]);
 
   // Post-update success toast, rendered independently of the
   // available-update banner so it shows even when there's nothing new.

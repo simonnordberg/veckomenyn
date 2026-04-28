@@ -117,6 +117,7 @@ func (s *Server) routes() {
 		r.Get("/health", s.handleHealth)
 		r.Get("/version", s.handleVersion)
 		r.Get("/updates", s.handleGetUpdates)
+		r.Post("/updates/check", s.handleCheckUpdates)
 		r.Post("/updates/apply", s.handleApplyUpdate)
 		r.Get("/update-config", s.handleGetUpdateConfig)
 		r.Patch("/update-config", s.handlePatchUpdateConfig)
@@ -173,6 +174,17 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetUpdates(w http.ResponseWriter, r *http.Request) {
+	s.respondWithUpdateStatus(w, r, false)
+}
+
+// handleCheckUpdates forces a fresh upstream check, bypassing the 1h cache.
+// Wired to a button in Settings so users can verify a freshly cut release
+// is visible without waiting out the TTL or restarting the server.
+func (s *Server) handleCheckUpdates(w http.ResponseWriter, r *http.Request) {
+	s.respondWithUpdateStatus(w, r, true)
+}
+
+func (s *Server) respondWithUpdateStatus(w http.ResponseWriter, r *http.Request, force bool) {
 	canApply := s.updateTrigger != nil && s.updateTrigger.Configured()
 
 	autoEnabled := false
@@ -193,9 +205,16 @@ func (s *Server) handleGetUpdates(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	status, err := s.updates.Status(r.Context())
+
+	var status updates.Status
+	var err error
+	if force {
+		status, err = s.updates.Refresh(r.Context())
+	} else {
+		status, err = s.updates.Status(r.Context())
+	}
 	if err != nil {
-		s.log.Warn("update check failed", "err", err)
+		s.log.Warn("update check failed", "err", err, "forced", force)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"current":      status.Current,
