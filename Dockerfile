@@ -6,7 +6,7 @@
 # Actions runners.
 
 # ---- Web frontend ---------------------------------------------------------
-FROM node:24-alpine AS web
+FROM node:25-alpine AS web
 WORKDIR /app/web
 RUN corepack enable pnpm
 COPY web/package.json web/pnpm-lock.yaml ./
