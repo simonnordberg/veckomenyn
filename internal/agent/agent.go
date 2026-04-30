@@ -73,7 +73,7 @@ func (a *Agent) resolveProvider(ctx context.Context) (llm.Provider, string, erro
 	case providers.KindAnthropic:
 		key := a.providers.AnthropicAPIKey(ctx)
 		if key == "" {
-			return nil, "", fmt.Errorf("Anthropic API key not configured (set in Settings -> Integrations)")
+			return nil, "", fmt.Errorf("anthropic API key not configured (set in Settings -> Integrations)")
 		}
 		p, err := llm.NewAnthropic(key)
 		if err != nil {
@@ -84,7 +84,7 @@ func (a *Agent) resolveProvider(ctx context.Context) (llm.Provider, string, erro
 	case providers.KindOpenAI:
 		cfg, ok := a.providers.OpenAIConfig(ctx)
 		if !ok {
-			return nil, "", fmt.Errorf("OpenAI API key not configured (set in Settings -> Integrations)")
+			return nil, "", fmt.Errorf("openAI API key not configured (set in Settings -> Integrations)")
 		}
 		p, err := llm.NewOpenAI(cfg.BaseURL, cfg.Model, cfg.APIKey)
 		if err != nil {
@@ -95,7 +95,7 @@ func (a *Agent) resolveProvider(ctx context.Context) (llm.Provider, string, erro
 	case providers.KindOpenAICompat:
 		cfg, ok := a.providers.OpenAICompatConfig(ctx)
 		if !ok {
-			return nil, "", fmt.Errorf("OpenAI-compatible provider not configured (set in Settings -> Integrations)")
+			return nil, "", fmt.Errorf("openAI-compatible provider not configured (set in Settings -> Integrations)")
 		}
 		p, err := llm.NewOpenAI(cfg.BaseURL, cfg.Model, cfg.APIKey)
 		if err != nil {
