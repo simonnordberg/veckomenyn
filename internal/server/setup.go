@@ -4,11 +4,11 @@ import (
 	"net/http"
 
 	"github.com/simonnordberg/veckomenyn/internal/seed"
+	"github.com/simonnordberg/veckomenyn/internal/store"
 )
 
 // setupStatusDTO drives the first-run wizard. setup_complete flips to true
-// the moment any LLM provider is configured. Households can be added later
-// via the regular UI; we don't gate on them.
+// the moment an LLM provider has been selected and its config saved.
 type setupStatusDTO struct {
 	SetupComplete    bool `json:"setup_complete"`
 	HasLLMProvider   bool `json:"has_llm_provider"`
@@ -18,10 +18,11 @@ type setupStatusDTO struct {
 
 func (s *Server) handleGetSetupStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	hasAnthropic := s.providers.AnthropicAPIKey(ctx) != ""
-	_, hasOpenAI := s.providers.OpenAIConfig(ctx)
-	_, hasOpenAICompat := s.providers.OpenAICompatConfig(ctx)
-	hasLLM := hasAnthropic || hasOpenAI || hasOpenAICompat
+
+	hasLLM := false
+	if hs, err := store.GetHouseholdSettings(ctx, s.db.Pool); err == nil && hs.LLMProvider != "" {
+		hasLLM = true
+	}
 
 	var prefCount int
 	_ = s.db.Pool.QueryRow(ctx,

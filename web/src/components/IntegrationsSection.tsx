@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { t, useLang } from "../i18n";
 import {
+  getSettings,
   listProviders,
   type Provider,
   type ProviderKindInfo,
   patchProvider,
+  patchSettings,
   testProvider,
 } from "../lib/api";
 import { toast } from "../lib/toast";
@@ -80,33 +82,26 @@ function LLMProviderCard({
   sentinel: string;
   onSaved: () => void;
 }) {
-  const enabledProvider = providers.find((p) => p.enabled && kinds.some((k) => k.kind === p.kind));
-  const activeKind = enabledProvider?.kind ?? kinds[0]?.kind ?? "";
+  const [activeKind, setActiveKind] = useState(kinds[0]?.kind ?? "");
   const [switching, setSwitching] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    getSettings()
+      .then((s) => {
+        if (s.llm_provider) setActiveKind(s.llm_provider);
+      })
+      .catch(() => {});
+  }, []);
 
   const selectProvider = async (newKind: string) => {
     if (switching || newKind === activeKind) return;
     setSwitching(true);
     setTestResult(null);
     try {
-      const getProvider = (kind: string) =>
-        providers.find((x) => x.kind === kind) ?? { kind, enabled: false, config: {} };
-      const disableOthers = kinds
-        .filter((k) => k.kind !== newKind)
-        .map((k) => {
-          const p = getProvider(k.kind);
-          if (p.enabled) return patchProvider(k.kind, { enabled: false, config: p.config });
-          return null;
-        })
-        .filter(Boolean);
-      const newProvider = getProvider(newKind);
-      await Promise.all([
-        ...disableOthers,
-        patchProvider(newKind, { enabled: true, config: newProvider.config }),
-      ]);
-      onSaved();
+      await patchSettings({ llm_provider: newKind });
+      setActiveKind(newKind);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
@@ -166,7 +161,6 @@ function LLMProviderCard({
             provider={p}
             sentinel={sentinel}
             visible={activeKind === info.kind}
-            isActive
             onSaved={onSaved}
             testing={testing}
             testResult={activeKind === info.kind ? testResult : null}
@@ -183,7 +177,6 @@ function LLMProviderFields({
   provider,
   sentinel,
   visible,
-  isActive,
   onSaved,
   testing,
   testResult,
@@ -193,7 +186,6 @@ function LLMProviderFields({
   provider: Provider;
   sentinel: string;
   visible: boolean;
-  isActive: boolean;
   onSaved: () => void;
   testing: boolean;
   testResult: { ok: boolean; message: string } | null;
@@ -222,7 +214,7 @@ function LLMProviderFields({
     if (pending || !dirty) return;
     setPending(true);
     try {
-      await patchProvider(info.kind, { enabled: isActive, config });
+      await patchProvider(info.kind, { config });
       toast.success(t("toast.changes_saved"));
       onSaved();
     } catch (err) {
@@ -243,7 +235,7 @@ function LLMProviderFields({
         onChange={(key, val) => setConfig((c) => ({ ...c, [key]: val }))}
       />
       <div className="flex items-center justify-end gap-2">
-        {isActive && !dirty && (
+        {!dirty && (
           <button
             type="button"
             onClick={onTest}

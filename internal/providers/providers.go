@@ -394,7 +394,7 @@ func (s *Store) Upsert(ctx context.Context, kind Kind, patch UpsertPatch) (*Prov
 // "not configured yet, show a Settings pointer".
 func (s *Store) AnthropicAPIKey(ctx context.Context) string {
 	p, err := s.Get(ctx, KindAnthropic)
-	if err != nil || !p.Enabled {
+	if err != nil {
 		return ""
 	}
 	if v, ok := p.Config["api_key"].(string); ok {
@@ -424,7 +424,7 @@ type OpenAIConfig struct {
 
 func (s *Store) OpenAIConfig(ctx context.Context) (OpenAIConfig, bool) {
 	p, err := s.Get(ctx, KindOpenAI)
-	if err != nil || !p.Enabled {
+	if err != nil {
 		return OpenAIConfig{}, false
 	}
 	apiKey, _ := p.Config["api_key"].(string)
@@ -446,7 +446,7 @@ type OpenAICompatConfig struct {
 
 func (s *Store) OpenAICompatConfig(ctx context.Context) (OpenAICompatConfig, bool) {
 	p, err := s.Get(ctx, KindOpenAICompat)
-	if err != nil || !p.Enabled {
+	if err != nil {
 		return OpenAICompatConfig{}, false
 	}
 	baseURL, _ := p.Config["base_url"].(string)

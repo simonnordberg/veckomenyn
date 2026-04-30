@@ -211,10 +211,11 @@ export async function patchWeek(id: number, patch: WeekPatch): Promise<WeekDetai
 
 export type HouseholdSettings = {
   default_dinners: number;
-  default_delivery_weekday: number; // 1=Mon … 7=Sun
+  default_delivery_weekday: number; // 1=Mon ... 7=Sun
   default_order_offset_days: number;
   default_servings: number;
   language: "sv" | "en";
+  llm_provider: string;
   notes_md: string;
 };
 

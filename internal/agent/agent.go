@@ -60,32 +60,52 @@ func New(cfg Config, db *pgxpool.Pool, provStore *providers.Store, shop shopping
 	return a
 }
 
-// resolveProvider builds an LLM provider from the first enabled LLM config.
-// Called once per Run so key/config changes in Settings take effect on the
-// next turn without a restart.
+// resolveProvider reads the llm_provider setting and builds the matching
+// provider from saved config. Called once per Run so changes take effect
+// on the next turn without a restart.
 func (a *Agent) resolveProvider(ctx context.Context) (llm.Provider, string, error) {
-	if key := a.providers.AnthropicAPIKey(ctx); key != "" {
+	s, err := store.GetHouseholdSettings(ctx, a.db)
+	if err != nil {
+		return nil, "", fmt.Errorf("read settings: %w", err)
+	}
+
+	switch providers.Kind(s.LLMProvider) {
+	case providers.KindAnthropic:
+		key := a.providers.AnthropicAPIKey(ctx)
+		if key == "" {
+			return nil, "", fmt.Errorf("Anthropic API key not configured (set in Settings -> Integrations)")
+		}
 		p, err := llm.NewAnthropic(key)
 		if err != nil {
 			return nil, "", err
 		}
 		return p, a.providers.AnthropicModel(ctx), nil
-	}
-	if cfg, ok := a.providers.OpenAIConfig(ctx); ok {
+
+	case providers.KindOpenAI:
+		cfg, ok := a.providers.OpenAIConfig(ctx)
+		if !ok {
+			return nil, "", fmt.Errorf("OpenAI API key not configured (set in Settings -> Integrations)")
+		}
 		p, err := llm.NewOpenAI(cfg.BaseURL, cfg.Model, cfg.APIKey)
 		if err != nil {
 			return nil, "", err
 		}
 		return p, cfg.Model, nil
-	}
-	if cfg, ok := a.providers.OpenAICompatConfig(ctx); ok {
+
+	case providers.KindOpenAICompat:
+		cfg, ok := a.providers.OpenAICompatConfig(ctx)
+		if !ok {
+			return nil, "", fmt.Errorf("OpenAI-compatible provider not configured (set in Settings -> Integrations)")
+		}
 		p, err := llm.NewOpenAI(cfg.BaseURL, cfg.Model, cfg.APIKey)
 		if err != nil {
 			return nil, "", err
 		}
 		return p, cfg.Model, nil
+
+	default:
+		return nil, "", fmt.Errorf("unknown LLM provider %q (set in Settings -> Integrations)", s.LLMProvider)
 	}
-	return nil, "", fmt.Errorf("no LLM provider configured (set in Settings -> Integrations)")
 }
 
 // Event is a coarse-grained update for callers (chat handlers, tests).

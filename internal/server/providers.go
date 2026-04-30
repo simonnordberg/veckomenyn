@@ -11,6 +11,7 @@ import (
 
 	"github.com/simonnordberg/veckomenyn/internal/llm"
 	"github.com/simonnordberg/veckomenyn/internal/providers"
+	"github.com/simonnordberg/veckomenyn/internal/store"
 )
 
 // providersEnvelope wraps the list response with kind metadata so the UI can
@@ -88,25 +89,19 @@ func (s *Server) handlePatchProvider(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleTestProvider(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Find the currently enabled LLM provider from the DB.
-	llmKinds := []providers.Kind{providers.KindAnthropic, providers.KindOpenAI, providers.KindOpenAICompat}
-	var activeKind providers.Kind
-	var config map[string]any
-	for _, kind := range llmKinds {
-		p, err := s.providers.Get(ctx, kind)
-		if err != nil || !p.Enabled {
-			continue
-		}
-		activeKind = kind
-		config = p.Config
-		break
+	hs, err := store.GetHouseholdSettings(ctx, s.db.Pool)
+	if err != nil || hs.LLMProvider == "" {
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": "No LLM provider selected"})
+		return
 	}
-	if activeKind == "" {
-		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": "No LLM provider enabled"})
+	activeKind := providers.Kind(hs.LLMProvider)
+	p, err := s.providers.Get(ctx, activeKind)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": "Provider not configured"})
 		return
 	}
 
-	provider, model, err := buildProvider(activeKind, config)
+	provider, model, err := buildProvider(activeKind, p.Config)
 	if err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": err.Error()})
 		return

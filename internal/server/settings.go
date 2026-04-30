@@ -22,6 +22,7 @@ type settingsPatch struct {
 	DefaultOrderOffsetDays *int    `json:"default_order_offset_days"`
 	DefaultServings        *int    `json:"default_servings"`
 	Language               *string `json:"language"`
+	LLMProvider            *string `json:"llm_provider"`
 	NotesMD                *string `json:"notes_md"`
 }
 
@@ -37,6 +38,7 @@ func (s *Server) handlePatchSettings(w http.ResponseWriter, r *http.Request) {
 		DefaultOrderOffsetDays: p.DefaultOrderOffsetDays,
 		DefaultServings:        p.DefaultServings,
 		Language:               p.Language,
+		LLMProvider:            p.LLMProvider,
 		NotesMD:                p.NotesMD,
 	})
 	if err != nil {
