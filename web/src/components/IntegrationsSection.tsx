@@ -176,32 +176,12 @@ function LLMProviderCard({
             visible={viewKind === info.kind}
             isActive={activeKind === info.kind}
             onSaved={onSaved}
+            testing={testing}
+            testResult={activeKind === info.kind ? testResult : null}
+            onTest={runTest}
           />
         );
       })}
-      {testResult && (
-        <div
-          className={`mt-2 rounded-md border px-3 py-2 text-xs ${
-            testResult.ok
-              ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
-              : "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
-          }`}
-        >
-          {testResult.message}
-        </div>
-      )}
-      {activeKind === viewKind && (
-        <div className="mt-2 flex justify-end">
-          <button
-            type="button"
-            onClick={() => void runTest()}
-            disabled={testing || switching}
-            className="rounded-md border border-stone-300 px-3 py-1 text-xs font-medium text-stone-700 shadow-sm hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
-          >
-            {testing ? t("provider.testing") : t("provider.test")}
-          </button>
-        </div>
-      )}
     </article>
   );
 }
@@ -213,6 +193,9 @@ function LLMProviderFields({
   visible,
   isActive,
   onSaved,
+  testing,
+  testResult,
+  onTest,
 }: {
   info: ProviderKindInfo;
   provider: Provider;
@@ -220,6 +203,9 @@ function LLMProviderFields({
   visible: boolean;
   isActive: boolean;
   onSaved: () => void;
+  testing: boolean;
+  testResult: { ok: boolean; message: string } | null;
+  onTest: () => void;
 }) {
   const initialConfig = (p: Provider) => {
     const c = { ...p.config };
@@ -264,8 +250,18 @@ function LLMProviderFields({
         sentinel={sentinel}
         onChange={(key, val) => setConfig((c) => ({ ...c, [key]: val }))}
       />
-      {dirty && (
-        <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-2">
+        {isActive && !dirty && (
+          <button
+            type="button"
+            onClick={onTest}
+            disabled={testing || pending}
+            className="rounded-md border border-stone-300 px-3 py-1 text-xs font-medium text-stone-700 shadow-sm hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
+          >
+            {testing ? t("provider.testing") : t("provider.test")}
+          </button>
+        )}
+        {dirty && (
           <button
             type="button"
             onClick={() => void save()}
@@ -274,6 +270,17 @@ function LLMProviderFields({
           >
             {pending ? t("settings.saving") : t("settings.save")}
           </button>
+        )}
+      </div>
+      {testResult && (
+        <div
+          className={`rounded-md border px-3 py-2 text-xs ${
+            testResult.ok
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+              : "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
+          }`}
+        >
+          {testResult.message}
         </div>
       )}
     </div>
