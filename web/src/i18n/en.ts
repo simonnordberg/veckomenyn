@@ -234,6 +234,9 @@ export const en: Record<string, string> = {
     "Leave empty for local backends that don't require authentication.",
   "provider.openai_compat.model_hint": "Model name as the backend expects it.",
   "provider.willys.username": "Username (YYYYMMDDNNNN)",
+  "provider.test": "Test connection",
+  "provider.testing": "Testing...",
+  "provider.test_unknown_error": "Unknown error",
 
   // Preferences modal (new + body placeholder)
   "prefs.new_category_placeholder": "e.g. allergies",

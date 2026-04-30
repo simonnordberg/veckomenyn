@@ -143,6 +143,7 @@ func (s *Server) routes() {
 		r.Patch("/settings", s.handlePatchSettings)
 		r.Get("/providers", s.handleListProviders)
 		r.Patch("/providers/{kind}", s.handlePatchProvider)
+		r.Post("/providers/test", s.handleTestProvider)
 		r.Get("/preferences", s.handleListPreferences)
 		r.Put("/preferences/{category}", s.handlePutPreference)
 		r.Delete("/preferences/{category}", s.handleDeletePreference)

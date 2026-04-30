@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { t, useLang } from "../i18n";
-import { listProviders, type Provider, type ProviderKindInfo, patchProvider } from "../lib/api";
+import {
+  listProviders,
+  type Provider,
+  type ProviderKindInfo,
+  patchProvider,
+  testProvider,
+} from "../lib/api";
 import { toast } from "../lib/toast";
 
 export function IntegrationsSection() {
@@ -95,11 +101,14 @@ function LLMProviderCard({
     selectedInfo ? initialConfig(selectedInfo, getProvider(activeKind)) : {},
   );
   const [pending, setPending] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   useEffect(() => {
     if (!selectedInfo) return;
     const p = getProvider(activeKind);
     setConfig(initialConfig(selectedInfo, p));
+    setTestResult(null);
   }, [activeKind, providers]);
 
   const switchProvider = async (newKind: string) => {
@@ -147,6 +156,23 @@ function LLMProviderCard({
     }
   };
 
+  const runTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const r = await testProvider();
+      if (r.ok) {
+        setTestResult({ ok: true, message: `${r.model}: "${r.reply}"` });
+      } else {
+        setTestResult({ ok: false, message: r.error ?? t("provider.test_unknown_error") });
+      }
+    } catch (err) {
+      setTestResult({ ok: false, message: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setTesting(false);
+    }
+  };
+
   if (!selectedInfo) return null;
 
   return (
@@ -179,7 +205,28 @@ function LLMProviderCard({
           onChange={(key, val) => setConfig((c) => ({ ...c, [key]: val }))}
         />
       </div>
-      <div className="mt-3 flex items-center justify-end">
+      {testResult && (
+        <div
+          className={`mt-2 rounded-md border px-3 py-2 text-xs ${
+            testResult.ok
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+              : "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
+          }`}
+        >
+          {testResult.message}
+        </div>
+      )}
+      <div className="mt-3 flex items-center justify-end gap-2">
+        {!dirty && (
+          <button
+            type="button"
+            onClick={() => void runTest()}
+            disabled={testing || pending}
+            className="rounded-md border border-stone-300 px-3 py-1 text-xs font-medium text-stone-700 shadow-sm hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
+          >
+            {testing ? t("provider.testing") : t("provider.test")}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => void saveFields()}

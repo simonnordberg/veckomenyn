@@ -290,6 +290,20 @@ export async function patchProvider(
   return (await r.json()) as Provider;
 }
 
+export type TestProviderResult = {
+  ok: boolean;
+  error?: string;
+  model?: string;
+  reply?: string;
+  usage?: { input_tokens: number; output_tokens: number };
+};
+
+export async function testProvider(): Promise<TestProviderResult> {
+  const r = await fetch("/api/providers/test", { method: "POST" });
+  if (!r.ok) throw new Error(`test provider: ${r.status}`);
+  return (await r.json()) as TestProviderResult;
+}
+
 // Preferences
 
 export type Preference = {

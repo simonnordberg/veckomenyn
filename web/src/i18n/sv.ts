@@ -236,6 +236,9 @@ export const sv: Record<string, string> = {
     "Lämna tomt för lokala backends som inte kräver autentisering.",
   "provider.openai_compat.model_hint": "Modellnamn som backend förväntar sig.",
   "provider.willys.username": "Användarnamn (YYYYMMDDNNNN)",
+  "provider.test": "Testa anslutning",
+  "provider.testing": "Testar...",
+  "provider.test_unknown_error": "Okänt fel",
 
   // Preferences modal (new + body placeholder)
   "prefs.new_category_placeholder": "t.ex. allergier",
