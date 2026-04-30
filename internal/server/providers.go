@@ -115,20 +115,23 @@ func (s *Server) handleTestProvider(w http.ResponseWriter, r *http.Request) {
 	testCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	var reply string
 	result, err := provider.RunStream(testCtx, llm.RunParams{
 		Model:     model,
 		MaxTokens: 200,
 		System:    []llm.SystemBlock{{Text: "You are a meal-planning assistant. The user is testing that you are reachable. Introduce yourself in one short sentence in the user's language. Be warm and mention food."}},
 		Messages:  []llm.Message{llm.NewUserMessage(llm.TextBlock("Hey! Are you there?"))},
-	}, func(ev llm.StreamEvent) {
-		if ev.Kind == llm.EventTextDelta {
-			reply += ev.Text
-		}
-	})
+	}, func(llm.StreamEvent) {})
 	if err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": err.Error()})
 		return
+	}
+
+	var reply string
+	for _, b := range result.AssistantMessage.Content {
+		if b.Type == "text" && b.Text != "" {
+			reply = b.Text
+			break
+		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
