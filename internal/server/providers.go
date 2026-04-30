@@ -118,7 +118,7 @@ func (s *Server) handleTestProvider(w http.ResponseWriter, r *http.Request) {
 	var reply string
 	result, err := provider.RunStream(testCtx, llm.RunParams{
 		Model:     model,
-		MaxTokens: 50,
+		MaxTokens: 200,
 		System:    []llm.SystemBlock{{Text: "You are a meal-planning assistant. The user is testing that you are reachable. Introduce yourself in one short sentence in the user's language. Be warm and mention food."}},
 		Messages:  []llm.Message{llm.NewUserMessage(llm.TextBlock("Hej! Fungerar du?"))},
 	}, func(ev llm.StreamEvent) {
