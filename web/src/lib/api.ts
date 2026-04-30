@@ -462,7 +462,7 @@ export async function patchUpdateConfig(p: {
 
 export type SetupStatus = {
   setup_complete: boolean;
-  has_anthropic_key: boolean;
+  has_llm_provider: boolean;
   has_preferences: boolean;
   has_family_members: boolean;
 };

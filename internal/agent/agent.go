@@ -62,17 +62,24 @@ func New(cfg Config, db *pgxpool.Pool, provStore *providers.Store, shop shopping
 
 // resolveProvider builds an LLM provider from the current DB provider config.
 // Called once per Run so key/config changes in Settings take effect on the
-// next turn without a restart.
+// next turn without a restart. Anthropic is preferred when configured;
+// OpenAI-compatible is the fallback.
 func (a *Agent) resolveProvider(ctx context.Context) (llm.Provider, string, error) {
-	key := a.providers.AnthropicAPIKey(ctx)
-	if key == "" {
-		return nil, "", fmt.Errorf("no LLM provider configured (set in Settings -> Integrations)")
+	if key := a.providers.AnthropicAPIKey(ctx); key != "" {
+		p, err := llm.NewAnthropic(key)
+		if err != nil {
+			return nil, "", err
+		}
+		return p, a.providers.AnthropicModel(ctx), nil
 	}
-	p, err := llm.NewAnthropic(key)
-	if err != nil {
-		return nil, "", err
+	if cfg, ok := a.providers.OpenAICompatConfig(ctx); ok {
+		p, err := llm.NewOpenAI(cfg.BaseURL, cfg.Model, cfg.APIKey)
+		if err != nil {
+			return nil, "", err
+		}
+		return p, cfg.Model, nil
 	}
-	return p, a.providers.AnthropicModel(ctx), nil
+	return nil, "", fmt.Errorf("no LLM provider configured (set in Settings -> Integrations)")
 }
 
 // Event is a coarse-grained update for callers (chat handlers, tests).

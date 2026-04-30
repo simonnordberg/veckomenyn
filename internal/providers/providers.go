@@ -23,8 +23,9 @@ import (
 type Kind string
 
 const (
-	KindAnthropic Kind = "anthropic"
-	KindWillys    Kind = "willys"
+	KindAnthropic    Kind = "anthropic"
+	KindOpenAICompat Kind = "openai_compat"
+	KindWillys       Kind = "willys"
 )
 
 // Known tracks the set of provider kinds the app knows about, plus human
@@ -76,6 +77,16 @@ var Known = []KindInfo{
 					{Value: "claude-opus-4-7", Label: "Claude Opus 4.7 ($$$, bäst kvalitet)"},
 				},
 			},
+		},
+	},
+	{
+		Kind:        KindOpenAICompat,
+		Category:    "llm",
+		DisplayName: "OpenAI-kompatibel (lokal/annan)",
+		Fields: []Field{
+			{Key: "base_url", Label: "API-bas-URL", Type: "text", Placeholder: "http://localhost:11434/v1", Required: true, Hint: "Bas-URL till en OpenAI-kompatibel API (llama.cpp, Ollama, OpenAI, etc.)."},
+			{Key: "api_key", Label: "API-nyckel", Type: "password", Hint: "Lämna tomt för lokala backends som inte kräver autentisering."},
+			{Key: "model", Label: "Modell", Type: "text", Placeholder: "llama3.1:8b", Required: true, Hint: "Modellnamn som backend förväntar sig."},
 		},
 	},
 	{
@@ -376,6 +387,26 @@ func (s *Store) AnthropicModel(ctx context.Context) string {
 		return v
 	}
 	return DefaultAnthropicModel
+}
+
+type OpenAICompatConfig struct {
+	BaseURL string
+	APIKey  string
+	Model   string
+}
+
+func (s *Store) OpenAICompatConfig(ctx context.Context) (OpenAICompatConfig, bool) {
+	p, err := s.Get(ctx, KindOpenAICompat)
+	if err != nil || !p.Enabled {
+		return OpenAICompatConfig{}, false
+	}
+	baseURL, _ := p.Config["base_url"].(string)
+	model, _ := p.Config["model"].(string)
+	if baseURL == "" || model == "" {
+		return OpenAICompatConfig{}, false
+	}
+	apiKey, _ := p.Config["api_key"].(string)
+	return OpenAICompatConfig{BaseURL: baseURL, APIKey: apiKey, Model: model}, true
 }
 
 type WillysCreds struct {
