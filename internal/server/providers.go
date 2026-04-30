@@ -120,7 +120,7 @@ func (s *Server) handleTestProvider(w http.ResponseWriter, r *http.Request) {
 		Model:     model,
 		MaxTokens: 200,
 		System:    []llm.SystemBlock{{Text: "You are a meal-planning assistant. The user is testing that you are reachable. Introduce yourself in one short sentence in the user's language. Be warm and mention food."}},
-		Messages:  []llm.Message{llm.NewUserMessage(llm.TextBlock("Hej! Fungerar du?"))},
+		Messages:  []llm.Message{llm.NewUserMessage(llm.TextBlock("Hey! Are you there?"))},
 	}, func(ev llm.StreamEvent) {
 		if ev.Kind == llm.EventTextDelta {
 			reply += ev.Text
