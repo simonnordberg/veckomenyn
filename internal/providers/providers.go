@@ -58,7 +58,7 @@ type FieldOption struct {
 // exists yet or the stored value is empty. Kept as a const so agent code can
 // reference it without duplicating the string.
 const DefaultAnthropicModel = "claude-sonnet-4-6"
-const DefaultOpenAIModel = "gpt-5"
+const DefaultOpenAIModel = "gpt-5.4"
 const openAIBaseURL = "https://api.openai.com/v1"
 
 var Known = []KindInfo{
@@ -93,13 +93,15 @@ var Known = []KindInfo{
 				Label:   "Modell",
 				Type:    "select",
 				Default: DefaultOpenAIModel,
-				Hint:    "GPT-5 rekommenderas for bast kvalitet. GPT-4.1 ar billigare och snabbare. GPT-4.1-nano ar billigast men kan ha problem med komplexa verktygsanrop.",
+				Hint:    "GPT-5.4 ar senaste flaggskeppsmodellen. GPT-5.1 ar billigare med bra kvalitet. GPT-4.1 ar snabbast och billigast.",
 				Options: []FieldOption{
-					{Value: "gpt-4.1-nano", Label: "GPT-4.1 Nano ($0.10/$0.40, snabbast)"},
+					{Value: "gpt-4.1-nano", Label: "GPT-4.1 Nano ($0.10/$0.40)"},
 					{Value: "gpt-4.1-mini", Label: "GPT-4.1 Mini ($0.40/$1.60)"},
-					{Value: "gpt-5-mini", Label: "GPT-5 Mini ($0.25/$2.00)"},
+					{Value: "gpt-5.4-nano", Label: "GPT-5.4 Nano ($0.20/$1.25)"},
+					{Value: "gpt-5.4-mini", Label: "GPT-5.4 Mini ($0.75/$4.50)"},
 					{Value: "gpt-4.1", Label: "GPT-4.1 ($2/$8)"},
-					{Value: "gpt-5", Label: "GPT-5 ($1.25/$10, bast kvalitet)"},
+					{Value: "gpt-5.1", Label: "GPT-5.1 ($1.25/$10)"},
+					{Value: "gpt-5.4", Label: "GPT-5.4 ($2.50/$15, bast kvalitet)"},
 				},
 			},
 		},
