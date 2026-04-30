@@ -123,7 +123,7 @@ func toOpenAIMessages(system []SystemBlock, msgs []Message) []openai.ChatComplet
 				case "text":
 					out = append(out, openai.UserMessage(b.Text))
 				case "tool_result":
-					out = append(out, openai.ToolMessage(b.ToolID, b.Text))
+					out = append(out, openai.ToolMessage(b.Text, b.ToolID))
 				}
 			}
 		case RoleAssistant:
