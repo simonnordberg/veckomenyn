@@ -117,9 +117,9 @@ func (s *Server) handleTestProvider(w http.ResponseWriter, r *http.Request) {
 
 	result, err := provider.RunStream(testCtx, llm.RunParams{
 		Model:     model,
-		MaxTokens: 200,
-		System:    []llm.SystemBlock{{Text: "You are a meal-planning assistant. The user is testing that you are reachable. Introduce yourself in one short sentence in the user's language. Be warm and mention food."}},
-		Messages:  []llm.Message{llm.NewUserMessage(llm.TextBlock("Hey! Are you there?"))},
+		MaxTokens: 512,
+		System:    []llm.SystemBlock{{Text: "You are a meal-planning assistant. Say hi in one sentence."}},
+		Messages:  []llm.Message{llm.NewUserMessage(llm.TextBlock("Hi"))},
 	}, func(llm.StreamEvent) {})
 	if err != nil {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": err.Error()})
