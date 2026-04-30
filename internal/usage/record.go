@@ -32,7 +32,7 @@ func (r *Recorder) Record(ctx context.Context, convID, weekID int64, model strin
 		return
 	}
 	if !KnownModel(model) {
-		r.log.Warn("llm_usage: unknown model, cost will be zero", "model", model)
+		r.log.Info("llm_usage: no pricing for model, cost recorded as zero", "model", model)
 	}
 	cost := Cost(model, u)
 
