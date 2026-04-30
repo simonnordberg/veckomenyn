@@ -215,6 +215,28 @@ export const sv: Record<string, string> = {
   "integrations.category_shopping": "Handelsleverantör",
   "integrations.secret_set_hint": "Lagrat. Skriv ett nytt värde för att ersätta det.",
 
+  // Provider fields
+  "provider.api_key": "API-nyckel",
+  "provider.model": "Modell",
+  "provider.password": "Lösenord",
+  "provider.anthropic.name": "Anthropic",
+  "provider.anthropic.model_hint":
+    "Sonnet 4.6 är det balanserade standardvalet. Haiku är ~5x billigare men svagare på kreativ menyplanering. Opus är ~3-5x dyrare men bättre vid komplexa preferenser.",
+  "provider.anthropic.haiku": "Claude Haiku 4.5 ($1/$5, snabbast)",
+  "provider.anthropic.sonnet": "Claude Sonnet 4.6 ($3/$15, balanserat)",
+  "provider.anthropic.opus": "Claude Opus 4.7 ($15/$75, bäst kvalitet)",
+  "provider.openai.name": "OpenAI",
+  "provider.openai.model_hint":
+    "GPT-5.4 är senaste flaggskeppsmodellen. GPT-5.1 är billigare med bra kvalitet. GPT-4.1 är snabbast och billigast.",
+  "provider.openai_compat.name": "OpenAI-kompatibel (lokal/annan)",
+  "provider.openai_compat.base_url": "API-bas-URL",
+  "provider.openai_compat.base_url_hint":
+    "Bas-URL till en OpenAI-kompatibel API (llama.cpp, Ollama, etc.).",
+  "provider.openai_compat.api_key_hint":
+    "Lämna tomt för lokala backends som inte kräver autentisering.",
+  "provider.openai_compat.model_hint": "Modellnamn som backend förväntar sig.",
+  "provider.willys.username": "Användarnamn (YYYYMMDDNNNN)",
+
   // Preferences modal (new + body placeholder)
   "prefs.new_category_placeholder": "t.ex. allergier",
   "prefs.body_placeholder": "# Rubrik\n\nMarkdown-innehåll…",

@@ -65,19 +65,19 @@ var Known = []KindInfo{
 	{
 		Kind:        KindAnthropic,
 		Category:    "llm",
-		DisplayName: "Anthropic",
+		DisplayName: "provider.anthropic.name",
 		Fields: []Field{
-			{Key: "api_key", Label: "API-nyckel", Type: "password", Placeholder: "sk-ant-…", Required: true},
+			{Key: "api_key", Label: "provider.api_key", Type: "password", Placeholder: "sk-ant-…", Required: true},
 			{
 				Key:     "model",
-				Label:   "Modell",
+				Label:   "provider.model",
 				Type:    "select",
 				Default: DefaultAnthropicModel,
-				Hint:    "Sonnet 4.6 ar det balanserade standardvalet. Haiku ar ~5x billigare men svagare pa kreativ menyplanering. Opus ar ~3-5x dyrare men battre vid komplexa preferenser.",
+				Hint:    "provider.anthropic.model_hint",
 				Options: []FieldOption{
-					{Value: "claude-haiku-4-5", Label: "Claude Haiku 4.5 ($, snabbast)"},
-					{Value: "claude-sonnet-4-6", Label: "Claude Sonnet 4.6 ($$, balanserat)"},
-					{Value: "claude-opus-4-7", Label: "Claude Opus 4.7 ($$$, bast kvalitet)"},
+					{Value: "claude-haiku-4-5", Label: "provider.anthropic.haiku"},
+					{Value: "claude-sonnet-4-6", Label: "provider.anthropic.sonnet"},
+					{Value: "claude-opus-4-7", Label: "provider.anthropic.opus"},
 				},
 			},
 		},
@@ -85,15 +85,15 @@ var Known = []KindInfo{
 	{
 		Kind:        KindOpenAI,
 		Category:    "llm",
-		DisplayName: "OpenAI",
+		DisplayName: "provider.openai.name",
 		Fields: []Field{
-			{Key: "api_key", Label: "API-nyckel", Type: "password", Placeholder: "sk-…", Required: true},
+			{Key: "api_key", Label: "provider.api_key", Type: "password", Placeholder: "sk-…", Required: true},
 			{
 				Key:     "model",
-				Label:   "Modell",
+				Label:   "provider.model",
 				Type:    "select",
 				Default: DefaultOpenAIModel,
-				Hint:    "GPT-5.4 ar senaste flaggskeppsmodellen. GPT-5.1 ar billigare med bra kvalitet. GPT-4.1 ar snabbast och billigast.",
+				Hint:    "provider.openai.model_hint",
 				Options: []FieldOption{
 					{Value: "gpt-4.1-nano", Label: "GPT-4.1 Nano ($0.10/$0.40)"},
 					{Value: "gpt-4.1-mini", Label: "GPT-4.1 Mini ($0.40/$1.60)"},
@@ -101,7 +101,7 @@ var Known = []KindInfo{
 					{Value: "gpt-5.4-mini", Label: "GPT-5.4 Mini ($0.75/$4.50)"},
 					{Value: "gpt-4.1", Label: "GPT-4.1 ($2/$8)"},
 					{Value: "gpt-5.1", Label: "GPT-5.1 ($1.25/$10)"},
-					{Value: "gpt-5.4", Label: "GPT-5.4 ($2.50/$15, bast kvalitet)"},
+					{Value: "gpt-5.4", Label: "GPT-5.4 ($2.50/$15)"},
 				},
 			},
 		},
@@ -109,11 +109,11 @@ var Known = []KindInfo{
 	{
 		Kind:        KindOpenAICompat,
 		Category:    "llm",
-		DisplayName: "OpenAI-kompatibel (lokal/annan)",
+		DisplayName: "provider.openai_compat.name",
 		Fields: []Field{
-			{Key: "base_url", Label: "API-bas-URL", Type: "text", Placeholder: "http://localhost:11434/v1", Required: true, Hint: "Bas-URL till en OpenAI-kompatibel API (llama.cpp, Ollama, OpenAI, etc.)."},
-			{Key: "api_key", Label: "API-nyckel", Type: "password", Hint: "Lämna tomt för lokala backends som inte kräver autentisering."},
-			{Key: "model", Label: "Modell", Type: "text", Placeholder: "llama3.1:8b", Required: true, Hint: "Modellnamn som backend förväntar sig."},
+			{Key: "base_url", Label: "provider.openai_compat.base_url", Type: "text", Placeholder: "http://localhost:11434/v1", Required: true, Hint: "provider.openai_compat.base_url_hint"},
+			{Key: "api_key", Label: "provider.api_key", Type: "password", Hint: "provider.openai_compat.api_key_hint"},
+			{Key: "model", Label: "provider.model", Type: "text", Placeholder: "llama3.1:8b", Required: true, Hint: "provider.openai_compat.model_hint"},
 		},
 	},
 	{
@@ -121,8 +121,8 @@ var Known = []KindInfo{
 		Category:    "shopping",
 		DisplayName: "Willys",
 		Fields: []Field{
-			{Key: "username", Label: "Användarnamn (YYYYMMDDNNNN)", Type: "text", Required: true},
-			{Key: "password", Label: "Lösenord", Type: "password", Required: true},
+			{Key: "username", Label: "provider.willys.username", Type: "text", Required: true},
+			{Key: "password", Label: "provider.password", Type: "password", Required: true},
 		},
 	},
 }

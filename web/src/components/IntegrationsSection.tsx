@@ -167,7 +167,7 @@ function LLMProviderCard({
                 : "bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700"
             }`}
           >
-            {k.display_name}
+            {t(k.display_name)}
           </button>
         ))}
       </div>
@@ -212,7 +212,7 @@ function FieldList({
           className="flex flex-col gap-1 text-xs text-stone-700 dark:text-stone-300"
         >
           <span className="font-medium">
-            {f.label}
+            {t(f.label)}
             {f.required && <span className="text-red-500"> *</span>}
           </span>
           {f.type === "select" ? (
@@ -223,7 +223,7 @@ function FieldList({
             >
               {(f.options ?? []).map((o) => (
                 <option key={o.value} value={o.value}>
-                  {o.label}
+                  {t(o.label)}
                 </option>
               ))}
             </select>
@@ -237,7 +237,7 @@ function FieldList({
             />
           )}
           {f.hint && (
-            <span className="text-[10px] text-stone-500 dark:text-stone-400">{f.hint}</span>
+            <span className="text-[10px] text-stone-500 dark:text-stone-400">{t(f.hint)}</span>
           )}
           {f.type === "password" && sentinel !== "" && config[f.key] === sentinel && (
             <span className="text-[10px] text-stone-400 dark:text-stone-500">
@@ -302,7 +302,7 @@ function ProviderCard({
       <header className="flex items-start justify-between gap-3">
         <div>
           <h4 className="text-sm font-medium text-stone-900 dark:text-stone-100">
-            {info.display_name}
+            {t(info.display_name)}
           </h4>
           <p className="text-xs text-stone-500 dark:text-stone-400">
             {t("integrations.category_shopping")}
