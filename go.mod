@@ -8,6 +8,7 @@ require (
 	github.com/go-chi/httprate v0.15.0
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
+	github.com/openai/openai-go/v3 v3.33.0
 	github.com/pressly/goose/v3 v3.27.1
 	golang.org/x/crypto v0.50.0
 )

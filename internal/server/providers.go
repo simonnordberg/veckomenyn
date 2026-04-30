@@ -1,13 +1,17 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/simonnordberg/veckomenyn/internal/llm"
 	"github.com/simonnordberg/veckomenyn/internal/providers"
+	"github.com/simonnordberg/veckomenyn/internal/store"
 )
 
 // providersEnvelope wraps the list response with kind metadata so the UI can
@@ -80,4 +84,105 @@ func (s *Server) handlePatchProvider(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, s.providers.Mask(*out))
+}
+
+func (s *Server) handleTestProvider(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	hs, err := store.GetHouseholdSettings(ctx, s.db.Pool)
+	if err != nil || hs.LLMProvider == "" {
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": "No LLM provider selected"})
+		return
+	}
+	activeKind := providers.Kind(hs.LLMProvider)
+	p, err := s.providers.Get(ctx, activeKind)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": "Provider not configured"})
+		return
+	}
+
+	provider, model, err := buildProvider(activeKind, p.Config)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+
+	testCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	result, err := provider.RunStream(testCtx, llm.RunParams{
+		Model:     model,
+		MaxTokens: 512,
+		System:    []llm.SystemBlock{{Text: "You are a meal-planning assistant. Say hi in one sentence."}},
+		Messages:  []llm.Message{llm.NewUserMessage(llm.TextBlock("Hi"))},
+	}, func(llm.StreamEvent) {})
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]any{"ok": false, "error": err.Error()})
+		return
+	}
+
+	var reply string
+	for _, b := range result.AssistantMessage.Content {
+		if b.Type == "text" && b.Text != "" {
+			reply = b.Text
+			break
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ok":    true,
+		"model": model,
+		"reply": reply,
+		"usage": map[string]any{
+			"input_tokens":  result.Usage.InputTokens,
+			"output_tokens": result.Usage.OutputTokens,
+		},
+	})
+}
+
+func buildProvider(kind providers.Kind, config map[string]any) (llm.Provider, string, error) {
+	str := func(key string) string {
+		v, _ := config[key].(string)
+		return v
+	}
+	switch kind {
+	case providers.KindAnthropic:
+		key := str("api_key")
+		if key == "" {
+			return nil, "", errors.New("API key required")
+		}
+		model := str("model")
+		if model == "" {
+			model = providers.DefaultAnthropicModel
+		}
+		p, err := llm.NewAnthropic(key)
+		return p, model, err
+
+	case providers.KindOpenAI:
+		key := str("api_key")
+		if key == "" {
+			return nil, "", errors.New("API key required")
+		}
+		model := str("model")
+		if model == "" {
+			model = providers.DefaultOpenAIModel
+		}
+		p, err := llm.NewOpenAI("https://api.openai.com/v1", model, key)
+		return p, model, err
+
+	case providers.KindOpenAICompat:
+		baseURL := str("base_url")
+		if baseURL == "" {
+			return nil, "", errors.New("base URL required")
+		}
+		model := str("model")
+		if model == "" {
+			return nil, "", errors.New("model required")
+		}
+		p, err := llm.NewOpenAI(baseURL, model, str("api_key"))
+		return p, model, err
+
+	default:
+		return nil, "", errors.New("unsupported provider kind for testing")
+	}
 }

@@ -4,8 +4,9 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/simonnordberg/veckomenyn/internal/llm"
 )
 
 // Recorder inserts one llm_usage row per model call. It captures the
@@ -26,12 +27,12 @@ func NewRecorder(db *pgxpool.Pool, log *slog.Logger) *Recorder {
 //
 // Failures are logged and swallowed: instrumentation must never break the
 // user-facing chat flow.
-func (r *Recorder) Record(ctx context.Context, convID, weekID int64, model string, u anthropic.Usage) {
+func (r *Recorder) Record(ctx context.Context, convID, weekID int64, model string, u llm.Usage) {
 	if r == nil || r.db == nil {
 		return
 	}
 	if !KnownModel(model) {
-		r.log.Warn("llm_usage: unknown model, cost will be zero", "model", model)
+		r.log.Info("llm_usage: no pricing for model, cost recorded as zero", "model", model)
 	}
 	cost := Cost(model, u)
 

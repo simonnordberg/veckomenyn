@@ -211,10 +211,11 @@ export async function patchWeek(id: number, patch: WeekPatch): Promise<WeekDetai
 
 export type HouseholdSettings = {
   default_dinners: number;
-  default_delivery_weekday: number; // 1=Mon … 7=Sun
+  default_delivery_weekday: number; // 1=Mon ... 7=Sun
   default_order_offset_days: number;
   default_servings: number;
   language: "sv" | "en";
+  llm_provider: string;
   notes_md: string;
 };
 
@@ -288,6 +289,20 @@ export async function patchProvider(
   });
   if (!r.ok) throw new Error(`patch provider: ${r.status} ${await r.text()}`);
   return (await r.json()) as Provider;
+}
+
+export type TestProviderResult = {
+  ok: boolean;
+  error?: string;
+  model?: string;
+  reply?: string;
+  usage?: { input_tokens: number; output_tokens: number };
+};
+
+export async function testProvider(): Promise<TestProviderResult> {
+  const r = await fetch("/api/providers/test", { method: "POST" });
+  if (!r.ok) throw new Error(`test provider: ${r.status}`);
+  return (await r.json()) as TestProviderResult;
 }
 
 // Preferences
@@ -462,7 +477,7 @@ export async function patchUpdateConfig(p: {
 
 export type SetupStatus = {
   setup_complete: boolean;
-  has_anthropic_key: boolean;
+  has_llm_provider: boolean;
   has_preferences: boolean;
   has_family_members: boolean;
 };
