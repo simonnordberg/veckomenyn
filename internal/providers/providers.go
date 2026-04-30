@@ -73,13 +73,14 @@ var Known = []KindInfo{
 				Label:   "Modell",
 				Type:    "select",
 				Default: DefaultAnthropicModel,
-				Hint:    "Sonnet 4.6 är det balanserade standardvalet. Haiku är ~5× billigare men svagare på kreativ menyplanering. Opus är ~3–5× dyrare men bättre vid komplexa preferenser eller en riktigt polerad vecka.",
+				Hint:    "Sonnet 4.6 ar det balanserade standardvalet. Haiku ar ~5x billigare men svagare pa kreativ menyplanering. Opus ar ~3-5x dyrare men battre vid komplexa preferenser.",
 				Options: []FieldOption{
 					{Value: "claude-haiku-4-5", Label: "Claude Haiku 4.5 ($, snabbast)"},
 					{Value: "claude-sonnet-4-6", Label: "Claude Sonnet 4.6 ($$, balanserat)"},
-					{Value: "claude-opus-4-7", Label: "Claude Opus 4.7 ($$$, bäst kvalitet)"},
+					{Value: "claude-opus-4-7", Label: "Claude Opus 4.7 ($$$, bast kvalitet)"},
 				},
 			},
+			{Key: "model_override", Label: "Annan modell", Type: "text", Placeholder: "t.ex. claude-sonnet-4-5-20241022", Hint: "Ange ett modell-ID manuellt. Overskrider vallistan ovan."},
 		},
 	},
 	{
@@ -100,6 +101,7 @@ var Known = []KindInfo{
 					{Value: "gpt-4.1", Label: "GPT-4.1 ($$$, bast kvalitet)"},
 				},
 			},
+			{Key: "model_override", Label: "Annan modell", Type: "text", Placeholder: "t.ex. gpt-4o-2024-11-20", Hint: "Ange ett modell-ID manuellt. Overskrider vallistan ovan."},
 		},
 	},
 	{
@@ -400,11 +402,15 @@ func (s *Store) AnthropicAPIKey(ctx context.Context) string {
 }
 
 // AnthropicModel returns the model slug chosen in Settings, falling back to
-// DefaultAnthropicModel if unset or the provider is disabled.
+// DefaultAnthropicModel if unset or the provider is disabled. model_override
+// takes precedence over the dropdown selection.
 func (s *Store) AnthropicModel(ctx context.Context) string {
 	p, err := s.Get(ctx, KindAnthropic)
 	if err != nil {
 		return DefaultAnthropicModel
+	}
+	if v, ok := p.Config["model_override"].(string); ok && v != "" {
+		return v
 	}
 	if v, ok := p.Config["model"].(string); ok && v != "" {
 		return v
@@ -427,7 +433,10 @@ func (s *Store) OpenAIConfig(ctx context.Context) (OpenAIConfig, bool) {
 	if apiKey == "" {
 		return OpenAIConfig{}, false
 	}
-	model, _ := p.Config["model"].(string)
+	model, _ := p.Config["model_override"].(string)
+	if model == "" {
+		model, _ = p.Config["model"].(string)
+	}
 	if model == "" {
 		model = DefaultOpenAIModel
 	}
