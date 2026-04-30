@@ -7,7 +7,7 @@
 // price changes.
 package usage
 
-import "github.com/anthropics/anthropic-sdk-go"
+import "github.com/simonnordberg/veckomenyn/internal/llm"
 
 // Prices are USD per million tokens for one model tier.
 type Prices struct {
@@ -29,7 +29,7 @@ var pricing = map[string]Prices{
 // Cost returns the USD cost of a single Messages response at the given
 // model's prices. Unknown models return 0; callers should check KnownModel
 // and log when pricing is missing so gaps get noticed.
-func Cost(model string, u anthropic.Usage) float64 {
+func Cost(model string, u llm.Usage) float64 {
 	p, ok := pricing[model]
 	if !ok {
 		return 0

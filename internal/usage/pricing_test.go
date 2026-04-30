@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/simonnordberg/veckomenyn/internal/llm"
 )
 
 func approxEqual(a, b float64) bool {
@@ -12,7 +12,7 @@ func approxEqual(a, b float64) bool {
 }
 
 func TestCost_SonnetInputOnly_OneMillionTokensIsThreeDollars(t *testing.T) {
-	u := anthropic.Usage{InputTokens: 1_000_000}
+	u := llm.Usage{InputTokens: 1_000_000}
 	got := Cost("claude-sonnet-4-6", u)
 	if !approxEqual(got, 3.0) {
 		t.Errorf("1M sonnet input tokens: got %v want 3.0", got)
@@ -20,7 +20,7 @@ func TestCost_SonnetInputOnly_OneMillionTokensIsThreeDollars(t *testing.T) {
 }
 
 func TestCost_SonnetOutputOnly_OneMillionTokensIsFifteenDollars(t *testing.T) {
-	u := anthropic.Usage{OutputTokens: 1_000_000}
+	u := llm.Usage{OutputTokens: 1_000_000}
 	got := Cost("claude-sonnet-4-6", u)
 	if !approxEqual(got, 15.0) {
 		t.Errorf("1M sonnet output tokens: got %v want 15.0", got)
@@ -28,7 +28,7 @@ func TestCost_SonnetOutputOnly_OneMillionTokensIsFifteenDollars(t *testing.T) {
 }
 
 func TestCost_OpusInputOnly_OneMillionTokensIsFifteenDollars(t *testing.T) {
-	u := anthropic.Usage{InputTokens: 1_000_000}
+	u := llm.Usage{InputTokens: 1_000_000}
 	got := Cost("claude-opus-4-7", u)
 	if !approxEqual(got, 15.0) {
 		t.Errorf("1M opus input tokens: got %v want 15.0", got)
@@ -36,7 +36,7 @@ func TestCost_OpusInputOnly_OneMillionTokensIsFifteenDollars(t *testing.T) {
 }
 
 func TestCost_HaikuInputOnly_OneMillionTokensIsOneDollar(t *testing.T) {
-	u := anthropic.Usage{InputTokens: 1_000_000}
+	u := llm.Usage{InputTokens: 1_000_000}
 	got := Cost("claude-haiku-4-5", u)
 	if !approxEqual(got, 1.0) {
 		t.Errorf("1M haiku input tokens: got %v want 1.0", got)
@@ -46,7 +46,7 @@ func TestCost_HaikuInputOnly_OneMillionTokensIsOneDollar(t *testing.T) {
 func TestCost_AllFourBucketsSum(t *testing.T) {
 	// Sonnet: input $3, cache write 5m $3.75, cache read $0.30, output $15
 	// 1000 of each: (3 + 3.75 + 0.30 + 15) / 1000 = 0.02205
-	u := anthropic.Usage{
+	u := llm.Usage{
 		InputTokens:              1000,
 		CacheCreationInputTokens: 1000,
 		CacheReadInputTokens:     1000,
@@ -59,7 +59,7 @@ func TestCost_AllFourBucketsSum(t *testing.T) {
 }
 
 func TestCost_UnknownModel_ReturnsZero(t *testing.T) {
-	u := anthropic.Usage{InputTokens: 1_000_000}
+	u := llm.Usage{InputTokens: 1_000_000}
 	if got := Cost("claude-something-unreleased", u); got != 0 {
 		t.Errorf("unknown model: got %v want 0", got)
 	}
