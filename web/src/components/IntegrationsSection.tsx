@@ -75,8 +75,8 @@ function LLMProviderCard({
   onSaved: () => void;
 }) {
   const enabledProvider = providers.find((p) => p.enabled && kinds.some((k) => k.kind === p.kind));
-  const [selectedKind, setSelectedKind] = useState(enabledProvider?.kind ?? kinds[0]?.kind ?? "");
-  const selectedInfo = kinds.find((k) => k.kind === selectedKind);
+  const activeKind = enabledProvider?.kind ?? kinds[0]?.kind ?? "";
+  const selectedInfo = kinds.find((k) => k.kind === activeKind);
 
   const getProvider = (kind: string) =>
     providers.find((x) => x.kind === kind) ?? { kind, enabled: false, config: {} };
@@ -91,39 +91,53 @@ function LLMProviderCard({
     return c;
   };
 
-  const currentProvider = getProvider(selectedKind);
   const [config, setConfig] = useState<Record<string, string>>(() =>
-    selectedInfo ? initialConfig(selectedInfo, currentProvider) : {},
+    selectedInfo ? initialConfig(selectedInfo, getProvider(activeKind)) : {},
   );
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
     if (!selectedInfo) return;
-    const p = getProvider(selectedKind);
+    const p = getProvider(activeKind);
     setConfig(initialConfig(selectedInfo, p));
-  }, [selectedKind, providers]);
+  }, [activeKind, providers]);
 
-  const dirty = (() => {
-    if (!selectedInfo) return false;
-    const wasEnabled = enabledProvider?.kind === selectedKind;
-    if (!wasEnabled && selectedKind !== (enabledProvider?.kind ?? kinds[0]?.kind)) return true;
-    const p = getProvider(selectedKind);
-    return selectedInfo.fields.some((f) => (config[f.key] ?? "") !== (p.config[f.key] ?? ""));
-  })();
-
-  const save = async () => {
-    if (pending || !selectedInfo) return;
+  const switchProvider = async (newKind: string) => {
+    if (pending || newKind === activeKind) return;
     setPending(true);
     try {
       const disableOthers = kinds
-        .filter((k) => k.kind !== selectedKind)
+        .filter((k) => k.kind !== newKind)
         .map((k) => {
           const p = getProvider(k.kind);
           if (p.enabled) return patchProvider(k.kind, { enabled: false, config: p.config });
           return null;
         })
         .filter(Boolean);
-      await Promise.all([...disableOthers, patchProvider(selectedKind, { enabled: true, config })]);
+      const newProvider = getProvider(newKind);
+      await Promise.all([
+        ...disableOthers,
+        patchProvider(newKind, { enabled: true, config: newProvider.config }),
+      ]);
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const dirty = (() => {
+    if (!selectedInfo) return false;
+    const p = getProvider(activeKind);
+    return selectedInfo.fields.some((f) => (config[f.key] ?? "") !== (p.config[f.key] ?? ""));
+  })();
+
+  const saveFields = async () => {
+    if (pending || !dirty || !selectedInfo) return;
+    setPending(true);
+    try {
+      await patchProvider(activeKind, { enabled: true, config });
       toast.success(t("toast.changes_saved"));
       onSaved();
     } catch (err) {
@@ -145,9 +159,10 @@ function LLMProviderCard({
           <button
             key={k.kind}
             type="button"
-            onClick={() => setSelectedKind(k.kind)}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-              selectedKind === k.kind
+            disabled={pending}
+            onClick={() => void switchProvider(k.kind)}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
+              activeKind === k.kind
                 ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
                 : "bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700"
             }`}
@@ -167,7 +182,7 @@ function LLMProviderCard({
       <div className="mt-3 flex items-center justify-end">
         <button
           type="button"
-          onClick={() => void save()}
+          onClick={() => void saveFields()}
           disabled={pending || !dirty}
           className="rounded-md bg-stone-900 px-3 py-1 text-xs font-medium text-stone-50 shadow-sm hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
         >
