@@ -82,20 +82,12 @@ function LLMProviderCard({
 }) {
   const enabledProvider = providers.find((p) => p.enabled && kinds.some((k) => k.kind === p.kind));
   const activeKind = enabledProvider?.kind ?? kinds[0]?.kind ?? "";
-  const [viewKind, setViewKind] = useState(activeKind);
   const [switching, setSwitching] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
-  useEffect(() => {
-    setViewKind(activeKind);
-  }, [activeKind]);
-
-  const switchProvider = async (newKind: string) => {
-    if (switching || newKind === activeKind) {
-      setViewKind(newKind);
-      return;
-    }
+  const selectProvider = async (newKind: string) => {
+    if (switching || newKind === activeKind) return;
     setSwitching(true);
     setTestResult(null);
     try {
@@ -150,7 +142,7 @@ function LLMProviderCard({
             key={k.kind}
             type="button"
             disabled={switching}
-            onClick={() => void switchProvider(k.kind)}
+            onClick={() => void selectProvider(k.kind)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
               activeKind === k.kind
                 ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
@@ -173,8 +165,8 @@ function LLMProviderCard({
             info={info}
             provider={p}
             sentinel={sentinel}
-            visible={viewKind === info.kind}
-            isActive={activeKind === info.kind}
+            visible={activeKind === info.kind}
+            isActive
             onSaved={onSaved}
             testing={testing}
             testResult={activeKind === info.kind ? testResult : null}
