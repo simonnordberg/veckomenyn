@@ -14,6 +14,7 @@ import (
 	"github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/simonnordberg/veckomenyn/internal/llm"
 	"github.com/simonnordberg/veckomenyn/internal/providers"
 	"github.com/simonnordberg/veckomenyn/internal/shopping"
 	"github.com/simonnordberg/veckomenyn/internal/store"
@@ -37,9 +38,9 @@ type Agent struct {
 	db        *pgxpool.Pool
 	providers *providers.Store
 	log       *slog.Logger
-	tools     []Tool
-	toolDefs  []anthropic.ToolUnionParam
-	recorder  *usage.Recorder
+	tools    []Tool
+	toolDefs []llm.ToolDef
+	recorder *usage.Recorder
 }
 
 func New(cfg Config, db *pgxpool.Pool, provStore *providers.Store, shop shopping.Provider, log *slog.Logger) *Agent {
@@ -54,10 +55,9 @@ func New(cfg Config, db *pgxpool.Pool, provStore *providers.Store, shop shopping
 		recorder:  usage.NewRecorder(db, log),
 	}
 	a.tools = registerTools(db, shop, log)
-	a.toolDefs = make([]anthropic.ToolUnionParam, 0, len(a.tools))
+	a.toolDefs = make([]llm.ToolDef, 0, len(a.tools))
 	for _, t := range a.tools {
-		def := t.Def()
-		a.toolDefs = append(a.toolDefs, anthropic.ToolUnionParam{OfTool: &def})
+		a.toolDefs = append(a.toolDefs, t.Def())
 	}
 	return a
 }
@@ -129,11 +129,25 @@ func (a *Agent) Run(
 		// reads it from cache instead of paying full input cost again.
 		setRollingCacheBreakpoint(msgs)
 
+		sdkTools := make([]anthropic.ToolUnionParam, len(a.toolDefs))
+		for j, td := range a.toolDefs {
+			schema := anthropic.ToolInputSchemaParam{Properties: td.InputSchema.Properties}
+			if len(td.InputSchema.Required) > 0 {
+				schema.Required = td.InputSchema.Required
+			}
+			p := anthropic.ToolParam{
+				Name:        td.Name,
+				Description: anthropic.String(td.Description),
+				InputSchema: schema,
+			}
+			sdkTools[j] = anthropic.ToolUnionParam{OfTool: &p}
+		}
+
 		params := anthropic.MessageNewParams{
 			Model:     model,
 			MaxTokens: defaultMaxTok,
 			System:    systemBlocks,
-			Tools:     a.toolDefs,
+			Tools:     sdkTools,
 			Messages:  msgs,
 		}
 
@@ -176,7 +190,12 @@ func (a *Agent) Run(
 
 		// Record token usage for this model call. Must not affect the user
 		// flow if it fails (insert errors are logged inside the recorder).
-		a.recorder.Record(ctx, ConversationIDFrom(ctx), WeekIDFrom(ctx), string(model), resp.Usage)
+		a.recorder.Record(ctx, ConversationIDFrom(ctx), WeekIDFrom(ctx), string(model), llm.Usage{
+			InputTokens:              resp.Usage.InputTokens,
+			OutputTokens:             resp.Usage.OutputTokens,
+			CacheCreationInputTokens: resp.Usage.CacheCreationInputTokens,
+			CacheReadInputTokens:     resp.Usage.CacheReadInputTokens,
+		})
 
 		msgs = append(msgs, resp.ToParam())
 
