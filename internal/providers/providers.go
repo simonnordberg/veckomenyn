@@ -58,7 +58,7 @@ type FieldOption struct {
 // exists yet or the stored value is empty. Kept as a const so agent code can
 // reference it without duplicating the string.
 const DefaultAnthropicModel = "claude-sonnet-4-6"
-const DefaultOpenAIModel = "gpt-4o"
+const DefaultOpenAIModel = "gpt-5"
 const openAIBaseURL = "https://api.openai.com/v1"
 
 var Known = []KindInfo{
@@ -80,7 +80,6 @@ var Known = []KindInfo{
 					{Value: "claude-opus-4-7", Label: "Claude Opus 4.7 ($$$, bast kvalitet)"},
 				},
 			},
-			{Key: "model_override", Label: "Annan modell", Type: "text", Placeholder: "t.ex. claude-sonnet-4-5-20241022", Hint: "Ange ett modell-ID manuellt. Overskrider vallistan ovan."},
 		},
 	},
 	{
@@ -94,14 +93,15 @@ var Known = []KindInfo{
 				Label:   "Modell",
 				Type:    "select",
 				Default: DefaultOpenAIModel,
-				Hint:    "GPT-4o rekommenderas. GPT-4.1 har starkare resonering men kostar mer. GPT-4o-mini ar billigast men kan ha problem med komplexa verktygsanrop.",
+				Hint:    "GPT-5 rekommenderas for bast kvalitet. GPT-4.1 ar billigare och snabbare. GPT-4.1-nano ar billigast men kan ha problem med komplexa verktygsanrop.",
 				Options: []FieldOption{
-					{Value: "gpt-4o-mini", Label: "GPT-4o mini ($, snabbast)"},
-					{Value: "gpt-4o", Label: "GPT-4o ($$, balanserat)"},
-					{Value: "gpt-4.1", Label: "GPT-4.1 ($$$, bast kvalitet)"},
+					{Value: "gpt-4.1-nano", Label: "GPT-4.1 Nano ($0.10/$0.40, snabbast)"},
+					{Value: "gpt-4.1-mini", Label: "GPT-4.1 Mini ($0.40/$1.60)"},
+					{Value: "gpt-5-mini", Label: "GPT-5 Mini ($0.25/$2.00)"},
+					{Value: "gpt-4.1", Label: "GPT-4.1 ($2/$8)"},
+					{Value: "gpt-5", Label: "GPT-5 ($1.25/$10, bast kvalitet)"},
 				},
 			},
-			{Key: "model_override", Label: "Annan modell", Type: "text", Placeholder: "t.ex. gpt-4o-2024-11-20", Hint: "Ange ett modell-ID manuellt. Overskrider vallistan ovan."},
 		},
 	},
 	{
@@ -402,15 +402,11 @@ func (s *Store) AnthropicAPIKey(ctx context.Context) string {
 }
 
 // AnthropicModel returns the model slug chosen in Settings, falling back to
-// DefaultAnthropicModel if unset or the provider is disabled. model_override
-// takes precedence over the dropdown selection.
+// DefaultAnthropicModel if unset or the provider is disabled.
 func (s *Store) AnthropicModel(ctx context.Context) string {
 	p, err := s.Get(ctx, KindAnthropic)
 	if err != nil {
 		return DefaultAnthropicModel
-	}
-	if v, ok := p.Config["model_override"].(string); ok && v != "" {
-		return v
 	}
 	if v, ok := p.Config["model"].(string); ok && v != "" {
 		return v
@@ -433,10 +429,7 @@ func (s *Store) OpenAIConfig(ctx context.Context) (OpenAIConfig, bool) {
 	if apiKey == "" {
 		return OpenAIConfig{}, false
 	}
-	model, _ := p.Config["model_override"].(string)
-	if model == "" {
-		model, _ = p.Config["model"].(string)
-	}
+	model, _ := p.Config["model"].(string)
 	if model == "" {
 		model = DefaultOpenAIModel
 	}
