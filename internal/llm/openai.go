@@ -55,7 +55,7 @@ func (o *OpenAIProvider) RunStream(ctx context.Context, params RunParams, emit f
 	}
 
 	stream := o.client.Chat.Completions.NewStreaming(ctx, reqParams)
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	acc := openai.ChatCompletionAccumulator{}
 	for stream.Next() {
