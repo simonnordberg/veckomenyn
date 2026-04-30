@@ -19,8 +19,9 @@ type setupStatusDTO struct {
 func (s *Server) handleGetSetupStatus(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	hasAnthropic := s.providers.AnthropicAPIKey(ctx) != ""
-	_, hasOpenAI := s.providers.OpenAICompatConfig(ctx)
-	hasLLM := hasAnthropic || hasOpenAI
+	_, hasOpenAI := s.providers.OpenAIConfig(ctx)
+	_, hasOpenAICompat := s.providers.OpenAICompatConfig(ctx)
+	hasLLM := hasAnthropic || hasOpenAI || hasOpenAICompat
 
 	var prefCount int
 	_ = s.db.Pool.QueryRow(ctx,

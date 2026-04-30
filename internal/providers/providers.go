@@ -24,6 +24,7 @@ type Kind string
 
 const (
 	KindAnthropic    Kind = "anthropic"
+	KindOpenAI       Kind = "openai"
 	KindOpenAICompat Kind = "openai_compat"
 	KindWillys       Kind = "willys"
 )
@@ -57,6 +58,8 @@ type FieldOption struct {
 // exists yet or the stored value is empty. Kept as a const so agent code can
 // reference it without duplicating the string.
 const DefaultAnthropicModel = "claude-sonnet-4-6"
+const DefaultOpenAIModel = "gpt-4o"
+const openAIBaseURL = "https://api.openai.com/v1"
 
 var Known = []KindInfo{
 	{
@@ -75,6 +78,26 @@ var Known = []KindInfo{
 					{Value: "claude-haiku-4-5", Label: "Claude Haiku 4.5 ($, snabbast)"},
 					{Value: "claude-sonnet-4-6", Label: "Claude Sonnet 4.6 ($$, balanserat)"},
 					{Value: "claude-opus-4-7", Label: "Claude Opus 4.7 ($$$, bäst kvalitet)"},
+				},
+			},
+		},
+	},
+	{
+		Kind:        KindOpenAI,
+		Category:    "llm",
+		DisplayName: "OpenAI",
+		Fields: []Field{
+			{Key: "api_key", Label: "API-nyckel", Type: "password", Placeholder: "sk-…", Required: true},
+			{
+				Key:     "model",
+				Label:   "Modell",
+				Type:    "select",
+				Default: DefaultOpenAIModel,
+				Hint:    "GPT-4o rekommenderas. GPT-4.1 har starkare resonering men kostar mer. GPT-4o-mini ar billigast men kan ha problem med komplexa verktygsanrop.",
+				Options: []FieldOption{
+					{Value: "gpt-4o-mini", Label: "GPT-4o mini ($, snabbast)"},
+					{Value: "gpt-4o", Label: "GPT-4o ($$, balanserat)"},
+					{Value: "gpt-4.1", Label: "GPT-4.1 ($$$, bast kvalitet)"},
 				},
 			},
 		},
@@ -387,6 +410,28 @@ func (s *Store) AnthropicModel(ctx context.Context) string {
 		return v
 	}
 	return DefaultAnthropicModel
+}
+
+type OpenAIConfig struct {
+	BaseURL string
+	APIKey  string
+	Model   string
+}
+
+func (s *Store) OpenAIConfig(ctx context.Context) (OpenAIConfig, bool) {
+	p, err := s.Get(ctx, KindOpenAI)
+	if err != nil || !p.Enabled {
+		return OpenAIConfig{}, false
+	}
+	apiKey, _ := p.Config["api_key"].(string)
+	if apiKey == "" {
+		return OpenAIConfig{}, false
+	}
+	model, _ := p.Config["model"].(string)
+	if model == "" {
+		model = DefaultOpenAIModel
+	}
+	return OpenAIConfig{BaseURL: openAIBaseURL, APIKey: apiKey, Model: model}, true
 }
 
 type OpenAICompatConfig struct {

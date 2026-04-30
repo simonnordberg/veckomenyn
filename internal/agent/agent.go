@@ -60,10 +60,9 @@ func New(cfg Config, db *pgxpool.Pool, provStore *providers.Store, shop shopping
 	return a
 }
 
-// resolveProvider builds an LLM provider from the current DB provider config.
+// resolveProvider builds an LLM provider from the first enabled LLM config.
 // Called once per Run so key/config changes in Settings take effect on the
-// next turn without a restart. Anthropic is preferred when configured;
-// OpenAI-compatible is the fallback.
+// next turn without a restart.
 func (a *Agent) resolveProvider(ctx context.Context) (llm.Provider, string, error) {
 	if key := a.providers.AnthropicAPIKey(ctx); key != "" {
 		p, err := llm.NewAnthropic(key)
@@ -71,6 +70,13 @@ func (a *Agent) resolveProvider(ctx context.Context) (llm.Provider, string, erro
 			return nil, "", err
 		}
 		return p, a.providers.AnthropicModel(ctx), nil
+	}
+	if cfg, ok := a.providers.OpenAIConfig(ctx); ok {
+		p, err := llm.NewOpenAI(cfg.BaseURL, cfg.Model, cfg.APIKey)
+		if err != nil {
+			return nil, "", err
+		}
+		return p, cfg.Model, nil
 	}
 	if cfg, ok := a.providers.OpenAICompatConfig(ctx); ok {
 		p, err := llm.NewOpenAI(cfg.BaseURL, cfg.Model, cfg.APIKey)
