@@ -82,39 +82,25 @@ function LLMProviderCard({
 }) {
   const enabledProvider = providers.find((p) => p.enabled && kinds.some((k) => k.kind === p.kind));
   const activeKind = enabledProvider?.kind ?? kinds[0]?.kind ?? "";
-  const selectedInfo = kinds.find((k) => k.kind === activeKind);
-
-  const getProvider = (kind: string) =>
-    providers.find((x) => x.kind === kind) ?? { kind, enabled: false, config: {} };
-
-  const initialConfig = (info: ProviderKindInfo, p: Provider) => {
-    const c = { ...p.config };
-    for (const f of info.fields) {
-      if (f.type === "select" && !c[f.key] && f.default) {
-        c[f.key] = f.default;
-      }
-    }
-    return c;
-  };
-
-  const [config, setConfig] = useState<Record<string, string>>(() =>
-    selectedInfo ? initialConfig(selectedInfo, getProvider(activeKind)) : {},
-  );
-  const [pending, setPending] = useState(false);
+  const [viewKind, setViewKind] = useState(activeKind);
+  const [switching, setSwitching] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   useEffect(() => {
-    if (!selectedInfo) return;
-    const p = getProvider(activeKind);
-    setConfig(initialConfig(selectedInfo, p));
-    setTestResult(null);
-  }, [activeKind, providers]);
+    setViewKind(activeKind);
+  }, [activeKind]);
 
   const switchProvider = async (newKind: string) => {
-    if (pending || newKind === activeKind) return;
-    setPending(true);
+    if (switching || newKind === activeKind) {
+      setViewKind(newKind);
+      return;
+    }
+    setSwitching(true);
+    setTestResult(null);
     try {
+      const getProvider = (kind: string) =>
+        providers.find((x) => x.kind === kind) ?? { kind, enabled: false, config: {} };
       const disableOthers = kinds
         .filter((k) => k.kind !== newKind)
         .map((k) => {
@@ -132,27 +118,7 @@ function LLMProviderCard({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     } finally {
-      setPending(false);
-    }
-  };
-
-  const dirty = (() => {
-    if (!selectedInfo) return false;
-    const p = getProvider(activeKind);
-    return selectedInfo.fields.some((f) => (config[f.key] ?? "") !== (p.config[f.key] ?? ""));
-  })();
-
-  const saveFields = async () => {
-    if (pending || !dirty || !selectedInfo) return;
-    setPending(true);
-    try {
-      await patchProvider(activeKind, { enabled: true, config });
-      toast.success(t("toast.changes_saved"));
-      onSaved();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : String(err));
-    } finally {
-      setPending(false);
+      setSwitching(false);
     }
   };
 
@@ -173,8 +139,6 @@ function LLMProviderCard({
     }
   };
 
-  if (!selectedInfo) return null;
-
   return (
     <article className="rounded-md border border-stone-200 bg-white p-3 dark:border-stone-800 dark:bg-stone-900">
       <h4 className="text-sm font-medium text-stone-900 dark:text-stone-100">
@@ -185,7 +149,7 @@ function LLMProviderCard({
           <button
             key={k.kind}
             type="button"
-            disabled={pending}
+            disabled={switching}
             onClick={() => void switchProvider(k.kind)}
             className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-50 ${
               activeKind === k.kind
@@ -197,14 +161,24 @@ function LLMProviderCard({
           </button>
         ))}
       </div>
-      <div className="mt-3 flex flex-col gap-2">
-        <FieldList
-          fields={selectedInfo.fields}
-          config={config}
-          sentinel={sentinel}
-          onChange={(key, val) => setConfig((c) => ({ ...c, [key]: val }))}
-        />
-      </div>
+      {kinds.map((info) => {
+        const p = providers.find((x) => x.kind === info.kind) ?? {
+          kind: info.kind,
+          enabled: false,
+          config: {},
+        };
+        return (
+          <LLMProviderFields
+            key={info.kind}
+            info={info}
+            provider={p}
+            sentinel={sentinel}
+            visible={viewKind === info.kind}
+            isActive={activeKind === info.kind}
+            onSaved={onSaved}
+          />
+        );
+      })}
       {testResult && (
         <div
           className={`mt-2 rounded-md border px-3 py-2 text-xs ${
@@ -216,27 +190,93 @@ function LLMProviderCard({
           {testResult.message}
         </div>
       )}
-      <div className="mt-3 flex items-center justify-end gap-2">
-        {!dirty && (
+      {activeKind === viewKind && (
+        <div className="mt-2 flex justify-end">
           <button
             type="button"
             onClick={() => void runTest()}
-            disabled={testing || pending}
+            disabled={testing || switching}
             className="rounded-md border border-stone-300 px-3 py-1 text-xs font-medium text-stone-700 shadow-sm hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800"
           >
             {testing ? t("provider.testing") : t("provider.test")}
           </button>
-        )}
-        <button
-          type="button"
-          onClick={() => void saveFields()}
-          disabled={pending || !dirty}
-          className="rounded-md bg-stone-900 px-3 py-1 text-xs font-medium text-stone-50 shadow-sm hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
-        >
-          {pending ? t("settings.saving") : t("settings.save")}
-        </button>
-      </div>
+        </div>
+      )}
     </article>
+  );
+}
+
+function LLMProviderFields({
+  info,
+  provider,
+  sentinel,
+  visible,
+  isActive,
+  onSaved,
+}: {
+  info: ProviderKindInfo;
+  provider: Provider;
+  sentinel: string;
+  visible: boolean;
+  isActive: boolean;
+  onSaved: () => void;
+}) {
+  const initialConfig = (p: Provider) => {
+    const c = { ...p.config };
+    for (const f of info.fields) {
+      if (f.type === "select" && !c[f.key] && f.default) {
+        c[f.key] = f.default;
+      }
+    }
+    return c;
+  };
+
+  const [config, setConfig] = useState<Record<string, string>>(() => initialConfig(provider));
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    setConfig(initialConfig(provider));
+  }, [provider]);
+
+  const dirty = info.fields.some((f) => (config[f.key] ?? "") !== (provider.config[f.key] ?? ""));
+
+  const save = async () => {
+    if (pending || !dirty) return;
+    setPending(true);
+    try {
+      await patchProvider(info.kind, { enabled: isActive, config });
+      toast.success(t("toast.changes_saved"));
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div className="mt-3 flex flex-col gap-2">
+      <FieldList
+        fields={info.fields}
+        config={config}
+        sentinel={sentinel}
+        onChange={(key, val) => setConfig((c) => ({ ...c, [key]: val }))}
+      />
+      {dirty && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => void save()}
+            disabled={pending}
+            className="rounded-md bg-stone-900 px-3 py-1 text-xs font-medium text-stone-50 shadow-sm hover:bg-stone-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+          >
+            {pending ? t("settings.saving") : t("settings.save")}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
