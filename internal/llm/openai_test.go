@@ -105,8 +105,11 @@ func TestToOpenAITools(t *testing.T) {
 	if len(tools) != 1 {
 		t.Fatalf("len = %d, want 1", len(tools))
 	}
-	if tools[0].Function.Name != "search" {
-		t.Fatalf("name = %q, want search", tools[0].Function.Name)
+	if tools[0].OfFunction == nil {
+		t.Fatal("expected OfFunction to be set")
+	}
+	if tools[0].OfFunction.Function.Name != "search" {
+		t.Fatalf("name = %q, want search", tools[0].OfFunction.Function.Name)
 	}
 }
 

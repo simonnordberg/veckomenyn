@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
-	"github.com/openai/openai-go/shared"
+	openai "github.com/openai/openai-go/v3"
+	"github.com/openai/openai-go/v3/option"
+	"github.com/openai/openai-go/v3/shared"
 )
 
 type OpenAIProvider struct {
@@ -127,18 +127,20 @@ func toOpenAIMessages(system []SystemBlock, msgs []Message) []openai.ChatComplet
 				}
 			}
 		case RoleAssistant:
-			var toolCalls []openai.ChatCompletionMessageToolCallParam
+			var toolCalls []openai.ChatCompletionMessageToolCallUnionParam
 			var text string
 			for _, b := range m.Content {
 				switch b.Type {
 				case "text":
 					text += b.Text
 				case "tool_use":
-					toolCalls = append(toolCalls, openai.ChatCompletionMessageToolCallParam{
-						ID: b.ToolID,
-						Function: openai.ChatCompletionMessageToolCallFunctionParam{
-							Name:      b.ToolName,
-							Arguments: string(b.ToolInput),
+					toolCalls = append(toolCalls, openai.ChatCompletionMessageToolCallUnionParam{
+						OfFunction: &openai.ChatCompletionMessageFunctionToolCallParam{
+							ID: b.ToolID,
+							Function: openai.ChatCompletionMessageFunctionToolCallFunctionParam{
+								Name:      b.ToolName,
+								Arguments: string(b.ToolInput),
+							},
 						},
 					})
 				}
@@ -160,11 +162,11 @@ func toOpenAIMessages(system []SystemBlock, msgs []Message) []openai.ChatComplet
 	return out
 }
 
-func toOpenAITools(defs []ToolDef) []openai.ChatCompletionToolParam {
+func toOpenAITools(defs []ToolDef) []openai.ChatCompletionToolUnionParam {
 	if len(defs) == 0 {
 		return nil
 	}
-	out := make([]openai.ChatCompletionToolParam, len(defs))
+	out := make([]openai.ChatCompletionToolUnionParam, len(defs))
 	for i, td := range defs {
 		params := shared.FunctionParameters{
 			"type":       "object",
@@ -173,12 +175,13 @@ func toOpenAITools(defs []ToolDef) []openai.ChatCompletionToolParam {
 		if len(td.InputSchema.Required) > 0 {
 			params["required"] = td.InputSchema.Required
 		}
-		out[i] = openai.ChatCompletionToolParam{
-			Type: "function",
-			Function: shared.FunctionDefinitionParam{
-				Name:        td.Name,
-				Description: openai.String(td.Description),
-				Parameters:  params,
+		out[i] = openai.ChatCompletionToolUnionParam{
+			OfFunction: &openai.ChatCompletionFunctionToolParam{
+				Function: shared.FunctionDefinitionParam{
+					Name:        td.Name,
+					Description: openai.String(td.Description),
+					Parameters:  params,
+				},
 			},
 		}
 	}
