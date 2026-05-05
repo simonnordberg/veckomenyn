@@ -4,10 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -105,10 +107,22 @@ func TestListDishesRecent_excludesCurrentWeek(t *testing.T) {
 	pastDish := seedDish(t, pool, "Pasta carbonara")
 	currentDish := seedDish(t, pool, "Tikka masala")
 
-	// Past week: 2 weeks ago, fully eaten.
-	seedWeek(t, pool, "2026-W15", "2026-04-06", "2026-04-12", pastDish)
-	// Current week: this is the plan being edited.
-	currentWeekID := seedWeek(t, pool, "2026-W17", "2026-04-21", "2026-04-27", currentDish)
+	now := time.Now()
+	pastStart := now.AddDate(0, 0, -14)
+	currentStart := now.AddDate(0, 0, -7)
+	pastISOYear, pastISOWeek := pastStart.ISOWeek()
+	currentISOYear, currentISOWeek := currentStart.ISOWeek()
+
+	seedWeek(t, pool,
+		fmt.Sprintf("%d-W%02d", pastISOYear, pastISOWeek),
+		pastStart.Format("2006-01-02"),
+		pastStart.AddDate(0, 0, 6).Format("2006-01-02"),
+		pastDish)
+	currentWeekID := seedWeek(t, pool,
+		fmt.Sprintf("%d-W%02d", currentISOYear, currentISOWeek),
+		currentStart.Format("2006-01-02"),
+		currentStart.AddDate(0, 0, 6).Format("2006-01-02"),
+		currentDish)
 
 	tool := listDishesRecentTool(pool)
 	input := json.RawMessage(`{"weeks": 4}`)
