@@ -9,9 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anthropics/anthropic-sdk-go"
-
 	"github.com/simonnordberg/veckomenyn/internal/agent"
+	"github.com/simonnordberg/veckomenyn/internal/llm"
 )
 
 type chatRequest struct {
@@ -103,7 +102,7 @@ func (s *Server) handleChat(w http.ResponseWriter, r *http.Request) {
 // calls made in prior turns are intentionally dropped; the agent re-reads
 // current state via tools each turn, so the history only needs user/assistant
 // text for context.
-func (s *Server) loadHistory(ctx context.Context, convID int64) ([]anthropic.MessageParam, error) {
+func (s *Server) loadHistory(ctx context.Context, convID int64) ([]llm.Message, error) {
 	rows, err := s.db.Pool.Query(ctx, `
 		SELECT role, content_json
 		FROM messages
@@ -114,7 +113,7 @@ func (s *Server) loadHistory(ctx context.Context, convID int64) ([]anthropic.Mes
 	}
 	defer rows.Close()
 
-	var out []anthropic.MessageParam
+	var out []llm.Message
 	for rows.Next() {
 		var role string
 		var raw []byte
@@ -130,9 +129,9 @@ func (s *Server) loadHistory(ctx context.Context, convID int64) ([]anthropic.Mes
 		}
 		switch role {
 		case "user":
-			out = append(out, anthropic.NewUserMessage(anthropic.NewTextBlock(text)))
+			out = append(out, llm.NewUserMessage(llm.TextBlock(text)))
 		case "assistant":
-			out = append(out, anthropic.NewAssistantMessage(anthropic.NewTextBlock(text)))
+			out = append(out, llm.NewAssistantMessage(llm.TextBlock(text)))
 		}
 	}
 	return out, rows.Err()

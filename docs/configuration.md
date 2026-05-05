@@ -1,6 +1,34 @@
 # Configuration
 
-Env vars only cover what the binary needs before the UI loads. Anthropic model, store credentials, household defaults, and backup schedule all live in Settings.
+Env vars only cover what the binary needs before the UI loads. LLM provider, model selection, store credentials, household defaults, and backup schedule all live in Settings.
+
+## LLM providers
+
+Configured in **Settings > Integrations**. One LLM provider is active at a time. Tab buttons switch the active provider; each provider's fields (API keys, model selection) are saved independently.
+
+### Anthropic
+
+Requires an API key from [console.anthropic.com](https://console.anthropic.com/settings/keys). Model selection via dropdown: Haiku 4.5, Sonnet 4.6, Opus 4.7. Prompt caching is used automatically to reduce costs on multi-turn tool loops.
+
+### OpenAI
+
+Requires an API key from [platform.openai.com](https://platform.openai.com/api-keys). Model selection via dropdown: GPT-4.1 (nano/mini/full) and GPT-5 (mini/full).
+
+### OpenAI-compatible (local/other)
+
+For llama.cpp, Ollama, or any endpoint that serves the OpenAI chat completions API. Fields:
+
+- **Base URL**: the `/v1` endpoint, e.g. `http://127.0.0.1:8082/v1`. Use `127.0.0.1` instead of `localhost` if the server only binds IPv4.
+- **API key**: optional. Leave empty for local backends.
+- **Model**: the model name the backend expects, e.g. `gemma-4-26B-A4B-APEX-I-Balanced.gguf`.
+
+**Note on reasoning models**: models that use internal chain-of-thought (Gemma APEX, OpenAI o-series) consume tokens on reasoning before producing visible output. The UI will show a pause before text streams in. This is normal.
+
+### Test connection
+
+After saving provider config, use the **Test connection** button to verify the endpoint responds. It sends a minimal completion and shows the model's reply.
+
+## Environment variables
 
 | Var | Purpose |
 |---|---|

@@ -213,6 +213,31 @@ export const en: Record<string, string> = {
   "integrations.category_shopping": "Shopping provider",
   "integrations.secret_set_hint": "Stored. Type a new value to replace it.",
 
+  // Provider fields
+  "provider.api_key": "API key",
+  "provider.model": "Model",
+  "provider.password": "Password",
+  "provider.anthropic.name": "Anthropic",
+  "provider.anthropic.model_hint":
+    "Sonnet 4.6 is the balanced default. Haiku is ~5x cheaper but weaker at creative meal planning. Opus is ~3-5x more expensive but better with complex preferences.",
+  "provider.anthropic.haiku": "Claude Haiku 4.5 ($1/$5, fastest)",
+  "provider.anthropic.sonnet": "Claude Sonnet 4.6 ($3/$15, balanced)",
+  "provider.anthropic.opus": "Claude Opus 4.7 ($15/$75, best quality)",
+  "provider.openai.name": "OpenAI",
+  "provider.openai.model_hint":
+    "GPT-5.4 is the latest flagship. GPT-5.1 is cheaper with good quality. GPT-4.1 is fastest and cheapest.",
+  "provider.openai_compat.name": "OpenAI-compatible (local/other)",
+  "provider.openai_compat.base_url": "API base URL",
+  "provider.openai_compat.base_url_hint":
+    "Base URL for an OpenAI-compatible API (llama.cpp, Ollama, etc.).",
+  "provider.openai_compat.api_key_hint":
+    "Leave empty for local backends that don't require authentication.",
+  "provider.openai_compat.model_hint": "Model name as the backend expects it.",
+  "provider.willys.username": "Username (YYYYMMDDNNNN)",
+  "provider.test": "Test connection",
+  "provider.testing": "Testing...",
+  "provider.test_unknown_error": "Unknown error",
+
   // Preferences modal (new + body placeholder)
   "prefs.new_category_placeholder": "e.g. allergies",
   "prefs.body_placeholder": "# Heading\n\nMarkdown body…",

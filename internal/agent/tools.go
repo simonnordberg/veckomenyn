@@ -7,10 +7,10 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/simonnordberg/veckomenyn/internal/llm"
 	"github.com/simonnordberg/veckomenyn/internal/shopping"
 	"github.com/simonnordberg/veckomenyn/internal/store"
 )
@@ -18,7 +18,7 @@ import (
 // Tool is the interface every agent tool implements.
 type Tool interface {
 	Name() string
-	Def() anthropic.ToolParam
+	Def() llm.ToolDef
 	Call(ctx context.Context, input json.RawMessage) (string, error)
 }
 
@@ -26,25 +26,25 @@ type Tool interface {
 // definition stays inline with its handler.
 type simpleTool struct {
 	name string
-	def  anthropic.ToolParam
+	def  llm.ToolDef
 	fn   func(ctx context.Context, input json.RawMessage) (string, error)
 }
 
 func (t *simpleTool) Name() string                                              { return t.name }
-func (t *simpleTool) Def() anthropic.ToolParam                                  { return t.def }
+func (t *simpleTool) Def() llm.ToolDef                                          { return t.def }
 func (t *simpleTool) Call(c context.Context, i json.RawMessage) (string, error) { return t.fn(c, i) }
 
 func newTool(name, desc string, props map[string]any, required []string,
 	fn func(ctx context.Context, input json.RawMessage) (string, error)) Tool {
-	schema := anthropic.ToolInputSchemaParam{Properties: props}
+	schema := llm.ToolSchema{Properties: props}
 	if len(required) > 0 {
 		schema.Required = required
 	}
 	return &simpleTool{
 		name: name,
-		def: anthropic.ToolParam{
+		def: llm.ToolDef{
 			Name:        name,
-			Description: anthropic.String(desc),
+			Description: desc,
 			InputSchema: schema,
 		},
 		fn: fn,

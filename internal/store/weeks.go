@@ -84,10 +84,11 @@ func UpdateWeek(ctx context.Context, db Execer, id int64, u WeekUpdate) (int64, 
 // HouseholdSettings is the singleton defaults row.
 type HouseholdSettings struct {
 	DefaultDinners         int    `json:"default_dinners"`
-	DefaultDeliveryWeekday int    `json:"default_delivery_weekday"` // 1 = Mon … 7 = Sun
+	DefaultDeliveryWeekday int    `json:"default_delivery_weekday"` // 1 = Mon ... 7 = Sun
 	DefaultOrderOffsetDays int    `json:"default_order_offset_days"`
 	DefaultServings        int    `json:"default_servings"`
-	Language               string `json:"language"` // "sv" | "en"
+	Language               string `json:"language"`     // "sv" | "en"
+	LLMProvider            string `json:"llm_provider"` // "anthropic" | "openai" | "openai_compat"
 	NotesMD                string `json:"notes_md"`
 }
 
@@ -95,10 +96,10 @@ func GetHouseholdSettings(ctx context.Context, pool *pgxpool.Pool) (HouseholdSet
 	var s HouseholdSettings
 	err := pool.QueryRow(ctx, `
 		SELECT default_dinners, default_delivery_weekday, default_order_offset_days,
-		       default_servings, language, notes_md
+		       default_servings, language, llm_provider, notes_md
 		FROM household_settings WHERE id = 1`).
 		Scan(&s.DefaultDinners, &s.DefaultDeliveryWeekday, &s.DefaultOrderOffsetDays,
-			&s.DefaultServings, &s.Language, &s.NotesMD)
+			&s.DefaultServings, &s.Language, &s.LLMProvider, &s.NotesMD)
 	return s, err
 }
 
@@ -109,6 +110,7 @@ type HouseholdSettingsUpdate struct {
 	DefaultOrderOffsetDays *int
 	DefaultServings        *int
 	Language               *string
+	LLMProvider            *string
 	NotesMD                *string
 }
 
@@ -135,6 +137,9 @@ func UpdateHouseholdSettings(ctx context.Context, pool *pgxpool.Pool, u Househol
 	}
 	if u.Language != nil {
 		add("language", *u.Language)
+	}
+	if u.LLMProvider != nil {
+		add("llm_provider", *u.LLMProvider)
 	}
 	if u.NotesMD != nil {
 		add("notes_md", *u.NotesMD)

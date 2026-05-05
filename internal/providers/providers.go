@@ -23,8 +23,10 @@ import (
 type Kind string
 
 const (
-	KindAnthropic Kind = "anthropic"
-	KindWillys    Kind = "willys"
+	KindAnthropic    Kind = "anthropic"
+	KindOpenAI       Kind = "openai"
+	KindOpenAICompat Kind = "openai_compat"
+	KindWillys       Kind = "willys"
 )
 
 // Known tracks the set of provider kinds the app knows about, plus human
@@ -56,26 +58,62 @@ type FieldOption struct {
 // exists yet or the stored value is empty. Kept as a const so agent code can
 // reference it without duplicating the string.
 const DefaultAnthropicModel = "claude-sonnet-4-6"
+const DefaultOpenAIModel = "gpt-5.4"
+const openAIBaseURL = "https://api.openai.com/v1"
 
 var Known = []KindInfo{
 	{
 		Kind:        KindAnthropic,
 		Category:    "llm",
-		DisplayName: "Anthropic",
+		DisplayName: "provider.anthropic.name",
 		Fields: []Field{
-			{Key: "api_key", Label: "API-nyckel", Type: "password", Placeholder: "sk-ant-…", Required: true},
+			{Key: "api_key", Label: "provider.api_key", Type: "password", Placeholder: "sk-ant-…", Required: true},
 			{
 				Key:     "model",
-				Label:   "Modell",
+				Label:   "provider.model",
 				Type:    "select",
 				Default: DefaultAnthropicModel,
-				Hint:    "Sonnet 4.6 är det balanserade standardvalet. Haiku är ~5× billigare men svagare på kreativ menyplanering. Opus är ~3–5× dyrare men bättre vid komplexa preferenser eller en riktigt polerad vecka.",
+				Hint:    "provider.anthropic.model_hint",
 				Options: []FieldOption{
-					{Value: "claude-haiku-4-5", Label: "Claude Haiku 4.5 ($, snabbast)"},
-					{Value: "claude-sonnet-4-6", Label: "Claude Sonnet 4.6 ($$, balanserat)"},
-					{Value: "claude-opus-4-7", Label: "Claude Opus 4.7 ($$$, bäst kvalitet)"},
+					{Value: "claude-haiku-4-5", Label: "provider.anthropic.haiku"},
+					{Value: "claude-sonnet-4-6", Label: "provider.anthropic.sonnet"},
+					{Value: "claude-opus-4-7", Label: "provider.anthropic.opus"},
 				},
 			},
+		},
+	},
+	{
+		Kind:        KindOpenAI,
+		Category:    "llm",
+		DisplayName: "provider.openai.name",
+		Fields: []Field{
+			{Key: "api_key", Label: "provider.api_key", Type: "password", Placeholder: "sk-…", Required: true},
+			{
+				Key:     "model",
+				Label:   "provider.model",
+				Type:    "select",
+				Default: DefaultOpenAIModel,
+				Hint:    "provider.openai.model_hint",
+				Options: []FieldOption{
+					{Value: "gpt-4.1-nano", Label: "GPT-4.1 Nano ($0.10/$0.40)"},
+					{Value: "gpt-4.1-mini", Label: "GPT-4.1 Mini ($0.40/$1.60)"},
+					{Value: "gpt-5.4-nano", Label: "GPT-5.4 Nano ($0.20/$1.25)"},
+					{Value: "gpt-5.4-mini", Label: "GPT-5.4 Mini ($0.75/$4.50)"},
+					{Value: "gpt-4.1", Label: "GPT-4.1 ($2/$8)"},
+					{Value: "gpt-5.1", Label: "GPT-5.1 ($1.25/$10)"},
+					{Value: "gpt-5.4", Label: "GPT-5.4 ($2.50/$15)"},
+				},
+			},
+		},
+	},
+	{
+		Kind:        KindOpenAICompat,
+		Category:    "llm",
+		DisplayName: "provider.openai_compat.name",
+		Fields: []Field{
+			{Key: "base_url", Label: "provider.openai_compat.base_url", Type: "text", Placeholder: "http://localhost:11434/v1", Required: true, Hint: "provider.openai_compat.base_url_hint"},
+			{Key: "api_key", Label: "provider.api_key", Type: "password", Hint: "provider.openai_compat.api_key_hint"},
+			{Key: "model", Label: "provider.model", Type: "text", Placeholder: "llama3.1:8b", Required: true, Hint: "provider.openai_compat.model_hint"},
 		},
 	},
 	{
@@ -83,8 +121,8 @@ var Known = []KindInfo{
 		Category:    "shopping",
 		DisplayName: "Willys",
 		Fields: []Field{
-			{Key: "username", Label: "Användarnamn (YYYYMMDDNNNN)", Type: "text", Required: true},
-			{Key: "password", Label: "Lösenord", Type: "password", Required: true},
+			{Key: "username", Label: "provider.willys.username", Type: "text", Required: true},
+			{Key: "password", Label: "provider.password", Type: "password", Required: true},
 		},
 	},
 }
@@ -356,7 +394,7 @@ func (s *Store) Upsert(ctx context.Context, kind Kind, patch UpsertPatch) (*Prov
 // "not configured yet, show a Settings pointer".
 func (s *Store) AnthropicAPIKey(ctx context.Context) string {
 	p, err := s.Get(ctx, KindAnthropic)
-	if err != nil || !p.Enabled {
+	if err != nil {
 		return ""
 	}
 	if v, ok := p.Config["api_key"].(string); ok {
@@ -376,6 +414,48 @@ func (s *Store) AnthropicModel(ctx context.Context) string {
 		return v
 	}
 	return DefaultAnthropicModel
+}
+
+type OpenAIConfig struct {
+	BaseURL string
+	APIKey  string
+	Model   string
+}
+
+func (s *Store) OpenAIConfig(ctx context.Context) (OpenAIConfig, bool) {
+	p, err := s.Get(ctx, KindOpenAI)
+	if err != nil {
+		return OpenAIConfig{}, false
+	}
+	apiKey, _ := p.Config["api_key"].(string)
+	if apiKey == "" {
+		return OpenAIConfig{}, false
+	}
+	model, _ := p.Config["model"].(string)
+	if model == "" {
+		model = DefaultOpenAIModel
+	}
+	return OpenAIConfig{BaseURL: openAIBaseURL, APIKey: apiKey, Model: model}, true
+}
+
+type OpenAICompatConfig struct {
+	BaseURL string
+	APIKey  string
+	Model   string
+}
+
+func (s *Store) OpenAICompatConfig(ctx context.Context) (OpenAICompatConfig, bool) {
+	p, err := s.Get(ctx, KindOpenAICompat)
+	if err != nil {
+		return OpenAICompatConfig{}, false
+	}
+	baseURL, _ := p.Config["base_url"].(string)
+	model, _ := p.Config["model"].(string)
+	if baseURL == "" || model == "" {
+		return OpenAICompatConfig{}, false
+	}
+	apiKey, _ := p.Config["api_key"].(string)
+	return OpenAICompatConfig{BaseURL: baseURL, APIKey: apiKey, Model: model}, true
 }
 
 type WillysCreds struct {

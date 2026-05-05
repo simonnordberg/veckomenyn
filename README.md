@@ -6,9 +6,9 @@
 
 ---
 
-A Claude agent plans your family's week of dinners and builds the grocery cart. Self-hosted. It learns what's in the fridge, which kid won't eat cilantro, which store brands you trust.
+An AI agent plans your family's week of dinners and builds the grocery cart. Self-hosted. It learns what's in the fridge, which kid won't eat cilantro, which store brands you trust.
 
-Shopping backends are pluggable. Willys.se ships today.
+LLM backends are pluggable: Anthropic (Claude), OpenAI (GPT), or any OpenAI-compatible endpoint (llama.cpp, Ollama, etc.). Shopping backends are pluggable too. Willys.se ships today.
 
 ## The loop
 
@@ -46,7 +46,8 @@ Shopping backends are pluggable. Willys.se ships today.
 cmd/
   veckomenyn/       HTTP server + embedded SPA. Main binary.
 internal/
-  agent/            Claude agent. System prompt, tools, streaming loop.
+  agent/            Agent loop. System prompt, tools, streaming. Provider-agnostic.
+  llm/              LLM provider interface. Anthropic, OpenAI, OpenAI-compatible backends.
   willys/           Willys.se HTTP client.
   shopping/         Store-agnostic Provider interface. Willys adapter.
   providers/        Registry for LLM and shopping backends. AES-GCM at rest.

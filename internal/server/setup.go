@@ -4,32 +4,37 @@ import (
 	"net/http"
 
 	"github.com/simonnordberg/veckomenyn/internal/seed"
+	"github.com/simonnordberg/veckomenyn/internal/store"
 )
 
 // setupStatusDTO drives the first-run wizard. setup_complete flips to true
-// the moment an Anthropic key is configured. Households can be added later
-// via the regular UI; we don't gate on them.
+// the moment an LLM provider has been selected and its config saved.
 type setupStatusDTO struct {
 	SetupComplete    bool `json:"setup_complete"`
-	HasAnthropicKey  bool `json:"has_anthropic_key"`
+	HasLLMProvider   bool `json:"has_llm_provider"`
 	HasPreferences   bool `json:"has_preferences"`
 	HasFamilyMembers bool `json:"has_family_members"`
 }
 
 func (s *Server) handleGetSetupStatus(w http.ResponseWriter, r *http.Request) {
-	hasKey := s.providers.AnthropicAPIKey(r.Context()) != ""
+	ctx := r.Context()
+
+	hasLLM := false
+	if hs, err := store.GetHouseholdSettings(ctx, s.db.Pool); err == nil && hs.LLMProvider != "" {
+		hasLLM = true
+	}
 
 	var prefCount int
-	_ = s.db.Pool.QueryRow(r.Context(),
+	_ = s.db.Pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM cooking_principles`).Scan(&prefCount)
 
 	var familyCount int
-	_ = s.db.Pool.QueryRow(r.Context(),
+	_ = s.db.Pool.QueryRow(ctx,
 		`SELECT COUNT(*) FROM family_members`).Scan(&familyCount)
 
 	writeJSON(w, http.StatusOK, setupStatusDTO{
-		SetupComplete:    hasKey,
-		HasAnthropicKey:  hasKey,
+		SetupComplete:    hasLLM,
+		HasLLMProvider:   hasLLM,
 		HasPreferences:   prefCount > 0,
 		HasFamilyMembers: familyCount > 0,
 	})
