@@ -3,12 +3,12 @@ module github.com/simonnordberg/veckomenyn
 go 1.25.7
 
 require (
-	github.com/anthropics/anthropic-sdk-go v1.38.0
+	github.com/anthropics/anthropic-sdk-go v1.41.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/httprate v0.15.0
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
-	github.com/openai/openai-go/v3 v3.33.0
+	github.com/openai/openai-go/v3 v3.34.0
 	github.com/pressly/goose/v3 v3.27.1
 	golang.org/x/crypto v0.50.0
 )
@@ -26,6 +26,7 @@ require (
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
+	github.com/standard-webhooks/standard-webhooks/libraries v0.0.0-20260427160145-3afa6683f8b2 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
