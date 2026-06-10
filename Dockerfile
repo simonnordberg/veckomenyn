@@ -6,7 +6,7 @@
 # Actions runners.
 
 # ---- Web frontend ---------------------------------------------------------
-FROM node:24-alpine AS web
+FROM node:26-alpine AS web
 WORKDIR /app/web
 RUN corepack enable pnpm
 COPY web/package.json web/pnpm-lock.yaml ./
@@ -40,7 +40,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath \
         -o /out/veckomenyn ./cmd/veckomenyn
 
 # ---- Runtime --------------------------------------------------------------
-FROM alpine:3.23
+FROM alpine:3.24
 # postgresql17-client gives us pg_dump for the in-process pre-migration
 # snapshot. Pin major to match docker-compose.yml's db service — clients
 # newer than the server work, but the major must match what the data was
