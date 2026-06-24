@@ -11,7 +11,7 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Validate compose channel matches tag
         # The repo's docker-compose.yml is the recommended starting point
         # for new users, so it must reference the current minor's patch
@@ -66,7 +66,7 @@ jobs:
     needs: docker
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: softprops/action-gh-release@v3
